@@ -1,11 +1,16 @@
-# DungeonZ
-DungeonZ is a mod which adds the basement for creating explorable dungeons.
+# DungeonZ - Bleak Isles Edition
+DungeonZ - BIE is a fork from DungeonZ mod which adds the basement for creating explorable dungeons.
+
+What are the differences with DungeonZ?
+- Feature: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing.
+- Content: Temple dungeon made by xeven (originally in DungeonZ 1.21.1)
+- Content: [Desert dungeon made by D1scoball](https://www.curseforge.com/minecraft/mc-mods/desert-dungeon-dungeonz-addon)
 
 ### Installation
 DungeonZ is a mod built for the [Fabric Loader](https://fabricmc.net/). It requires [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api) and [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config) to be installed separately; all other dependencies are installed with the mod.
 
 ### License
-DungeonZ is licensed under MIT.
+DungeonZ - BIE is licensed under MIT.
 
 ### Datapacks
 If you don't know how to create a datapack check out [Data Pack Wiki](https://minecraft.fandom.com/wiki/Data_Pack) website and try to create your first one for the vanilla game.
@@ -16,22 +21,30 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "dungeon_type": "dark_dungeon", // unique dungeon id, create a lang file in a resource pack "dungeon.unique_id" to have proper translation
     "difficulty": { // set difficulties here, can be any name but have to get translated with a resource pack if you don't use "easy","normal","hard" or "extreme"
         "easy": {
-            "mob_modificator": 1.0, // modificator to increase mob strength
+            "mob_health_modificator": 1.0, // modificator to increase mob base health
+            "mob_damage_modificator": 1.0, // modificator to increase mob base attack damage
+            "mob_protection_modificator": 1.0, // modificator to increase mob base armor
             "loot_table_ids": [ // a list of different loot tables chests and barrels will get filled with
                 "dungeonz:chests/dark_dungeon_low_tier_chest_loot",
                 "dungeonz:chests/dark_dungeon_mid_tier_chest_loot"
             ],
-            "boss_modificator": 1.0,
+            "boss_health_modificator": 1.0, // modificator to increase boss base health
+            "boss_damage_modificator": 1.0, // modificator to increase boss base attack damage
+            "boss_protection_modificator": 1.0, // modificator to increase boss base armor
             "boss_loot_table_id": "dungeonz:chests/dark_dungeon_easy_boss_loot"
         },
         "normal": {
-            "mob_modificator": 1.5,
+            "mob_health_modificator": 1.5, // modificator to increase mob base health
+            "mob_damage_modificator": 1.5, // modificator to increase mob base attack damage
+            "mob_protection_modificator": 1.5, // modificator to increase mob base armor
             "loot_table_ids": [
                 "dungeonz:chests/dark_dungeon_low_tier_chest_loot",
                 "dungeonz:chests/dark_dungeon_mid_tier_chest_loot",
                 "dungeonz:chests/dark_dungeon_high_tier_chest_loot"
             ],
-            "boss_modificator": 2.0,
+            "boss_health_modificator": 2.0, // modificator to increase boss base health
+            "boss_damage_modificator": 2.0, // modificator to increase boss base attack damage
+            "boss_protection_modificator": 2.0, // modificator to increase boss base armor
             "boss_loot_table_id": "dungeonz:chests/dark_dungeon_normal_boss_loot"
         }
     },
@@ -81,8 +94,8 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "required": { // Items which get consumed after joining the dungeon
         "minecraft:stick": 3
     },
-    "respawn": false,
-    "elytra": false,
+    "respawn": false, // optional: is respawn allowed?
+    "elytra": false, // is Elytra usage allowed?
     "max_group_size": 5,
     "min_group_size": 0, // optional
     "cooldown": 108000, // Cooldown after the dungeon is completed or failed in ticks
