@@ -374,18 +374,27 @@ public class DungeonPlacementHandler {
         if (hasAttackDamageAttribute) {
             mobDamage = mobEntity.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
         }
+
         if (hasArmorAttribute) {
             mobProtection = mobEntity.getAttributeValue(EntityAttributes.GENERIC_ARMOR);
         }
-        float strengthFactor = 0.0f;
+
+        float healthFactor = 0.0f;
+        float damageFactor = 0.0f;
+        float protectionFactor = 0.0f;
         if (isBossEntity) {
-            strengthFactor = dungeon.getDifficultyBossModificatorMap().get(difficulty);
+            healthFactor = dungeon.getDifficultyBossHealthModificatorMap().get(difficulty);
+            damageFactor = dungeon.getDifficultyBossDamageModificatorMap().get(difficulty);
+            protectionFactor = dungeon.getDifficultyBossProtectionModificatorMap().get(difficulty);
         } else {
-            strengthFactor = dungeon.getDifficultyMobModificatorMap().get(difficulty);
+            healthFactor = dungeon.getDifficultyMobHealthModificatorMap().get(difficulty);
+            damageFactor = dungeon.getDifficultyBossDamageModificatorMap().get(difficulty);
+            protectionFactor = dungeon.getDifficultyMobProtectionModificatorMap().get(difficulty);
         }
-        mobHealth *= strengthFactor;
-        mobDamage *= strengthFactor;
-        mobProtection *= strengthFactor;
+
+        mobHealth *= healthFactor;
+        mobDamage *= damageFactor;
+        mobProtection *= protectionFactor;
 
         // round factor
         mobHealth = Math.round(mobHealth * 100.0D) / 100.0D;
@@ -402,7 +411,7 @@ public class DungeonPlacementHandler {
             mobEntity.getAttributeInstance(EntityAttributes.GENERIC_ARMOR).setBaseValue(mobProtection);
         }
         if (DungeonzMain.isRpgDifficultyLoaded) {
-            MobStrengthener.setMobHealthMultiplier(mobEntity, strengthFactor);
+            MobStrengthener.setMobHealthMultiplier(mobEntity, healthFactor);
         }
 
     }

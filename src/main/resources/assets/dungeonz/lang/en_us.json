@@ -19,6 +19,8 @@
     "dungeon.task.leave": "Leave",
     "dungeon.ruin_dungeon": "Ruin Dungeon",
     "dungeon.dark_dungeon": "Dark Dungeon",
+	"dungeon.desert_dungeon": "Desert Dungeon",
+	"dungeon.temple_dungeon": "Temple Dungeon",
 
     "text.dungeonz.possible": "Possible Loot",
     "text.dungeonz.required": "Required Items",

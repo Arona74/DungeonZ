@@ -56,9 +56,13 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 JsonObject difficultyObject = data.get("difficulty").getAsJsonObject();
                 Iterator<String> difficultyIterator = difficultyObject.keySet().iterator();
 
-                HashMap<String, Float> difficultyMobModificator = new HashMap<String, Float>();
+                HashMap<String, Float> difficultyMobHealthModificator = new HashMap<String, Float>();
+                HashMap<String, Float> difficultyMobDamageModificator = new HashMap<String, Float>();
+                HashMap<String, Float> difficultyMobProtectionModificator = new HashMap<String, Float>();
                 HashMap<String, List<String>> difficultyLootTableIds = new HashMap<String, List<String>>();
-                HashMap<String, Float> difficultyBossModificator = new HashMap<String, Float>();
+                HashMap<String, Float> difficultyBossHealthModificator = new HashMap<String, Float>();
+                HashMap<String, Float> difficultyBossDamageModificator = new HashMap<String, Float>();
+                HashMap<String, Float> difficultyBossProtectionModificator = new HashMap<String, Float>();
                 HashMap<String, String> difficultyBossLootTable = new HashMap<String, String>();
 
                 while (difficultyIterator.hasNext()) {
@@ -66,13 +70,17 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                     difficulties.add(difficulty);
                     JsonObject specificDifficultyObject = difficultyObject.get(difficulty).getAsJsonObject();
 
-                    difficultyMobModificator.put(difficulty, specificDifficultyObject.get("mob_modificator").getAsFloat());
+                    difficultyMobHealthModificator.put(difficulty, specificDifficultyObject.get("mob_health_modificator").getAsFloat());
+                    difficultyMobDamageModificator.put(difficulty, specificDifficultyObject.get("mob_damage_modificator").getAsFloat());
+                    difficultyMobProtectionModificator.put(difficulty, specificDifficultyObject.get("mob_protection_modificator").getAsFloat());
                     List<String> lootTableIds = new ArrayList<String>();
                     for (int i = 0; i < specificDifficultyObject.get("loot_table_ids").getAsJsonArray().size(); i++) {
                         lootTableIds.add(specificDifficultyObject.get("loot_table_ids").getAsJsonArray().get(i).getAsString());
                     }
                     difficultyLootTableIds.put(difficulty, lootTableIds);
-                    difficultyBossModificator.put(difficulty, specificDifficultyObject.get("boss_modificator").getAsFloat());
+                    difficultyBossHealthModificator.put(difficulty, specificDifficultyObject.get("boss_health_modificator").getAsFloat());
+                    difficultyBossDamageModificator.put(difficulty, specificDifficultyObject.get("boss_damage_modificator").getAsFloat());
+                    difficultyBossProtectionModificator.put(difficulty, specificDifficultyObject.get("boss_protection_modificator").getAsFloat());
                     difficultyBossLootTable.put(difficulty, specificDifficultyObject.get("boss_loot_table_id").getAsString());
                 }
 
@@ -202,7 +210,8 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 }
 
                 Dungeon.addDungeon(new Dungeon(dungeonTypeId, blockIdEntityMap, blockIdEntitySpawnChance, blockIdBlockReplacement, spawnerEntityIdCountMap, requiredItemCountMap, breakableBlockIds,
-                        placeableBlockIds, difficultyMobModificator, difficultyLootTableIds, difficultyBossModificator, difficultyBossLootTable, bossEntityType, bossNbtCompound, bossBlockId,
+                        placeableBlockIds, difficultyMobHealthModificator, difficultyMobDamageModificator, difficultyMobProtectionModificator, difficultyLootTableIds, difficultyBossHealthModificator, 
+                        difficultyBossDamageModificator, difficultyBossProtectionModificator, difficultyBossLootTable, bossEntityType, bossNbtCompound, bossBlockId,
                         bossLootBlockId, exitBlockId, allowRespawn, allowElytra, maxGroupSize, minGroupSize, cooldown, dungeonBackgroundId, dungeonStructurePoolId));
             } catch (Exception e) {
                 DungeonzMain.LOGGER.error("Error occurred while loading resource {}. {}", id.toString(), e.toString());

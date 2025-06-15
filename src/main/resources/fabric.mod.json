@@ -2,11 +2,14 @@
   "schemaVersion": 1,
   "id": "dungeonz",
   "version": "${version}",
-  "name": "DungeonZ",
-  "description": "This mod adds the basement for creating and exploring dungeons",
+  "name": "DungeonZ - Bleak Isles Edition",
+  "description": "This mod adds the basement for creating and exploring dungeons, edited by Arona74 for Conquest of the Bleak Isles Modpack",
   "authors": [
     "Globox_Z",
-    "Zura"
+    "Zura",
+    "xeven",
+    "LeDok",
+    "Arona74"
   ],
   "contact": {
     "homepage": "https://www.curseforge.com/minecraft/mc-mods/dungeonz",

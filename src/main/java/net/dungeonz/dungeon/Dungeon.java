@@ -26,9 +26,13 @@ public class Dungeon {
     private final List<Integer> breakableBlockIds;
     private final List<Integer> placeableBlockIds;
 
-    private final HashMap<String, Float> difficultyMobModificator;
+    private final HashMap<String, Float> difficultyMobHealthModificator;
+    private final HashMap<String, Float> difficultyMobDamageModificator;
+    private final HashMap<String, Float> difficultyMobProtectionModificator;
     private final HashMap<String, List<String>> difficultyLootTableIds;
-    private final HashMap<String, Float> difficultyBossModificator;
+    private final HashMap<String, Float> difficultyBossHealthModificator;
+    private final HashMap<String, Float> difficultyBossDamageModificator;
+    private final HashMap<String, Float> difficultyBossProtectionModificator;
     private final HashMap<String, String> difficultyBossLootTable;
 
     private final EntityType<?> bossEntityType;
@@ -51,7 +55,8 @@ public class Dungeon {
 
     public Dungeon(String dungeonTypeId, HashMap<Integer, List<EntityType<?>>> blockIdEntityMap, HashMap<Integer, HashMap<String, Float>> blockIdEntitySpawnChance,
             HashMap<Integer, Integer> blockIdBlockReplacement, HashMap<Integer, Integer> spawnerEntityIdCountMap, HashMap<Integer, Integer> requiredItemCountMap, List<Integer> breakableBlockIds,
-            List<Integer> placeableBlockIds, HashMap<String, Float> difficultyMobModificator, HashMap<String, List<String>> difficultyLootTableIds, HashMap<String, Float> difficultyBossModificator,
+            List<Integer> placeableBlockIds, HashMap<String, Float> difficultyMobHealthModificator, HashMap<String, Float> difficultyMobDamageModificator, HashMap<String, Float> difficultyMobProtectionModificator,
+            HashMap<String, List<String>> difficultyLootTableIds, HashMap<String, Float> difficultyBossHealthModificator, HashMap<String, Float> difficultyBossDamageModificator, HashMap<String, Float> difficultyBossProtectionModificator,
             HashMap<String, String> difficultyBossLootTable, EntityType<?> bossEntityType, NbtCompound bossNbtCompound, int bossBlockId, int bossLootBlockId, int exitBlockId, boolean allowRespawn,
             boolean allowElytra, int maxGroupSize, int minGroupSize, int cooldown, Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId) {
         this.dungeonTypeId = dungeonTypeId;
@@ -62,9 +67,13 @@ public class Dungeon {
         this.requiredItemCountMap = requiredItemCountMap;
         this.breakableBlockIds = breakableBlockIds;
         this.placeableBlockIds = placeableBlockIds;
-        this.difficultyMobModificator = difficultyMobModificator;
+        this.difficultyMobHealthModificator = difficultyMobHealthModificator;
+        this.difficultyMobDamageModificator = difficultyMobDamageModificator;
+        this.difficultyMobProtectionModificator = difficultyMobProtectionModificator;
         this.difficultyLootTableIds = difficultyLootTableIds;
-        this.difficultyBossModificator = difficultyBossModificator;
+        this.difficultyBossHealthModificator = difficultyBossHealthModificator;
+        this.difficultyBossDamageModificator = difficultyBossDamageModificator;
+        this.difficultyBossProtectionModificator = difficultyBossProtectionModificator;
         this.difficultyBossLootTable = difficultyBossLootTable;
         this.bossEntityType = bossEntityType;
         this.bossNbtCompound = bossNbtCompound;
@@ -93,7 +102,7 @@ public class Dungeon {
     }
 
     public List<String> getDifficultyList() {
-        return new ArrayList<>(this.difficultyMobModificator.keySet());
+        return new ArrayList<>(this.difficultyMobHealthModificator.keySet());
     }
 
     public HashMap<Integer, List<EntityType<?>>> getBlockIdEntityMap() {
@@ -108,16 +117,32 @@ public class Dungeon {
         return this.blockIdBlockReplacement;
     }
 
-    public HashMap<String, Float> getDifficultyMobModificatorMap() {
-        return this.difficultyMobModificator;
+    public HashMap<String, Float> getDifficultyMobHealthModificatorMap() {
+        return this.difficultyMobHealthModificator;
+    }
+
+    public HashMap<String, Float> getDifficultyMobDamageModificatorMap() {
+        return this.difficultyMobDamageModificator;
+    }
+
+    public HashMap<String, Float> getDifficultyMobProtectionModificatorMap() {
+        return this.difficultyMobProtectionModificator;
     }
 
     public HashMap<String, List<String>> getDifficultyLootTableIdMap() {
         return this.difficultyLootTableIds;
     }
 
-    public HashMap<String, Float> getDifficultyBossModificatorMap() {
-        return this.difficultyBossModificator;
+    public HashMap<String, Float> getDifficultyBossHealthModificatorMap() {
+        return this.difficultyBossHealthModificator;
+    }
+
+    public HashMap<String, Float> getDifficultyBossDamageModificatorMap() {
+        return this.difficultyBossDamageModificator;
+    }
+
+    public HashMap<String, Float> getDifficultyBossProtectionModificatorMap() {
+        return this.difficultyBossProtectionModificator;
     }
 
     public HashMap<String, String> getDifficultyBossLootTableMap() {

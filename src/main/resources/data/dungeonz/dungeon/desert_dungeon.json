@@ -1,0 +1,111 @@
+{
+    "dungeon_type": "desert_dungeon",
+    "difficulty": {
+        "easy": {
+            "mob_health_modificator": 1.0,
+			"mob_damage_modificator": 1.0,
+			"mob_protection_modificator": 1.0,
+            "loot_table_ids": [
+                "dungeonz:chests/desert_dungeon_low_tier_chest_loot",
+                "dungeonz:chests/desert_dungeon_mid_tier_chest_loot"
+            ],
+            "boss_health_modificator": 20.83,
+			"boss_damage_modificator": 1.0,
+			"boss_protection_modificator": 20.83,
+            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_easy_boss_loot"
+        },
+        "normal": {
+            "mob_health_modificator": 1.5,
+			"mob_damage_modificator": 1.5,
+			"mob_protection_modificator": 1.5,
+            "loot_table_ids": [
+                "dungeonz:chests/desert_dungeon_low_tier_chest_loot",
+                "dungeonz:chests/desert_dungeon_mid_tier_chest_loot",
+                "dungeonz:chests/desert_dungeon_high_tier_chest_loot"
+            ],
+            "boss_health_modificator": 31.25,
+			"boss_damage_modificator": 1.0,
+			"boss_protection_modificator": 31.25,
+            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_normal_boss_loot"
+        },
+        "hard": {
+            "mob_health_modificator": 3.0,
+			"mob_damage_modificator": 3.0,
+			"mob_protection_modificator": 3.0,
+            "loot_table_ids": [
+                "dungeonz:chests/desert_dungeon_mid_tier_chest_loot",
+                "dungeonz:chests/desert_dungeon_high_tier_chest_loot",
+                "dungeonz:chests/desert_dungeon_end_tier_chest_loot"
+            ],
+            "boss_health_modificator": 41.67,
+			"boss_damage_modificator": 1.0,
+			"boss_protection_modificator": 41.67,
+            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_hard_boss_loot"
+        }
+    },
+    "blocks": {
+        "minecraft:diamond_block": {
+            "spawns": [
+                "minecraft:wither_skeleton"
+            ],
+            "chance": {
+                "easy": 0.4,
+                "normal": 0.7,
+                "hard": 1.0
+            },
+            "replace": "minecraft:air"
+        },
+        "minecraft:raw_copper_block": {
+            "spawns": [
+                "minecraft:husk"
+            ],
+            "chance": {
+                "easy": 0.6,
+                "normal": 0.8,
+                "hard": 1.0
+            },
+            "replace": "minecraft:air"
+        },
+        "minecraft:raw_iron_block": {
+            "spawns": [
+                "minecraft:skeleton"
+            ],
+            "chance": {
+                "easy": 0.6,
+                "normal": 0.8,
+                "hard": 1.0
+            },
+            "replace": "minecraft:air"
+        },
+        "minecraft:netherite_block": {
+            "boss_entity": "minecraft:evoker",
+            "data": "",
+            "replace": "minecraft:air"
+        },
+        "minecraft:purpur_block": {
+            "boss_loot_block": true,
+            "replace": "minecraft:air"
+        },
+        "minecraft:quartz_block": {
+            "exit_block": true,
+            "replace": "minecraft:air"
+        }
+    },
+    "spawner": {
+
+    },
+    "breakable": [],
+    "placeable": [
+        "minecraft:torch"
+    ],
+    "required": {
+        "minecraft:diamond": 3
+    },
+    "respawn": true,
+    "elytra": false,
+    "max_group_size": 5,
+    "min_group_size": 0,
+    "cooldown": 3600,
+    "background_texture": "",
+    "dungeon_structure_pool_id": "dungeonz:desert_dungeon/desert_dungeon_spawn"
+}
