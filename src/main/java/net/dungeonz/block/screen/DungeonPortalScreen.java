@@ -154,7 +154,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         super.render(context, mouseX, mouseY, delta);
 
         // Title
-        context.drawText(this.textRenderer, this.title, this.x + this.backgroundWidth / 2 - this.textRenderer.getWidth(this.title) / 2, this.y + 8, 0x404040, false);
+        context.drawText(this.textRenderer, this.title, this.x + this.backgroundWidth / 2 - this.textRenderer.getWidth(this.title) / 2, this.y + 8, 0x000000, false);
 
         // Dungeon player list
         int k = this.y + 37;
@@ -162,7 +162,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                 Text.translatable("text.dungeonz.player_list",
                         this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().size(),
                         this.handler.getDungeonPortalEntity().getMaxGroupSize()),
-                this.x + 8, this.y + 24, 0x3F3F3F, false);
+                this.x + 9, this.y + 24, 0x3F3F3F, false);
         for (int i = 0; i < this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() && i < 13; i++) {
             String playerName = getPlayerName(this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().get(i), 102, 15).getString();
             if (i == 12) {
@@ -175,7 +175,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                     context.drawTooltip(this.textRenderer, otherPlayerNames, mouseX, mouseY);
                 }
             }
-            context.drawText(this.textRenderer, playerName, this.x + 13, k, 0xFFFFFF, false);
+            context.drawText(this.textRenderer, playerName, this.x + 14, k, 0xFFFFFF, false);
             k += 13;
         }
         // Required items
@@ -300,7 +300,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         private Text text;
 
         public DungeonDifficultyButton(int x, int y, Text text, ButtonWidget.PressAction onPress) {
-            super(x, y, 60, 20, text, onPress, DEFAULT_NARRATION_SUPPLIER);
+            super(x, y, 52, 20, text, onPress, DEFAULT_NARRATION_SUPPLIER);
             this.text = text;
         }
 
@@ -314,25 +314,24 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
             TextRenderer textRenderer = minecraftClient.textRenderer;
 
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, this.alpha);
-            int i = this.getTextureY();
+            int j = this.getTextureY();
             RenderSystem.enableBlend();
             RenderSystem.defaultBlendFunc();
             RenderSystem.enableDepthTest();
-            context.drawTexture(WIDGETS_TEXTURE, this.getX(), this.getY(), 0, 46 + i * 20, this.width / 2, this.height);
-            context.drawTexture(WIDGETS_TEXTURE, this.getX() + this.width / 2, this.getY(), 200 - this.width / 2, 46 + i * 20, this.width / 2, this.height);
-            int j = this.active ? 0xFFFFFF : 0xA0A0A0;
-            context.drawCenteredTextWithShadow(textRenderer, this.text, this.getX() + this.width / 2, this.getY() + (this.height - 8) / 2, j | MathHelper.ceil(this.alpha * 255.0f) << 24);
+            context.drawTexture(ICONS, this.getX(), this.getY(), 0, j, this.width, this.height);
+            int o = this.active ? 0xFFFFFF : 0xA0A0A0;
+            context.drawCenteredTextWithShadow(textRenderer, this.text, this.getX() + this.width / 2, this.getY() + (this.height - 8) / 2, o | MathHelper.ceil(this.alpha * 255.0f) << 24);
             RenderSystem.setShaderColor(1.0f, 1.0f, 1.0f, 1.0f);
         }
 
         private int getTextureY() {
-            int i = 1;
+            int j = 20;
             if (!this.active) {
-                i = 0;
+                j = 0;
             } else if (this.isSelected()) {
-                i = 2;
+                j = 40;
             }
-            return i;
+            return j;
         }
 
     }
