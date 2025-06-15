@@ -38,7 +38,9 @@ import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
@@ -397,9 +399,24 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     public void finishDungeon(ServerWorld world, BlockPos pos) {
         List<PlayerEntity> players = world.getPlayers(TargetPredicate.createAttackable().setBaseMaxDistance(64.0), null, new Box(pos).expand(64.0, 64.0, 64.0));
         for (int i = 0; i < players.size(); i++) {
-            CriteriaInit.DUNGEON_COMPLETION.trigger((ServerPlayerEntity) players.get(i), this.getDungeonType(), this.getDifficulty());
+            ServerPlayerEntity player = (ServerPlayerEntity) players.get(i);
+            CriteriaInit.DUNGEON_COMPLETION.trigger(player, this.getDungeonType(), this.getDifficulty());
+            player.sendMessage(
+                Text.literal("Congratulations! You've completed the dungeon! Don't forget to check the Boss chest that appeared in the room.")
+                    .formatted(Formatting.GOLD),
+                    false
+            );
+            player.sendMessage(
+                Text.literal("Click here to leave or use /dungeon leave")
+                            .styled(style -> style
+                            .withColor(Formatting.GREEN)
+                            .withUnderline(true)
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/dungeon leave"))
+                ),
+                false
+            );
+            world.playSound(null, pos, SoundInit.DUNGEON_COMPLETION_EVENT, SoundCategory.BLOCKS, 1.0f, 0.9f + world.getRandom().nextFloat() * 0.2f);
         }
-        world.playSound(null, pos, SoundInit.DUNGEON_COMPLETION_EVENT, SoundCategory.BLOCKS, 1.0f, 0.9f + world.getRandom().nextFloat() * 0.2f);
 
         for (int i = 0; i < this.getExitPosList().size(); i++) {
             world.setBlockState(this.getExitPosList().get(i), BlockInit.DUNGEON_PORTAL.getDefaultState(), 3);

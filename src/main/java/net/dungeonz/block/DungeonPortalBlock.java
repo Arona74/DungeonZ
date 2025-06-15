@@ -9,6 +9,8 @@ import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.init.BlockInit;
 import net.dungeonz.network.DungeonServerPacket;
 import net.dungeonz.util.DungeonHelper;
+import net.fabricmc.api.EnvType;
+import net.fabricmc.api.Environment;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.BlockWithEntity;
@@ -17,11 +19,13 @@ import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.particle.ParticleTypes;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.random.Random;
 import net.minecraft.world.World;
 import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.network.PartyAddonServerPacket;
@@ -45,27 +49,35 @@ public class DungeonPortalBlock extends BlockWithEntity {
 
     @Override
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-        if (player.getWorld().getBlockEntity(pos) != null && player.getWorld().getBlockEntity(pos) instanceof DungeonPortalEntity dungeonPortalEntity) {
+		if (!world.isClient() && world.getRegistryKey().getValue().toString().equals("dungeonz:dungeon")) {
+			if (player instanceof ServerPlayerEntity serverPlayer) {
+				serverPlayer.getServer().getCommandManager().executeWithPrefix(serverPlayer.getCommandSource(), "/dungeon leave");
+			}
+			return ActionResult.success(true);
+		}
 
-            if (isOtherDungeonPortalBlockNearby(world, pos)) {
-                dungeonPortalEntity = getMainDungeonPortalEntity(world, pos);
-                pos = getMainDungeonPortalBlockPos(world, pos);
+		if (player.getWorld().getBlockEntity(pos) != null && player.getWorld().getBlockEntity(pos) instanceof DungeonPortalEntity dungeonPortalEntity) {
+
+			if (isOtherDungeonPortalBlockNearby(world, pos)) {
+				dungeonPortalEntity = getMainDungeonPortalEntity(world, pos);
+				pos = getMainDungeonPortalBlockPos(world, pos);
+			}
+			if (player.isCreativeLevelTwoOp() && (dungeonPortalEntity.getDungeon() == null || player.isSneaking())) {
+				if (!world.isClient()) {
+					DungeonServerPacket.writeS2COpenOpScreenPacket((ServerPlayerEntity) player, dungeonPortalEntity, null);
+				}
+				return ActionResult.success(world.isClient());
+			} else if (dungeonPortalEntity.getDungeon() != null) {
+				if (!world.isClient()) {
+					if (DungeonzMain.isPartyAddonLoaded) {
+						PartyAddonServerPacket.writeS2CSyncGroupManagerPacket((ServerPlayerEntity) player, ((GroupManagerAccess) player).getGroupManager());									   
+                }
+                player.openHandledScreen(state.createScreenHandlerFactory(world, pos));
             }
-            if (player.isCreativeLevelTwoOp() && (dungeonPortalEntity.getDungeon() == null || player.isSneaking())) {
-                if (!world.isClient()) {
-                    DungeonServerPacket.writeS2COpenOpScreenPacket((ServerPlayerEntity) player, dungeonPortalEntity, null);
-                }
-                return ActionResult.success(world.isClient());
-            } else if (dungeonPortalEntity.getDungeon() != null) {
-                if (!world.isClient()) {
-                    if (DungeonzMain.isPartyAddonLoaded) {
-                        PartyAddonServerPacket.writeS2CSyncGroupManagerPacket((ServerPlayerEntity) player, ((GroupManagerAccess) player).getGroupManager());
-                    }
-                    player.openHandledScreen(state.createScreenHandlerFactory(world, pos));
-                }
-                return ActionResult.success(world.isClient());
+            return ActionResult.success(world.isClient());
             }
         }
+
         return super.onUse(state, world, pos, player, hand, hit);
     }
 
@@ -135,6 +147,22 @@ public class DungeonPortalBlock extends BlockWithEntity {
             return (DungeonPortalEntity) world.getBlockEntity(getMainDungeonPortalBlockPos(world, pos));
         }
         return null;
+    }
+
+    @Override
+    @Environment(EnvType.CLIENT)
+    public void randomDisplayTick(BlockState state, World world, BlockPos pos, Random random) {
+        double x = pos.getX() + 0.5 + (random.nextDouble() - 0.5);
+        double y = pos.getY() + 1.0;
+        double z = pos.getZ() + 0.5 + (random.nextDouble() - 0.5);
+
+        world.addParticle(
+            ParticleTypes.PORTAL,
+            x, y, z,
+            (random.nextDouble() - 0.5) * 2.0,
+            (random.nextDouble() - 0.5) * 2.0,
+            (random.nextDouble() - 0.5) * 2.0
+        );
     }
 
 }
