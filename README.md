@@ -1,18 +1,34 @@
-# DungeonZ - Bleak Isles Edition
-DungeonZ - BIE is a fork from DungeonZ mod which adds the basement for creating explorable dungeons.
+# DungeonZ - Bleak Isles Edition <img alt="Factions Mod Icon" src="src/main/resources/assets/dungeonz/icon.png">
+**DungeonZ - BIE** is a fork made by Arona74 from **DungeonZ** mod made by Globox_Z, created for [Conquest of the Bleak Isles Modpack](https://modrinth.com/modpack/bleak-isles) needs.
 
-What are the differences with DungeonZ?
-- Feature: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing.
-- Content: Temple dungeon made by xeven (originally in DungeonZ 1.21.1)
-- Content: [Desert dungeon made by D1scoball](https://www.curseforge.com/minecraft/mc-mods/desert-dungeon-dungeonz-addon)
+### What are the differences with DungeonZ?
+- **Feature**: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing.
+- **Content**: Temple dungeon made by xeven (originally in DungeonZ 1.21.1)
+- **Content**: [Desert dungeon made by D1scoball](https://www.curseforge.com/minecraft/mc-mods/desert-dungeon-dungeonz-addon)
+
+### What next?
+I want to **backport features/fixes** made in last dungeonZ version **to 1.20.1**.
+
+Might **add new features and content in the process**, feel free to participate or just share ideas.
+
+### Support
+This fork is given as is, please **don't ask original DungeonZ devs** about issues regarding this fork, **please post in [Issues](https://github.com/Arona74/DungeonZ/issues)**.
 
 ### Installation
-DungeonZ is a mod built for the [Fabric Loader](https://fabricmc.net/). It requires [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api) and [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config) to be installed separately; all other dependencies are installed with the mod.
+If you know how to do it, compile yourself from the sources.
+
+Or **download the binaries from [Releases](https://github.com/Arona74/DungeonZ/releases)**.
+
+### Dependencies
+Same as DungeonZ:
+- Built for [Fabric Loader](https://fabricmc.net/).
+- Requires [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api).
+- Requires [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config).
 
 ### License
 DungeonZ - BIE is licensed under MIT.
 
-### Datapacks
+### Datapacks - Slighlty different from original DungeonZ
 If you don't know how to create a datapack check out [Data Pack Wiki](https://minecraft.fandom.com/wiki/Data_Pack) website and try to create your first one for the vanilla game.
 If you know how to create one, the folder path has to be ```data\dungeonz\dungeon\YOURFILE.json```
 
@@ -34,17 +50,17 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
             "boss_loot_table_id": "dungeonz:chests/dark_dungeon_easy_boss_loot"
         },
         "normal": {
-            "mob_health_modificator": 1.5, // modificator to increase mob base health
-            "mob_damage_modificator": 1.5, // modificator to increase mob base attack damage
-            "mob_protection_modificator": 1.5, // modificator to increase mob base armor
+            "mob_health_modificator": 1.5,
+            "mob_damage_modificator": 1.5,
+            "mob_protection_modificator": 1.5,
             "loot_table_ids": [
                 "dungeonz:chests/dark_dungeon_low_tier_chest_loot",
                 "dungeonz:chests/dark_dungeon_mid_tier_chest_loot",
                 "dungeonz:chests/dark_dungeon_high_tier_chest_loot"
             ],
-            "boss_health_modificator": 2.0, // modificator to increase boss base health
-            "boss_damage_modificator": 2.0, // modificator to increase boss base attack damage
-            "boss_protection_modificator": 2.0, // modificator to increase boss base armor
+            "boss_health_modificator": 2.0,
+            "boss_damage_modificator": 2.0,
+            "boss_protection_modificator": 2.0,
             "boss_loot_table_id": "dungeonz:chests/dark_dungeon_normal_boss_loot"
         }
     },
@@ -145,3 +161,4 @@ DungeonZ provides a advancement criterion trigger called `dungeonz:dungeon_compl
 ### Commands
 `/dungeon leave`
 - Leave the current dungeon (if unable to finish the dungeon)
+****
