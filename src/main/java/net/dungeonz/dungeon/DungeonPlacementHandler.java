@@ -57,8 +57,11 @@ import net.minecraft.util.math.ChunkSectionPos;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
+import net.minecraft.util.Unit;
+import net.minecraft.world.Heightmap;
 import net.minecraft.world.StructureWorldAccess;
 import net.minecraft.world.TeleportTarget;
+import net.minecraft.world.chunk.Chunk;
 import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
 import net.minecraft.world.gen.structure.Structure;
@@ -93,7 +96,27 @@ public class DungeonPlacementHandler {
 
         portalEntity.joinDungeon(serverPlayerEntity.getUuid());
 
-        return new TeleportTarget(Vec3d.of(new BlockPos(0, 0, 0).add(portalPos.getX() * 16, 100, portalPos.getZ() * 16)).add(0.5, 0, 0.5), Vec3d.ZERO, 0, 0);
+        BlockPos basePos = new BlockPos(portalPos.getX() * 16, 100, portalPos.getZ() * 16);
+
+        ChunkPos chunkPos = new ChunkPos(basePos);
+        dungeonWorld.getChunkManager().addTicket(ChunkTicketType.START, chunkPos, 1, Unit.INSTANCE);
+        Chunk chunk = dungeonWorld.getChunk(chunkPos.x, chunkPos.z);
+
+        BlockPos solidPos = basePos;
+        while (solidPos.getY() > dungeonWorld.getBottomY()) {
+            BlockState stateBelow = dungeonWorld.getBlockState(solidPos.down());
+            BlockState stateAt = dungeonWorld.getBlockState(solidPos);
+
+            if (!stateBelow.isAir() && stateAt.isAir()) {
+                break;
+            }
+            solidPos = solidPos.down();
+        }
+
+        BlockPos finalPos = solidPos;
+        Vec3d finalVec = new Vec3d(finalPos.getX() + 0.5, finalPos.getY(), finalPos.getZ() + 0.5);
+
+        return new TeleportTarget(finalVec, Vec3d.ZERO, 0, 0);
     }
 
     public static TeleportTarget leave(ServerPlayerEntity serverPlayerEntity, ServerWorld serverWorld) {
