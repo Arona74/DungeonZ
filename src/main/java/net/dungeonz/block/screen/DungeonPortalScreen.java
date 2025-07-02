@@ -87,7 +87,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
             }
         }));
 
-        this.effectButton.enabled = !this.handler.getDungeonPortalEntity().getDisableEffects();
+        this.effectButton.enabled = this.handler.getDungeonPortalEntity().getDisableEffects();
         this.privateButton.enabled = this.handler.getDungeonPortalEntity().getPrivateGroup();
         if (playerIsInDungeonWorld) {
             this.dungeonButton.active = true;
