@@ -1,0 +1,63 @@
+{
+    "block.dungeonz.dungeon_portal": "Portail du Donjon",
+    "block.dungeonz.dungeon_spawner": "Générateur de Donjon",
+    "block.dungeonz.dungeon_gate": "Porte du Donjon",
+
+    "item.dungeonz.item_group": "DungeonZ",
+
+    "item.dungeonz.dungeon_compass": "Boussole du Donjon",
+
+    "dungeonz.difficulty": "Difficulté",
+    "dungeonz.difficulty.easy": "Facile",
+    "dungeonz.difficulty.normal": "Normal",
+    "dungeonz.difficulty.hard": "Difficile",
+    "dungeonz.difficulty.extreme": "Extrême",
+
+    "container.dungeon_portal": "Portail du Donjon",
+
+    "dungeon.task.join": "Rejoindre",
+    "dungeon.task.leave": "Quitter",
+    "dungeon.ruin_dungeon": "Donjon en Ruines",
+    "dungeon.dark_dungeon": "Donjon Sombre",
+    "dungeon.desert_dungeon": "Donjon du Désert",
+	"dungeon.temple_dungeon": "Donjon du Temple",
+
+    "text.dungeonz.possible": "Butin Possible",
+    "text.dungeonz.required": "Objets Requis",
+    "text.dungeonz.missing": "Objets Manquants",
+    "text.dungeonz.effects": "Effets Désactivés",
+    "text.dungeonz.private": "Groupe Privé",
+    "text.dungeonz.nothing_required": "-",
+    "text.dungeonz.dead_player": "Réintégration non autorisée",
+    "text.dungeonz.empty_name": "-",
+    "text.dungeonz.player_list": "Joueurs (%d/%d)",
+    "text.dungeonz.waiting_player_list": "Joueurs Min : %d/%d",
+    "text.dungeonz.dungeon_full": "Le Donjon est plein",
+    "text.dungeonz.dungeon_private": "Le Donjon est en mode privé",
+    "text.dungeonz.dungeon_cooldown": "Le Donjon est en rechargement",
+    "text.dungeonz.dungeon_cooldown_time": "Le Donjon est en rechargement pour %dh %dm %ds",
+    "text.dungeonz.dungeon_missing": "Aucun donjon trouvé !",
+    "text.dungeonz.dungeon_min_group_size": "Attendez %s membres de groupe de donjon supplémentaires !",
+    "text.dungeonz.dungeon_autokick": "Vous avez été expulsé automatiquement car vous avez mis trop de temps à terminer le donjon !",
+
+    "hud.dungeonz.dungeon_countdown": "%s",
+
+    "dungeon.op_screen.dungeon_type": "Type de Donjon",
+    "dungeon.op_screen.default_difficulty": "Difficulté par Défaut",
+    "dungeon.op_screen.gate_block_id": "Identifiant du Bloc de la Porte",
+    "dungeon.op_screen.gate_particle_id": "Identifiant des Particules de la Porte",
+    "dungeon.op_screen.gate_unlock_item_id": "Identifiant de l'Objet de Déverrouillage de la Porte",
+
+    "compass.compass_screen.title": "Donjons",
+    "compass.compass_screen.calibrate": "Calibrer",
+    "compass.compass_screen.required": "Nécessite 3 éclats d'améthyste",
+    "compass.compass_item.cartography": "§7Calibrez à la table de cartographie",
+
+    "text.autoconfig.dungeonz.title": "Configuration de DungeonZ",
+    "text.autoconfig.dungeonz.option.devMode": "Mode Développeur",
+    "text.autoconfig.dungeonz.option.defaultDungeons": "Donjons par Défaut",
+    "text.autoconfig.dungeonz.option.defaultDungeonTeleportCountdown": "Compte à Rebours de Téléportation du Donjon par Défaut",
+    "text.autoconfig.dungeonz.option.countdownX": "Position X du Compte à Rebours",
+    "text.autoconfig.dungeonz.option.countdownY": "Position Y du Compte à Rebours",
+    "text.autoconfig.dungeonz.option.countdownSize": "Taille du Compte à Rebours"
+}
