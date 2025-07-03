@@ -41,7 +41,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 JsonObject data = JsonParser.parseReader(new InputStreamReader(stream)).getAsJsonObject();
 
                 String dungeonTypeId = data.get("dungeon_type").getAsString();
-                if (!ConfigInit.CONFIG.defaultDungeons && (dungeonTypeId.equals("dark_dungeon") || dungeonTypeId.equals("jungle_dungeon"))) {
+                if (!ConfigInit.CONFIG.defaultDungeons && (dungeonTypeId.equals("dark_dungeon") || dungeonTypeId.equals("temple_dungeon"))) {
                     return;
                 }
                 int maxGroupSize = data.get("max_group_size").getAsInt();

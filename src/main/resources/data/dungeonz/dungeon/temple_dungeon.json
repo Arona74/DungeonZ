@@ -160,6 +160,7 @@
         }
     },
     "spawner": {
+
     },
     "breakable": [
         
@@ -170,7 +171,7 @@
     "required": {
             "minecraft:diamond": 3
     },
-    "respawn": false,
+    "respawn": true,
     "elytra": false,
     "max_group_size": 5,
     "min_group_size": 0,
