@@ -49,9 +49,9 @@
                 "minecraft:wither_skeleton"
             ],
             "chance": {
-                "easy": 0.4,
-                "normal": 0.7,
-                "hard": 1.0
+                "easy": 0.2,
+                "normal": 0.35,
+                "hard": 0.5
             },
             "replace": "minecraft:air"
         },
@@ -60,9 +60,9 @@
                 "minecraft:husk"
             ],
             "chance": {
-                "easy": 0.6,
-                "normal": 0.8,
-                "hard": 1.0
+                "easy": 0.3,
+                "normal": 0.4,
+                "hard": 0.5
             },
             "replace": "minecraft:air"
         },
@@ -71,9 +71,9 @@
                 "minecraft:skeleton"
             ],
             "chance": {
-                "easy": 0.6,
-                "normal": 0.8,
-                "hard": 1.0
+                "easy": 0.3,
+                "normal": 0.4,
+                "hard": 0.5
             },
             "replace": "minecraft:air"
         },
@@ -96,16 +96,16 @@
     },
     "breakable": [],
     "placeable": [
-        "minecraft:torch"
+
     ],
     "required": {
-        "minecraft:diamond": 3
+        "minecraft:diamond": 12
     },
     "respawn": true,
     "elytra": false,
     "max_group_size": 5,
     "min_group_size": 0,
-    "cooldown": 3600,
+    "cooldown": 72000,
     "background_texture": "",
     "dungeon_structure_pool_id": "dungeonz:desert_dungeon/desert_dungeon_spawn"
 }

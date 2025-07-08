@@ -44,9 +44,9 @@
                 "minecraft:skeleton"
             ],
             "chance": {
-                "easy": 0.3,
-                "normal": 0.6,
-                "hard": 0.7
+                "easy": 0.15,
+                "normal": 0.3,
+                "hard": 0.35
             },
             "replace": "minecraft:air"
         },
@@ -56,9 +56,9 @@
             ],
             
             "chance": {
-                "easy": 0.3,
-                "normal": 0.6,
-                "hard": 0.7
+                "easy": 0.15,
+                "normal": 0.3,
+                "hard": 0.35
             },
             "replace": "minecraft:air"
         },
@@ -68,9 +68,9 @@
             ],
             
             "chance": {
-                "easy": 0.1,
-                "normal": 0.3,
-                "hard": 0.6
+                "easy": 0.05,
+                "normal": 0.15,
+                "hard": 0.3
             },
             "replace": "minecraft:air"
         },
@@ -80,9 +80,9 @@
             ],
             
             "chance": {
-                "easy": 0.05,
-                "normal": 0.4,
-                "hard": 0.75
+                "easy": 0.025,
+                "normal": 0.2,
+                "hard": 0.325
             },
             "replace": "minecraft:air"
         },
@@ -92,9 +92,9 @@
             ],
             
             "chance": {
-                "easy": 0.1,
-                "normal": 0.3,
-                "hard": 0.7
+                "easy": 0.05,
+                "normal": 0.15,
+                "hard": 0.35
             },
             "replace": "minecraft:air"
         },
@@ -104,9 +104,9 @@
             ],
             
             "chance": {
-                "easy": 0.01,
-                "normal": 0.25,
-                "hard": 0.5
+                "easy": 0.005,
+                "normal": 0.125,
+                "hard": 0.25
             },
             "replace": "minecraft:air"
         },
@@ -116,9 +116,9 @@
             ],
             
             "chance": {
-                "easy": 0.05,
-                "normal": 0.2,
-                "hard": 0.4
+                "easy": 0.025,
+                "normal": 0.1,
+                "hard": 0.2
             },
             "replace": "minecraft:air"
         },
@@ -129,8 +129,8 @@
             
             "chance": {
                 "easy": 0,
-                "normal": 0.2,
-                "hard": 0.4
+                "normal": 0.1,
+                "hard": 0.2
             },
             "replace": "minecraft:air"
         },
@@ -140,9 +140,9 @@
             ],
             
             "chance": {
-                "easy": 0.1,
-                "normal": 0.3,
-                "hard": 0.6
+                "easy": 0.05,
+                "normal": 0.15,
+                "hard": 0.3
             },
             "replace": "minecraft:air"
         },
@@ -166,16 +166,16 @@
         
     ],
     "placeable": [
-        "minecraft:torch"
+
     ],
     "required": {
-            "minecraft:diamond": 3
+            "minecraft:diamond": 12
     },
     "respawn": true,
     "elytra": false,
     "max_group_size": 5,
     "min_group_size": 0,
-    "cooldown": 3600,
+    "cooldown": 72000,
     "background_texture": "",
     "dungeon_structure_pool_id": "dungeonz:temple_dungeon/temple_spawn"
 }
