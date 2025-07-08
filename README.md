@@ -1,9 +1,16 @@
 # DungeonZ - Bleak Isles Edition <img alt="Factions Mod Icon" src="src/main/resources/assets/dungeonz/icon.png">
 **DungeonZ - BIE** is a fork made by Arona74 from **DungeonZ** mod made by Globox_Z, created for [Conquest of the Bleak Isles Modpack](https://modrinth.com/modpack/bleak-isles) needs.
 
-### What are the differences with DungeonZ?
-- **Feature**: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing.
-- **Content**: Temple dungeon made by xeven (originally in DungeonZ 1.21.1)
+### What are the differences with original DungeonZ (1.20.1)?
+- **Feature: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
+- **Change**: Dungeon portal block are now solid to avoid them been breakable from flowing liquid and solving the multiple triggering when crossing them. Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the /dungeon leave command.
+- **Change**: Few fixes on dark dungeon (easier parkour), missing vines in temple dungeon, etc
+- **Change**: Fix to avoid fire to break blocks (like vines)
+- **Change**: Fix the "flying not allowed" kick on server when teleporting player to dungeon
+- **Change**: Fix effects button on dungeon screen
+- **Change**: GUI textures build from [Conquest Reforged mod](https://conquestreforged.com/mod) ressources
+- **Content**: Temple dungeon made by xeven (originaly in DungeonZ 1.21.1)
+- **Content**: French translation made by hirtz-gregoire (originaly in DungeonZ 1.21.1)
 - **Content**: [Desert dungeon made by D1scoball](https://www.curseforge.com/minecraft/mc-mods/desert-dungeon-dungeonz-addon)
 
 ### What next?
