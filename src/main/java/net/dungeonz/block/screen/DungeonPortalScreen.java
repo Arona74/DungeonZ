@@ -12,6 +12,9 @@ import net.dungeonz.network.DungeonClientPacket;
 import net.dungeonz.util.InventoryHelper;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.loader.api.FabricLoader;
+import net.levelz.access.PlayerStatsManagerAccess;
+import net.levelz.stats.PlayerStatsManager;
 import net.minecraft.client.MinecraftClient;
 import net.minecraft.client.font.TextRenderer;
 import net.minecraft.client.gui.DrawContext;
@@ -56,7 +59,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         this.x = (this.width / 2 - this.backgroundWidth / 2);
         this.y = (this.height / 2 - this.backgroundHeight / 2);
 
-        ((DungeonPortalScreenHandler) this.handler).addListener(this);
+        this.handler.addListener(this);
 
         final boolean playerIsInDungeonWorld = playerEntity.getWorld().getRegistryKey() == DimensionInit.DUNGEON_WORLD;
         Text buttonText = playerIsInDungeonWorld ? LEAVE : JOIN;
@@ -110,6 +113,12 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                 this.dungeonButton.active = true;
             } else {
                 this.dungeonButton.active = false;
+            }
+            if (this.dungeonButton.active && DungeonzMain.isLevelZLoaded) {
+                PlayerStatsManager PlayerStatsManager = ((PlayerStatsManagerAccess) this.playerEntity).getPlayerStatsManager();
+                if (PlayerStatsManager.getOverallLevel() < this.handler.getDungeonPortalEntity().getRequiredLevel()) {
+                    this.dungeonButton.active = false;
+                }
             }
             if (this.dungeonButton.active && this.privateButton.enabled && this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() > 0) {
                 if (DungeonzMain.isPartyAddonLoaded) {
@@ -224,7 +233,11 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         // Min group size
         if (this.handler.getDungeonPortalEntity().getDungeonPlayerCount() <= 0 && this.handler.getDungeonPortalEntity().getMinGroupSize() > 1) {
             context.drawText(this.textRenderer, Text.translatable("text.dungeonz.waiting_player_list", this.handler.getWaitingGroupSize(), this.handler.getDungeonPortalEntity().getMinGroupSize()),
-                    this.x + 159, this.y + 200, 0x3F3F3F, false);
+                    this.x + 9, this.y + 200, 0x3F3F3F, false);
+        }
+        // LevelZ
+        if(DungeonzMain.isLevelZLoaded){
+            context.drawText(this.textRenderer, Text.translatable("text.dungeonz.required_level", this.handler.getDungeonPortalEntity().getRequiredLevel()), this.x + 166, this.y + 200, 0x3F3F3F, false);
         }
         this.drawMouseoverTooltip(context, mouseX, mouseY);
     }
@@ -280,13 +293,18 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                     text = Text.translatable("text.dungeonz.dungeon_cooldown_time", hours, minutes, seconds);
                 } else if ((DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size()
                         + DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().size()) >= DungeonPortalScreen.this.handler.getDungeonPortalEntity()
-                                .getMaxGroupSize()) {
+                        .getMaxGroupSize()) {
                     text = Text.translatable("text.dungeonz.dungeon_full");
                 } else if (client.player != null && !DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().isEmpty()
                         && DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().contains(client.player.getUuid())) {
                     text = Text.translatable("text.dungeonz.dead_player");
                 } else if (!InventoryHelper.hasRequiredItemStacks(client.player.getInventory(), DungeonPortalScreen.this.handler.getRequiredItemStacks())) {
                     text = Text.translatable("text.dungeonz.missing");
+                } else if (DungeonzMain.isLevelZLoaded) {
+                    PlayerStatsManager PlayerStatsManager = ((PlayerStatsManagerAccess) DungeonPortalScreen.this.playerEntity).getPlayerStatsManager();
+                    if (PlayerStatsManager.getOverallLevel() < DungeonPortalScreen.this.handler.getDungeonPortalEntity().getRequiredLevel()) {
+                        text = Text.translatable("text.dungeonz.required_level", DungeonPortalScreen.this.handler.getDungeonPortalEntity().getRequiredLevel());
+                    }
                 }
                 if (text != null) {
                     context.drawTooltip(textRenderer, text, mouseX, mouseY);

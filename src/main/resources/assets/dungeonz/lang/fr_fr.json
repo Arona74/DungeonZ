@@ -27,6 +27,7 @@
     "text.dungeonz.missing": "Objets Manquants",
     "text.dungeonz.effects": "Effets Désactivés",
     "text.dungeonz.private": "Groupe Privé",
+    "text.dungeonz.required_level": "Niveau requis %s",
     "text.dungeonz.nothing_required": "-",
     "text.dungeonz.dead_player": "Réintégration non autorisée",
     "text.dungeonz.empty_name": "-",

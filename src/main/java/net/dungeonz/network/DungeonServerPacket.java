@@ -44,13 +44,13 @@ public class DungeonServerPacket {
     public static final Identifier SYNC_SCREEN_PACKET = new Identifier("dungeonz", "sync_screen");
     public static final Identifier OP_SCREEN_PACKET = new Identifier("dungeonz", "op_screen");
     public static final Identifier COMPASS_SCREEN_PACKET = new Identifier("dungeonz", "compass_screen");
+    public static final Identifier DUNGEON_PORTAL_PACKET = new Identifier("dungeonz", "dungeon_portal_packet");
 
     public static void init() {
         ServerPlayNetworking.registerGlobalReceiver(CHANGE_DUNGEON_DIFFICULTY_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             server.execute(() -> {
-                if (player.getWorld().getBlockEntity(dungeonPortalPos) != null && player.getWorld().getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity) {
-                    DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) player.getWorld().getBlockEntity(dungeonPortalPos);
+                if (player.getWorld().getBlockEntity(dungeonPortalPos) != null && player.getWorld().getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {
 
                     if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                         List<String> difficulties = dungeonPortalEntity.getDungeon().getDifficultyList();
@@ -120,6 +120,7 @@ public class DungeonServerPacket {
                                 dungeonPortalEntity.setDifficulty(defaultDifficulty);
                                 dungeonPortalEntity.setMaxGroupSize(dungeon.getMaxGroupSize());
                                 dungeonPortalEntity.setMinGroupSize(dungeon.getMinGroupSize());
+                                dungeonPortalEntity.setRequiredLevel(dungeon.getRequiredLevel());
                                 dungeonPortalEntity.markDirty();
                                 player.sendMessage(Text.of("Set dungeon type successfully!"), false);
                                 return;

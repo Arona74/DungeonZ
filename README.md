@@ -3,7 +3,8 @@
 
 ### What are the differences with original DungeonZ (1.20.1)?
 - **Feature: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
-- **Change**: Dungeon portal block are now solid to avoid them been breakable from flowing liquid and solving the multiple triggering when crossing them. Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the /dungeon leave command.
+- **Backport**: LevelZ requirement (originaly in DungeonZ 1.21.1)
+- **Change**: Dungeon portal blocks are now solid to avoid them been breakable from flowing liquid and solving the multiple triggering when crossing them. Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the /dungeon leave command.
 - **Change**: Few fixes on dark dungeon (easier parkour), missing vines in temple dungeon, etc
 - **Change**: Fix to avoid fire to break blocks (like vines)
 - **Change**: Fix the "flying not allowed" kick on server when teleporting player to dungeon
@@ -121,6 +122,7 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "elytra": false, // is Elytra usage allowed?
     "max_group_size": 5,
     "min_group_size": 0, // optional
+    "required_level": 0, // optional, levelZ compat
     "cooldown": 108000, // Cooldown after the dungeon is completed or failed in ticks
     "background_texture": "", // For custom dungeon portal backgrounds, set your texture path here
     "dungeon_structure_pool_id": "dungeonz:dark_dungeon/dungeon_spawn" // Structure part which the dungeon generates start of

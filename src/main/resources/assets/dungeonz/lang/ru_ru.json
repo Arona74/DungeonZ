@@ -25,6 +25,7 @@
     "text.dungeonz.missing": "Отсутствуют предметы",
     "text.dungeonz.effects": "Эффекты отключены",
     "text.dungeonz.private": "Приватная группа",
+    "text.dungeonz.required_level": "Требуемый уровень %s",
     "text.dungeonz.nothing_required": "-",
     "text.dungeonz.dead_player": "Повторное присоединение запрещено",
     "text.dungeonz.empty_name": "-",

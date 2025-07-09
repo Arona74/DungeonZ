@@ -77,6 +77,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         int maxGroupSize = buf.readInt();
         int minGroupSize = buf.readInt();
         int waitingGroupSize = buf.readInt();
+        int requiredLevel = buf.readInt();
         int cooldownTime = buf.readInt();
         String difficulty = buf.readString();
         boolean disableEffects = buf.readBoolean();
@@ -91,6 +92,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadDungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setMaxGroupSize(maxGroupSize);
         this.getDungeonPortalEntity().setMinGroupSize(minGroupSize);
+        this.getDungeonPortalEntity().setRequiredLevel(requiredLevel);
         this.getDungeonPortalEntity().setCooldownTime(cooldownTime);
         this.getDungeonPortalEntity().setDifficulty(difficulty);
         this.getDungeonPortalEntity().setDisableEffects(disableEffects);

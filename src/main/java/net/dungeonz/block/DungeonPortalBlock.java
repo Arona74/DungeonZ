@@ -1,7 +1,5 @@
 package net.dungeonz.block;
 
-import java.util.Iterator;
-
 import org.jetbrains.annotations.Nullable;
 
 import net.dungeonz.DungeonzMain;
@@ -57,7 +55,6 @@ public class DungeonPortalBlock extends BlockWithEntity {
 		}
 
 		if (player.getWorld().getBlockEntity(pos) != null && player.getWorld().getBlockEntity(pos) instanceof DungeonPortalEntity dungeonPortalEntity) {
-
 			if (isOtherDungeonPortalBlockNearby(world, pos)) {
 				dungeonPortalEntity = getMainDungeonPortalEntity(world, pos);
 				pos = getMainDungeonPortalBlockPos(world, pos);
@@ -101,9 +98,7 @@ public class DungeonPortalBlock extends BlockWithEntity {
     }
 
     public static boolean isOtherDungeonPortalBlockNearby(World world, BlockPos pos) {
-        Iterator<BlockPos> iterator = BlockPos.iterateOutwards(pos, 1, 1, 1).iterator();
-        while (iterator.hasNext()) {
-            BlockPos checkPos = iterator.next();
+        for (BlockPos checkPos : BlockPos.iterateOutwards(pos, 1, 1, 1)) {
             if (checkPos.equals(pos)) {
                 continue;
             }

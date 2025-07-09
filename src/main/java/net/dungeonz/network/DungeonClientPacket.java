@@ -44,15 +44,14 @@ public class DungeonClientPacket {
             String difficulty = buf.readString();
 
             client.execute(() -> {
-                if (client.world.getBlockEntity(dungeonPortalPos) != null && client.world.getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity) {
-                    DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) client.world.getBlockEntity(dungeonPortalPos);
+                if (client.world.getBlockEntity(dungeonPortalPos) != null && client.world.getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {
                     dungeonPortalEntity.setDifficulty(difficulty);
 
-                    if (client.currentScreen instanceof DungeonPortalScreen) {
-                        ((DungeonPortalScreen) client.currentScreen).difficultyButton.setText(Text.translatable("dungeonz.difficulty." + difficulty));
+                    if (client.currentScreen instanceof DungeonPortalScreen dungeonPortalScreen) {
+                        dungeonPortalScreen.difficultyButton.setText(Text.translatable("dungeonz.difficulty." + difficulty));
                     }
-                    if (client.player.currentScreenHandler instanceof DungeonPortalScreenHandler) {
-                        ((DungeonPortalScreenHandler) client.player.currentScreenHandler).getDungeonPortalEntity().setDifficulty(difficulty);
+                    if (client.player.currentScreenHandler instanceof DungeonPortalScreenHandler dungeonPortalScreenHandler) {
+                        dungeonPortalScreenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
                     }
                 }
             });
@@ -66,13 +65,11 @@ public class DungeonClientPacket {
 
             client.execute(() -> {
                 if (client.world.getBlockEntity(portalOrGatePos) != null) {
-                    if (client.world.getBlockEntity(portalOrGatePos) instanceof DungeonPortalEntity) {
-                        DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) client.world.getBlockEntity(portalOrGatePos);
+                    if (client.world.getBlockEntity(portalOrGatePos) instanceof DungeonPortalEntity dungeonPortalEntity) {
                         dungeonPortalEntity.setDungeonType(dungeonTypeOrBlockId);
                         dungeonPortalEntity.setDifficulty(difficultyOrParticleId);
                         client.setScreen(new DungeonPortalOpScreen(portalOrGatePos));
-                    } else if (client.world.getBlockEntity(portalOrGatePos) instanceof DungeonGateEntity) {
-                        DungeonGateEntity dungeonGateEntity = (DungeonGateEntity) client.world.getBlockEntity(portalOrGatePos);
+                    } else if (client.world.getBlockEntity(portalOrGatePos) instanceof DungeonGateEntity dungeonGateEntity) {
                         dungeonGateEntity.setBlockId(new Identifier(dungeonTypeOrBlockId));
                         dungeonGateEntity.setParticleEffectId(difficultyOrParticleId);
                         dungeonGateEntity.setUnlockItemId(unlockItemId);
@@ -104,8 +101,7 @@ public class DungeonClientPacket {
 
             client.execute(() -> {
                 for (int i = 0; i < dungeonGatesPosList.size(); i++) {
-                    if (client.world.getBlockEntity(dungeonGatesPosList.get(i)) != null && client.world.getBlockEntity(dungeonGatesPosList.get(i)) instanceof DungeonGateEntity) {
-                        DungeonGateEntity dungeonGateEntity = (DungeonGateEntity) client.world.getBlockEntity(dungeonGatesPosList.get(i));
+                    if (client.world.getBlockEntity(dungeonGatesPosList.get(i)) != null && client.world.getBlockEntity(dungeonGatesPosList.get(i)) instanceof DungeonGateEntity dungeonGateEntity) {
                         dungeonGateEntity.setBlockId(new Identifier(blockId));
                         dungeonGateEntity.setParticleEffectId(particleId);
                         dungeonGateEntity.setUnlockItemId(unlockItemId);
