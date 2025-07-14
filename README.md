@@ -1,5 +1,5 @@
 # DungeonZ - Bleak Isles Edition <img alt="Factions Mod Icon" src="src/main/resources/assets/dungeonz/icon.png">
-**DungeonZ - BIE** is a fork made by Arona74 from **DungeonZ** mod made by Globox_Z, created for [Conquest of the Bleak Isles Modpack](https://modrinth.com/modpack/bleak-isles) needs.
+**DungeonZ - BLIS** is a fork made by Arona74 from **DungeonZ** mod made by Globox_Z, created for [Conquest of the Bleak Isles Modpack](https://modrinth.com/modpack/bleak-isles) needs.
 
 ### What are the differences with original DungeonZ (1.20.1)?
 - **Feature: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
