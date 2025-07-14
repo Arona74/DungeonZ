@@ -30,7 +30,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     private List<String> difficulties = new ArrayList<String>();
     private Map<String, List<ItemStack>> possibleLootDifficultyItemStackMap = new HashMap<String, List<ItemStack>>();
-    private List<ItemStack> requiredItemStacks = new ArrayList<ItemStack>();
+    private Map<String, List<ItemStack>> requiredItemStacks = new HashMap<String, List<ItemStack>>();
     private int waitingGroupSize = 0;
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
@@ -68,15 +68,26 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         }
         final Map<String, List<ItemStack>> possibleLootDifficultyItemStacks = possibleLootDifficultyItemStackMap;
         int requiredItemCount = buf.readInt();
-        List<ItemStack> requiredItemStacks = new ArrayList<ItemStack>();
+        Map<String, List<ItemStack>> requiredItemStacksMap = new HashMap<String, List<ItemStack>>();
         if (requiredItemCount != 0) {
             for (int i = 0; i < requiredItemCount; i++) {
-                requiredItemStacks.add(buf.readItemStack());
+                List<ItemStack> itemStacks = new ArrayList<ItemStack>();
+                String difficulty = buf.readString();
+                int reqCount = buf.readInt();
+                for (int u = 0; u < reqCount; u++) {
+                    itemStacks.add(buf.readItemStack());
+                }
+                requiredItemStacksMap.put(difficulty, itemStacks);
             }
         }
+        final Map<String, List<ItemStack>> requiredItemStacks = requiredItemStacksMap;
         int maxGroupSize = buf.readInt();
         int minGroupSize = buf.readInt();
         int waitingGroupSize = buf.readInt();
+        List<UUID> waitingUUIDs = new ArrayList<UUID>();
+        for (int i = 0; i < waitingGroupSize; i++) {
+            waitingUUIDs.add(buf.readUuid());
+        }
         int requiredLevel = buf.readInt();
         int cooldownTime = buf.readInt();
         String difficulty = buf.readString();
@@ -92,6 +103,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadDungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setMaxGroupSize(maxGroupSize);
         this.getDungeonPortalEntity().setMinGroupSize(minGroupSize);
+        this.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
         this.getDungeonPortalEntity().setRequiredLevel(requiredLevel);
         this.getDungeonPortalEntity().setCooldownTime(cooldownTime);
         this.getDungeonPortalEntity().setDifficulty(difficulty);
@@ -156,11 +168,11 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.possibleLootDifficultyItemStackMap = possibleLootDifficultyItemStackMap;
     }
 
-    public List<ItemStack> getRequiredItemStacks() {
+    public Map<String, List<ItemStack>> getRequiredItemStacks() {
         return this.requiredItemStacks;
     }
 
-    public void setRequiredItemStacks(List<ItemStack> requiredItemStacks) {
+    public void setRequiredItemStacks(Map<String, List<ItemStack>> requiredItemStacks) {
         this.requiredItemStacks = requiredItemStacks;
     }
 

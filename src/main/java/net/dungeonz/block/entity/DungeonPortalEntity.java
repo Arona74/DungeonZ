@@ -374,9 +374,16 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                 }
             }
             // Required Items
-            buf.writeInt(DungeonHelper.getRequiredItemStackList(this.getDungeon()).size());
-            for (int i = 0; i < DungeonHelper.getRequiredItemStackList(this.getDungeon()).size(); i++) {
-                buf.writeItemStack(DungeonHelper.getRequiredItemStackList(this.getDungeon()).get(i));
+            Map<String, List<ItemStack>> requiredItem = DungeonHelper.getRequiredItemStackList(this.getDungeon());
+            buf.writeInt(requiredItem.size());
+            Iterator<Entry<String, List<ItemStack>>> requiredItemIterator = requiredItem.entrySet().iterator();
+            while (requiredItemIterator.hasNext()) {
+                Entry<String, List<ItemStack>> entry = requiredItemIterator.next();
+                buf.writeString(entry.getKey());
+                buf.writeInt(entry.getValue().size());
+                for (int i = 0; i < entry.getValue().size(); i++) {
+                    buf.writeItemStack(entry.getValue().get(i));
+                }
             }
         } else {
             buf.writeInt(0);
@@ -387,6 +394,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         buf.writeInt(this.getMaxGroupSize());
         buf.writeInt(this.getMinGroupSize());
         buf.writeInt(this.getWaitingUuids().size());
+        for (int i = 0; i < this.getWaitingUuids().size(); i++) {
+            buf.writeUuid(this.getWaitingUuids().get(i));
+        }
         buf.writeInt(this.getRequiredLevel());
         buf.writeInt(this.getCooldownTime());
         buf.writeString(this.getDifficulty());
@@ -532,6 +542,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public List<UUID> getWaitingUuids() {
         return this.waitingUuids;
+    }
+
+    public void setWaitingUuids(List<UUID> waitingUuids) {
+        this.waitingUuids = waitingUuids;
     }
 
     public void addWaitingUuid(UUID uuid) {

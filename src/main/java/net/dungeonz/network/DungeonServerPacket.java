@@ -182,7 +182,16 @@ public class DungeonServerPacket {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
         buf.writeBlockPos(dungeonPortalEntity.getPos());
         buf.writeString(dungeonPortalEntity.getDifficulty());
-
+        List<UUID> dungeonPlayerUUIDs = dungeonPortalEntity.getDungeonPlayerUuids();
+        buf.writeInt(dungeonPlayerUUIDs.size());
+        for (UUID uuid : dungeonPlayerUUIDs) {
+            buf.writeUuid(uuid);
+        }
+        List<UUID> waitingUUIDs = dungeonPortalEntity.getWaitingUuids();
+        buf.writeInt(waitingUUIDs.size());
+        for (UUID uuid : waitingUUIDs) {
+            buf.writeUuid(uuid);
+        }
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SYNC_SCREEN_PACKET, buf);
         serverPlayerEntity.networkHandler.sendPacket(packet);
     }

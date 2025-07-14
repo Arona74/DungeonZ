@@ -42,17 +42,32 @@ public class DungeonClientPacket {
         ClientPlayNetworking.registerGlobalReceiver(DungeonServerPacket.SYNC_SCREEN_PACKET, (client, handler, buf, sender) -> {
             BlockPos dungeonPortalPos = buf.readBlockPos();
             String difficulty = buf.readString();
+            int dungeonPlayerCount = buf.readInt();
+            List<UUID> dungeonPlayerUUIDs = new ArrayList<>();
+            for (int i = 0; i < dungeonPlayerCount; i++) {
+                dungeonPlayerUUIDs.add(buf.readUuid());
+            }
+            int waitingGroupSize = buf.readInt();
+            List<UUID> waitingUUIDs = new ArrayList<>();
+            for (int i = 0; i < waitingGroupSize; i++) {
+                waitingUUIDs.add(buf.readUuid());
+            }
 
             client.execute(() -> {
                 if (client.world.getBlockEntity(dungeonPortalPos) != null && client.world.getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {
                     dungeonPortalEntity.setDifficulty(difficulty);
+                    dungeonPortalEntity.setDungeonPlayerUuids(dungeonPlayerUUIDs);
+                    dungeonPortalEntity.setWaitingUuids(waitingUUIDs);
 
                     if (client.currentScreen instanceof DungeonPortalScreen dungeonPortalScreen) {
                         dungeonPortalScreen.difficultyButton.setText(Text.translatable("dungeonz.difficulty." + difficulty));
                     }
                     if (client.player.currentScreenHandler instanceof DungeonPortalScreenHandler dungeonPortalScreenHandler) {
                         dungeonPortalScreenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
+                        dungeonPortalScreenHandler.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
+                        dungeonPortalScreenHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
                     }
+
                 }
             });
         });

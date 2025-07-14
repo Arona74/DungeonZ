@@ -31,7 +31,7 @@
     "text.dungeonz.nothing_required": "-",
     "text.dungeonz.dead_player": "Réintégration non autorisée",
     "text.dungeonz.empty_name": "-",
-    "text.dungeonz.player_list": "Joueurs (%d/%d)",
+    "text.dungeonz.player_list": "Joueurs dedans (%d/%d)",
     "text.dungeonz.waiting_player_list": "Joueurs Min : %d/%d",
     "text.dungeonz.dungeon_full": "Le Donjon est plein",
     "text.dungeonz.dungeon_private": "Le Donjon est en mode privé",

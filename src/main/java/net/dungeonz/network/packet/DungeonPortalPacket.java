@@ -15,20 +15,23 @@ public class DungeonPortalPacket {
     public final BlockPos blockPos;
     public final List<UUID> playerUuids;
     public final List<UUID> deadPlayerUuids;
+    public final List<UUID> waitingPlayerUuids;
     public final List<String> difficulties;
     public final Map<String, List<ItemStack>> possibleLoot;
-    public final List<ItemStack> requiredItemStacks;
+    public final Map<String, List<ItemStack>> requiredItemStacks;
     public final int maxGroupSize, minGroupSize, waitingPlayerCount, requiredLevel, cooldownTime;
     public final String difficulty;
     public final boolean disableEffects, privateGroup;
     public final Optional<Identifier> backgroundId;
+    public final long timestamp;
 
     public DungeonPortalPacket(BlockPos blockPos,
                                List<UUID> playerUuids,
                                List<UUID> deadPlayerUuids,
+                               List<UUID> waitingPlayerUuids,
                                List<String> difficulties,
                                Map<String, List<ItemStack>> possibleLoot,
-                               List<ItemStack> requiredItemStacks,
+                               Map<String, List<ItemStack>> requiredItemStacks,
                                int maxGroupSize,
                                int minGroupSize,
                                int waitingPlayerCount,
@@ -41,6 +44,7 @@ public class DungeonPortalPacket {
         this.blockPos = blockPos;
         this.playerUuids = playerUuids;
         this.deadPlayerUuids = deadPlayerUuids;
+        this.waitingPlayerUuids = waitingPlayerUuids;
         this.difficulties = difficulties;
         this.possibleLoot = possibleLoot;
         this.requiredItemStacks = requiredItemStacks;
@@ -53,6 +57,7 @@ public class DungeonPortalPacket {
         this.disableEffects = disableEffects;
         this.privateGroup = privateGroup;
         this.backgroundId = backgroundId;
+        this.timestamp = System.currentTimeMillis();
     }
 
     public static void encode(DungeonPortalPacket p, PacketByteBuf buf) {
@@ -63,6 +68,9 @@ public class DungeonPortalPacket {
 
         buf.writeInt(p.deadPlayerUuids.size());
         p.deadPlayerUuids.forEach(buf::writeUuid);
+
+        buf.writeInt(p.waitingPlayerUuids.size());
+        p.waitingPlayerUuids.forEach(buf::writeUuid);
 
         buf.writeInt(p.difficulties.size());
         p.difficulties.forEach(buf::writeString);
@@ -75,7 +83,11 @@ public class DungeonPortalPacket {
         }
 
         buf.writeInt(p.requiredItemStacks.size());
-        p.requiredItemStacks.forEach(buf::writeItemStack);
+        for (Entry<String, List<ItemStack>> e : p.requiredItemStacks.entrySet()) {
+            buf.writeString(e.getKey());
+            buf.writeInt(e.getValue().size());
+            e.getValue().forEach(buf::writeItemStack);
+        }
 
         buf.writeInt(p.maxGroupSize);
         buf.writeInt(p.minGroupSize);
@@ -88,6 +100,8 @@ public class DungeonPortalPacket {
 
         buf.writeBoolean(p.backgroundId.isPresent());
         p.backgroundId.ifPresent(buf::writeIdentifier);
+
+        buf.writeLong(p.timestamp);
     }
 
     public static DungeonPortalPacket decode(PacketByteBuf buf) {
@@ -100,6 +114,10 @@ public class DungeonPortalPacket {
         int nDead = buf.readInt();
         List<UUID> dead = new ArrayList<>(nDead);
         for (int i = 0; i < nDead; i++) dead.add(buf.readUuid());
+
+        int nWaiting = buf.readInt();
+        List<UUID> waiting = new ArrayList<>(nWaiting);
+        for (int i = 0; i < nWaiting; i++) waiting.add(buf.readUuid());
 
         int nDiff = buf.readInt();
         List<String> diffs = new ArrayList<>(nDiff);
@@ -116,12 +134,18 @@ public class DungeonPortalPacket {
         }
 
         int reqCount = buf.readInt();
-        List<ItemStack> reqStacks = new ArrayList<>();
-        for (int i = 0; i < reqCount; i++) reqStacks.add(buf.readItemStack());
+        Map<String, List<ItemStack>> reqStacks = new HashMap<>();
+        for (int i = 0; i < reqCount; i++) {
+            String key = buf.readString(32767);
+            int count = buf.readInt();
+            List<ItemStack> list = new ArrayList<>();
+            for (int j = 0; j < count; j++) list.add(buf.readItemStack());
+            reqStacks.put(key, list);
+        }
 
         int max = buf.readInt();
         int min = buf.readInt();
-        int waiting = buf.readInt();
+        int waitingCount = buf.readInt();
         int level = buf.readInt();
         int cooldown = buf.readInt();
 
@@ -131,8 +155,10 @@ public class DungeonPortalPacket {
 
         Optional<Identifier> bg = buf.readBoolean() ? Optional.of(buf.readIdentifier()) : Optional.empty();
 
-        return new DungeonPortalPacket(blockPos, playerUuids, dead, diffs, possibleLoot, reqStacks,
-                max, min, waiting, level, cooldown, difficulty, disable, priv, bg);
+        long timestamp = buf.readLong();
+
+        return new DungeonPortalPacket(blockPos, playerUuids, dead, waiting, diffs, possibleLoot, reqStacks,
+                max, min, waitingCount, level, cooldown, difficulty, disable, priv, bg);
     }
 
     public static PacketByteBuf toBuf(DungeonPortalPacket p) {

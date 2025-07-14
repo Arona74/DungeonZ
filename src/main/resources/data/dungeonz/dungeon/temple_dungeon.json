@@ -169,7 +169,15 @@
 
     ],
     "required": {
-            "minecraft:diamond": 12
+        "easy": {
+            "minecraft:diamond": 5
+        },
+        "normal": {
+            "minecraft:diamond": 10
+        },
+        "hard": {
+            "minecraft:diamond": 15
+        }
     },
     "respawn": true,
     "elytra": false,
