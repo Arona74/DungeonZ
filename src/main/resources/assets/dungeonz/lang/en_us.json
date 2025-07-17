@@ -61,6 +61,7 @@
     "text.dungeonz.dungeon_min_group_size": "Wait for %s more dungeon party member!",
     "text.dungeonz.dungeon_autokick": "You got autokicked cause it took you to long to finish the dungeon!",
     "text.dungeonz.dungeon_waiting": "Waiting other players",
+    "text.dungeonz.dungeon_safekick": "Dungeon is regenerating. You've been moved to a safe location.",
 
     "hud.dungeonz.dungeon_countdown": "%s",
 

@@ -1,19 +1,9 @@
 package net.dungeonz.block.entity;
 
-import java.util.*;
-import java.util.Map.Entry;
-
-import net.minecraft.util.Identifier;
-import org.jetbrains.annotations.Nullable;
-
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.dungeon.DungeonPlacementHandler;
-import net.dungeonz.init.BlockInit;
-import net.dungeonz.init.ConfigInit;
-import net.dungeonz.init.CriteriaInit;
-import net.dungeonz.init.DimensionInit;
-import net.dungeonz.init.SoundInit;
+import net.dungeonz.init.*;
 import net.dungeonz.network.DungeonServerPacket;
 import net.dungeonz.util.DungeonHelper;
 import net.dungeonz.util.InventoryHelper;
@@ -36,11 +26,16 @@ import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
+import net.minecraft.util.Identifier;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
+import org.jetbrains.annotations.Nullable;
+
+import java.util.*;
+import java.util.Map.Entry;
 
 public class DungeonPortalEntity extends EndPortalBlockEntity implements ExtendedScreenHandlerFactory {
 
@@ -62,6 +57,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private List<BlockPos> chestPosList = new ArrayList<BlockPos>();
     private List<BlockPos> exitPosList = new ArrayList<BlockPos>();
     private List<BlockPos> gatePosList = new ArrayList<BlockPos>();
+    private Map<BlockPos, Integer> movingBlockMap = new HashMap<>();
+    private Map<BlockPos, Powered> poweredBlockMap = new HashMap<>();
     private BlockPos bossBlockPos = new BlockPos(0, 0, 0);
     private BlockPos bossLootBlockPos = new BlockPos(0, 0, 0);
     private HashMap<BlockPos, Integer> spawnerPosEntityIdMap = new HashMap<BlockPos, Integer>();
@@ -133,6 +130,20 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             this.replacePosBlockIdMap.clear();
             for (int i = 0; i < nbt.getInt("ReplacePosSize"); i++) {
                 this.replacePosBlockIdMap.put(new BlockPos(nbt.getInt("ReplacePosX" + i), nbt.getInt("ReplacePosY" + i), nbt.getInt("ReplacePosZ" + i)), nbt.getInt("ReplaceBlockId" + i));
+            }
+        }
+
+        if (nbt.getInt("MovingPosSize") > 0) {
+            this.movingBlockMap.clear();
+            for (int i = 0; i < nbt.getInt("MovingPosSize"); i++) {
+                this.movingBlockMap.put(new BlockPos(nbt.getInt("MovingPosX" + i), nbt.getInt("MovingPosY" + i), nbt.getInt("MovingPosZ" + i)), nbt.getInt("MovingBlockId" + i));
+            }
+        }
+
+        if (nbt.getInt("PoweredPosSize") > 0) {
+            this.poweredBlockMap.clear();
+            for (int i = 0; i < nbt.getInt("PoweredPosSize"); i++) {
+                this.poweredBlockMap.put(new BlockPos(nbt.getInt("PoweredPosX" + i), nbt.getInt("PoweredPosY" + i), nbt.getInt("PoweredPosZ" + i)), new Powered(nbt.getInt("PoweredBlockId" + i), nbt.getBoolean("PoweredBlock" + i), nbt.getInt("PoweredBlockFacing" + i)));
             }
         }
 
@@ -244,6 +255,36 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             }
         }
 
+        nbt.putInt("MovingPosSize", this.movingBlockMap.size());
+        if (!this.movingBlockMap.isEmpty()) {
+            Iterator<Entry<BlockPos, Integer>> iterator = this.movingBlockMap.entrySet().iterator();
+            int count = 0;
+            while (iterator.hasNext()) {
+                Entry<BlockPos, Integer> entry = iterator.next();
+                nbt.putInt("MovingPosX" + count, entry.getKey().getX());
+                nbt.putInt("MovingPosY" + count, entry.getKey().getY());
+                nbt.putInt("MovingPosZ" + count, entry.getKey().getZ());
+                nbt.putInt("MovingBlockId" + count, entry.getValue());
+                count++;
+            }
+        }
+
+        nbt.putInt("PoweredPosSize", this.poweredBlockMap.size());
+        if (!this.poweredBlockMap.isEmpty()) {
+            Iterator<Entry<BlockPos, Powered>> iterator = this.poweredBlockMap.entrySet().iterator();
+            int count = 0;
+            while (iterator.hasNext()) {
+                Entry<BlockPos, Powered> entry = iterator.next();
+                nbt.putInt("PoweredPosX" + count, entry.getKey().getX());
+                nbt.putInt("PoweredPosY" + count, entry.getKey().getY());
+                nbt.putInt("PoweredPosZ" + count, entry.getKey().getZ());
+                nbt.putInt("PoweredBlockId" + count, entry.getValue().getBlockId());
+                nbt.putBoolean("PoweredBlock" + count, entry.getValue().getPowered());
+                nbt.putInt("PoweredBlockFacing" + count, entry.getValue().getFacing());
+                count++;
+            }
+        }
+
         nbt.putInt("DungeonEdgeSize", this.dungeonEdgeList.size());
         if (!this.dungeonEdgeList.isEmpty()) {
             for (int i = 0; i < this.dungeonEdgeList.size() / 3; i++) {
@@ -269,7 +310,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     public static void serverTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
         if (blockEntity.getDungeonPlayerCount() > 0) {
             if (blockEntity.autoKickTime == 0) {
-                blockEntity.autoKickTime = (int) world.getTime() + 432000;
+                blockEntity.autoKickTime = (int) world.getTime() + 144000;
             } else if (blockEntity.autoKickTime < (int) world.getTime()) {
                 if (blockEntity.getDungeon() != null) {
                     blockEntity.setCooldownTime(blockEntity.getDungeon().getCooldown() + (int) blockEntity.getWorld().getTime());
@@ -301,6 +342,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             blockEntity.dungeonTeleportCountdown--;
 
             if (blockEntity.dungeonTeleportCountdown == (ConfigInit.CONFIG.defaultDungeonTeleportCountdown / 2)) {
+                // CompletableFuture.runAsync(() -> DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
+                        // blockEntity.getDungeon(), blockEntity.getDifficulty(), blockEntity.getDisableEffects()));
                 DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
                         blockEntity.getDungeon(), blockEntity.getDifficulty(), blockEntity.getDisableEffects());
             }
@@ -610,6 +653,22 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         return this.gatePosList;
     }
 
+    public void setMovingBlockMap(Map<BlockPos, Integer> movingBlockMap) {
+        this.movingBlockMap = movingBlockMap;
+    }
+
+    public Map<BlockPos, Integer> getMovingBlockMap() {
+        return this.movingBlockMap;
+    }
+
+    public void setPoweredBlockMap(Map<BlockPos, Powered> poweredBlockMap) {
+        this.poweredBlockMap = poweredBlockMap;
+    }
+
+    public Map<BlockPos, Powered> getPoweredBlockMap() {
+        return this.poweredBlockMap;
+    }
+
     public void setExitPosList(List<BlockPos> exitPosList) {
         this.exitPosList = exitPosList;
     }
@@ -652,17 +711,52 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         this.dungeonTeleportCountdown = ConfigInit.CONFIG.defaultDungeonTeleportCountdown;
 
         boolean isDungeonStructureGenerated = this.isDungeonStructureGenerated();
+        BlockPos origin = new BlockPos(0, 0, 0).add(this.getPos().getX() * 16, 100, this.getPos().getZ() * 16);
+
         if (!isDungeonStructureGenerated) {
             this.setDungeonStructureGenerated();
-            DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, new BlockPos(0, 0, 0).add(this.getPos().getX() * 16, 100, this.getPos().getZ() * 16), this);
+            DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
         } else {
-            DungeonPlacementHandler.prepareDungeon(dungeonWorld, this);
+            for (int i = 0; i < this.getDungeonPlayerUuids().size(); i++) {
+                ServerPlayerEntity player = (ServerPlayerEntity) dungeonWorld.getPlayerByUuid(this.getDungeonPlayerUuids().get(i));
+                if (player != null && DungeonHelper.getCurrentDungeon(player) != null) {
+                    DungeonHelper.teleportOutOfDungeon(player);
+                    player.sendMessage(Text.translatable("text.dungeonz.dungeon_safekick"));
+                }
+            }
+            DungeonPlacementHandler.clearDungeonAreaWithEntities(dungeonWorld, this);
+            DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
         }
+
         this.markDirty();
     }
 
     public int getdungeonTeleportCountdown() {
         return this.dungeonTeleportCountdown;
+    }
+
+    public static class Powered {
+        private final int blockId;
+        private final boolean powered;
+        private final int facing;
+
+        public Powered(int blockId, boolean powered, int facing) {
+            this.blockId = blockId;
+            this.powered = powered;
+            this.facing = facing;
+        }
+
+        public int getBlockId() {
+            return blockId;
+        }
+
+        public boolean getPowered() {
+            return powered;
+        }
+
+        public int getFacing() {
+            return facing;
+        }
     }
 
 }

@@ -1,14 +1,5 @@
 package net.dungeonz.dungeon;
 
-import java.util.ArrayList;
-import java.util.HashMap;
-import java.util.Iterator;
-import java.util.List;
-import java.util.Map.Entry;
-import java.util.Optional;
-
-import org.jetbrains.annotations.Nullable;
-
 import net.dungeonz.DungeonzMain;
 import net.dungeonz.access.BossEntityAccess;
 import net.dungeonz.access.ServerPlayerAccess;
@@ -23,15 +14,22 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.FallingBlock;
-import net.minecraft.entity.Entity;
-import net.minecraft.entity.EntityType;
-import net.minecraft.entity.ItemEntity;
-import net.minecraft.entity.LivingEntity;
-import net.minecraft.entity.SpawnReason;
+import net.minecraft.block.LandingBlock;
+import net.minecraft.block.entity.BlockEntity;
+import net.minecraft.entity.*;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.ItemFrameEntity;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
+import net.minecraft.entity.mob.HostileEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.passive.PassiveEntity;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
+import net.minecraft.entity.vehicle.MinecartEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -39,9 +37,11 @@ import net.minecraft.registry.RegistryKey;
 import net.minecraft.registry.RegistryKeys;
 import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.server.command.ServerCommandSource;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ChunkTicketType;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.state.property.Properties;
 import net.minecraft.structure.PoolStructurePiece;
 import net.minecraft.structure.StructurePiece;
 import net.minecraft.structure.StructurePiecesCollector;
@@ -49,23 +49,33 @@ import net.minecraft.structure.StructureTemplateManager;
 import net.minecraft.structure.pool.StructurePool;
 import net.minecraft.structure.pool.StructurePoolBasedGenerator;
 import net.minecraft.util.Identifier;
-import net.minecraft.util.math.BlockBox;
-import net.minecraft.util.math.BlockPos;
-import net.minecraft.util.math.Box;
-import net.minecraft.util.math.ChunkPos;
-import net.minecraft.util.math.ChunkSectionPos;
-import net.minecraft.util.math.Direction;
-import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.*;
 import net.minecraft.util.math.random.Random;
 import net.minecraft.util.Unit;
 import net.minecraft.world.Heightmap;
 import net.minecraft.world.StructureWorldAccess;
 import net.minecraft.world.TeleportTarget;
 import net.minecraft.world.chunk.Chunk;
+import net.minecraft.world.chunk.WorldChunk;
+import net.minecraft.world.entity.EntityTrackingSection;
 import net.minecraft.world.gen.StructureAccessor;
 import net.minecraft.world.gen.chunk.ChunkGenerator;
+import net.minecraft.world.gen.structure.JigsawStructure;
 import net.minecraft.world.gen.structure.Structure;
 import net.rpgdifficulty.api.MobStrengthener;
+import org.jetbrains.annotations.Nullable;
+
+import com.mojang.brigadier.CommandDispatcher;
+import com.mojang.brigadier.ParseResults;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
+
+import java.util.*;
+import java.util.Map.Entry;
+
+import com.mojang.brigadier.StringReader;
+import com.mojang.brigadier.exceptions.CommandSyntaxException;
 
 public class DungeonPlacementHandler {
 
@@ -141,12 +151,15 @@ public class DungeonPlacementHandler {
         Random random = world.getRandom();
         Structure.Context context = new Structure.Context(world.getRegistryManager(), chunkGenerator, chunkGenerator.getBiomeSource(), world.getChunkManager().getNoiseConfig(),
                 structureTemplateManager, world.getSeed(), new ChunkPos(pos), world, registryEntry -> true);
+
         Optional<Structure.StructurePosition> optional = StructurePoolBasedGenerator.generate(context, structurePool, Optional.of(id), size, pos, false, Optional.empty(), 512);
         if (optional.isPresent()) {
             HashMap<Integer, ArrayList<BlockPos>> blockIdPosMap = new HashMap<Integer, ArrayList<BlockPos>>();
             ArrayList<BlockPos> chestPosList = new ArrayList<BlockPos>();
             ArrayList<BlockPos> exitPosList = new ArrayList<BlockPos>();
             ArrayList<BlockPos> gatePosList = new ArrayList<BlockPos>();
+            Map<BlockPos, Integer> movingBlockMap = new HashMap<>();
+            Map<BlockPos, DungeonPortalEntity.Powered> poweredBlockMap = new HashMap<>();
             HashMap<BlockPos, Integer> spawnerPosEntityIdMap = new HashMap<BlockPos, Integer>();
             Block exitBlock = Registries.BLOCK.get(dungeon.getExitBlockId());
             Block bossLootBlock = Registries.BLOCK.get(dungeon.getBossLootBlockId());
@@ -195,8 +208,10 @@ public class DungeonPlacementHandler {
                                                 poolStructurePiece.getBoundingBox().getMaxZ());
                                         dungeonGateEntity.markDirty();
                                     }
-                                } else if (state.getBlock() instanceof @SuppressWarnings("unused")FallingBlock fallingBlock) {
-
+                                } else if (state.getBlock() instanceof LandingBlock) {
+                                    movingBlockMap.put(checkPos, blockId);
+                                } else if (state.contains(Properties.POWERED)) {
+                                    poweredBlockMap.put(checkPos, new DungeonPortalEntity.Powered(blockId, state.get(Properties.POWERED), state.contains(Properties.HORIZONTAL_FACING) ? state.get(Properties.HORIZONTAL_FACING).getHorizontal() : 0));
                                 }
                             }
                         }
@@ -205,6 +220,8 @@ public class DungeonPlacementHandler {
             }
             portalEntity.setChestPosList(chestPosList);
             portalEntity.setExitPosList(exitPosList);
+            portalEntity.setMovingBlockMap(movingBlockMap);
+            portalEntity.setPoweredBlockMap(poweredBlockMap);
             portalEntity.setBlockMap(blockIdPosMap);
             portalEntity.setSpawnerPosEntityIdMap(spawnerPosEntityIdMap);
             portalEntity.setGatePosList(gatePosList);
@@ -214,28 +231,221 @@ public class DungeonPlacementHandler {
         return false;
     }
 
-    public static void prepareDungeon(ServerWorld dungeonWorld, DungeonPortalEntity portalEntity) {
-        List<ChunkPos> chunkPosList = new ArrayList<ChunkPos>();
-        for (int i = 0; i < portalEntity.getDungeonEdgeList().size() / 6; i++) {
-            int x1 = portalEntity.getDungeonEdgeList().get(6 * i);
-            int z1 = portalEntity.getDungeonEdgeList().get(2 + 6 * i);
+    private static final Logger LOGGER = LogManager.getLogger("DungeonClear");
 
-            int x2 = portalEntity.getDungeonEdgeList().get(3 + 6 * i);
-            int z2 = portalEntity.getDungeonEdgeList().get(5 + 6 * i);
+    // Clean solution: Clear entire dungeon area as one merged box
+    public static void clearDungeonAreaWithEntities(ServerWorld world, DungeonPortalEntity portalEntity) {
+        int totalBlocks = 0;
+        int totalBlockEntities = 0;
+        int margin = 100;
 
-            int xCount = Math.abs(x1 - x2) / 16 + ((x1 - x2) % 16 == 0 ? 0 : 1);
-            int zCount = Math.abs(z1 - z2) / 16 + ((z1 - z2) % 16 == 0 ? 0 : 1);
-            for (int u = 0; u < xCount; u++) {
-                for (int o = 0; o < zCount; o++) {
-                    ChunkPos chunkPos = new ChunkPos(ChunkSectionPos.getSectionCoord(x1 + 16 * u), ChunkSectionPos.getSectionCoord(z1 + 16 * o));
-                    if (!chunkPosList.contains(chunkPos)) {
-                        chunkPosList.add(chunkPos);
+        // Calculate the merged bounding box for all dungeon areas
+        Box mergedBox = calculateMergedBoundingBox(portalEntity, margin);
+        
+        if (mergedBox == null) {
+            LOGGER.warn("No dungeon areas found to clear");
+            return;
+        }
+
+        LOGGER.info("Clearing merged dungeon area: ({}, {}, {}) to ({}, {}, {})", 
+            (int)mergedBox.minX, (int)mergedBox.minY, (int)mergedBox.minZ,
+            (int)mergedBox.maxX, (int)mergedBox.maxY, (int)mergedBox.maxZ);
+        
+        // Force chunk loading for entire merged area
+        forceLoadChunks(world, mergedBox);
+        
+        // Clear entities before block removal
+        clearEntitiesInArea(world, mergedBox);
+        
+        // Remove blocks from all individual dungeon boxes
+        List<BlockBox> dungeonBoxes = getDungeonBoxes(portalEntity);
+        for (BlockBox box : dungeonBoxes) {
+            BlockPos.Mutable mutable = new BlockPos.Mutable();
+            for (int y = box.getMaxY(); y >= box.getMinY(); y--) {
+                for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
+                    for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
+                        mutable.set(x, y, z);
+                        BlockState state = world.getBlockState(mutable);
+                        if (!state.isAir()) {
+                            BlockEntity be = world.getBlockEntity(mutable);
+                            if (be != null) {
+                                world.removeBlockEntity(mutable);
+                                totalBlockEntities++;
+                            }
+                            world.setBlockState(mutable, Blocks.AIR.getDefaultState(), Block.FORCE_STATE | Block.SKIP_DROPS);
+                            totalBlocks++;
+                        }
                     }
                 }
             }
         }
-        for (ChunkPos chunkPos : chunkPosList) {
-            dungeonWorld.getChunkManager().addTicket(ChunkTicketType.PORTAL, chunkPos, 1, chunkPos.getStartPos());
+        
+        // Clear entities again after block removal
+        clearEntitiesInArea(world, mergedBox);
+
+        LOGGER.info("Block removal complete. Removed {} blocks, {} block entities.", totalBlocks, totalBlockEntities);
+        
+        // Schedule delayed entity clearing to catch any stragglers
+        scheduleDelayedEntityClear(world, mergedBox, 1);   // Next tick
+        scheduleDelayedEntityClear(world, mergedBox, 20);  // 1 second later
+    }
+
+    private static Box calculateMergedBoundingBox(DungeonPortalEntity portalEntity, int margin) {
+        List<BlockBox> dungeonBoxes = getDungeonBoxes(portalEntity);
+        
+        if (dungeonBoxes.isEmpty()) {
+            return null;
+        }
+        
+        // Find the overall min/max coordinates
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        
+        for (BlockBox box : dungeonBoxes) {
+            minX = Math.min(minX, box.getMinX());
+            minY = Math.min(minY, box.getMinY());
+            minZ = Math.min(minZ, box.getMinZ());
+            maxX = Math.max(maxX, box.getMaxX());
+            maxY = Math.max(maxY, box.getMaxY());
+            maxZ = Math.max(maxZ, box.getMaxZ());
+        }
+        
+        // Return expanded box with margin
+        return new Box(
+            minX - margin, minY - margin, minZ - margin,
+            maxX + margin, maxY + margin, maxZ + margin
+        );
+    }
+
+    private static List<BlockBox> getDungeonBoxes(DungeonPortalEntity portalEntity) {
+        List<BlockBox> boxes = new ArrayList<>();
+        
+        for (int i = 0; i < portalEntity.getDungeonEdgeList().size() / 6; i++) {
+            int x1 = portalEntity.getDungeonEdgeList().get(6 * i);
+            int y1 = portalEntity.getDungeonEdgeList().get(1 + 6 * i);
+            int z1 = portalEntity.getDungeonEdgeList().get(2 + 6 * i);
+            int x2 = portalEntity.getDungeonEdgeList().get(3 + 6 * i);
+            int y2 = portalEntity.getDungeonEdgeList().get(4 + 6 * i);
+            int z2 = portalEntity.getDungeonEdgeList().get(5 + 6 * i);
+
+            BlockBox box = new BlockBox(
+                Math.min(x1, x2), Math.min(y1, y2), Math.min(z1, z2),
+                Math.max(x1, x2), Math.max(y1, y2), Math.max(z1, z2)
+            );
+            
+            boxes.add(box);
+        }
+        
+        return boxes;
+    }
+
+    private static void clearEntitiesInArea(ServerWorld world, Box box) {
+        int cleared = 0;
+        
+        try {
+            // Get all entities in the area
+            List<Entity> entities = world.getOtherEntities(null, box);
+            
+            for (Entity entity : entities) {
+                if (shouldClearEntity(entity)) {
+                    entity.discard();
+                    cleared++;
+                }
+            }
+            
+            // Clear specific entity types that might be missed
+            world.getEntitiesByType(EntityType.ITEM, box, entity -> true).forEach(Entity::discard);
+            world.getEntitiesByType(EntityType.EXPERIENCE_ORB, box, entity -> true).forEach(Entity::discard);
+            
+            // Clear mobs
+            world.getEntitiesByClass(MobEntity.class, box, entity -> true).forEach(Entity::discard);
+            
+        } catch (Exception e) {
+            LOGGER.error("Error clearing entities: {}", e.getMessage());
+        }
+        
+        if (cleared > 0) {
+            LOGGER.info("Cleared {} entities from merged area", cleared);
+        }
+    }
+
+    private static void scheduleDelayedEntityClear(ServerWorld world, Box area, int delayTicks) {
+        MinecraftServer server = world.getServer();
+        if (server != null) {
+            // Create a task that runs after the specified delay
+            server.execute(() -> {
+                scheduleTaskAfterDelay(server, () -> {
+                    int initialCount = world.getOtherEntities(null, area).size();
+                    if (initialCount > 0) {
+                        clearEntitiesInArea(world, area);
+                        LOGGER.info("Delayed clear ({} ticks): Found {} entities to clear", delayTicks, initialCount);
+                    }
+                }, delayTicks);
+            });
+        }
+    }
+
+    private static void scheduleTaskAfterDelay(MinecraftServer server, Runnable task, int delayTicks) {
+        new Thread(() -> {
+            try {
+                // Wait for the specified number of ticks (20 ticks = 1 second)
+                Thread.sleep(delayTicks * 50); // 50ms per tick
+                server.execute(task);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                LOGGER.error("Delayed task interrupted", e);
+            }
+        }).start();
+    }
+
+    private static boolean shouldClearEntity(Entity entity) {
+        // Don't clear players
+        if (entity instanceof PlayerEntity) {
+            return false;
+        }
+        
+        // Clear items, XP orbs, and mobs
+        if (entity instanceof ItemEntity || 
+            entity instanceof ExperienceOrbEntity || 
+            entity instanceof MobEntity) {
+            return true;
+        }
+        
+        // Clear other common entities
+        if (entity instanceof ArmorStandEntity || 
+            entity instanceof PaintingEntity || 
+            entity instanceof ItemFrameEntity || 
+            entity instanceof BoatEntity || 
+            entity instanceof MinecartEntity || 
+            entity instanceof FallingBlockEntity) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    private static void forceLoadChunks(ServerWorld world, Box box) {
+        int minChunkX = (int) Math.floor(box.minX) >> 4;
+        int maxChunkX = (int) Math.floor(box.maxX) >> 4;
+        int minChunkZ = (int) Math.floor(box.minZ) >> 4;
+        int maxChunkZ = (int) Math.floor(box.maxZ) >> 4;
+        
+        LOGGER.info("Force loading chunks from ({}, {}) to ({}, {})", minChunkX, minChunkZ, maxChunkX, maxChunkZ);
+        
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                try {
+                    ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
+                    world.getChunkManager().addTicket(ChunkTicketType.PORTAL, chunkPos, 2, chunkPos.getStartPos());
+                    world.getChunk(chunkX, chunkZ);
+                } catch (Exception e) {
+                    LOGGER.error("Exception loading chunk ({}, {}): {}", chunkX, chunkZ, e.getMessage());
+                }
+            }
         }
     }
 
@@ -347,6 +557,38 @@ public class DungeonPlacementHandler {
         for (Entry<BlockPos, Integer> entry : portalEntity.getReplaceBlockIdMap().entrySet()) {
             world.setBlockState(entry.getKey(), Registries.BLOCK.get(entry.getValue()).getDefaultState(), 3);
         }
+        // Refresh powered blocks
+        for (Entry<BlockPos, DungeonPortalEntity.Powered> entry : portalEntity.getPoweredBlockMap().entrySet()) {
+            BlockState blockState = Registries.BLOCK.get(entry.getValue().getBlockId()).getDefaultState().with(Properties.POWERED, entry.getValue().getPowered());
+            boolean hasFacing = blockState.contains(Properties.HORIZONTAL_FACING);
+            if (hasFacing) {
+                blockState = blockState.with(Properties.HORIZONTAL_FACING, Direction.fromHorizontal(entry.getValue().getFacing()));
+            }
+            world.setBlockState(entry.getKey(), blockState, 3);
+            world.updateNeighborsAlways(entry.getKey(), world.getBlockState(entry.getKey()).getBlock());
+            if (hasFacing) {
+                world.updateNeighborsAlways(entry.getKey().offset(world.getBlockState(entry.getKey()).get(Properties.HORIZONTAL_FACING).getOpposite()), world.getBlockState(entry.getKey()).getBlock());
+            }
+        }
+        // Refresh moving blocks
+        List<BlockPos> freshPlacedBlockPoses = new ArrayList<>();
+        for (Entry<BlockPos, Integer> entry : portalEntity.getMovingBlockMap().entrySet()) {
+            Block block = Registries.BLOCK.get(entry.getValue());
+            if (!world.getBlockState(entry.getKey()).isOf(block)) {
+                for (int i = 1; i < 50; i++) {
+                    BlockPos checkPos = entry.getKey().down(i);
+                    if (freshPlacedBlockPoses.contains(checkPos)) {
+                        continue;
+                    }
+                    if (world.getBlockState(checkPos).isOf(block)) {
+                        world.removeBlock(checkPos, false);
+                        break;
+                    }
+                }
+                world.setBlockState(entry.getKey(), Registries.BLOCK.get(entry.getValue()).getDefaultState(), 3);
+                freshPlacedBlockPoses.add(entry.getKey());
+            }
+        }
         portalEntity.getDungeonPlayerUuids().clear();
         portalEntity.getDeadDungeonPlayerUUIDs().clear();
         portalEntity.markDirty();
@@ -390,11 +632,9 @@ public class DungeonPlacementHandler {
         if (hasAttackDamageAttribute) {
             mobDamage = mobEntity.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
         }
-
         if (hasArmorAttribute) {
             mobProtection = mobEntity.getAttributeValue(EntityAttributes.GENERIC_ARMOR);
         }
-
         float healthFactor = 0.0f;
         float damageFactor = 0.0f;
         float protectionFactor = 0.0f;
