@@ -590,7 +590,7 @@ public class DungeonPlacementHandler {
             }
         }
         portalEntity.getDungeonPlayerUuids().clear();
-        portalEntity.getDeadDungeonPlayerUUIDs().clear();
+        portalEntity.getDeadDungeonPlayerUuids().clear();
         portalEntity.markDirty();
     }
 

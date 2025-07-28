@@ -23,6 +23,7 @@
 
     "dungeon.task.join": "Join",
     "dungeon.task.leave": "Leave",
+    "dungeon.task.leave_waiting": "Leave",
     "dungeon.dark_dungeon": "Dark Dungeon",
     "dungeon.desert_dungeon": "Desert Dungeon",
     "dungeon.temple_dungeon": "Temple Dungeon",
@@ -53,6 +54,10 @@
     "text.dungeonz.empty_name": "-",
     "text.dungeonz.player_list": "Players inside (%d/%d)",
     "text.dungeonz.waiting_player_list": "Min Players (%d/%d)",
+    "text.dungeonz.left_waiting_list": "Left waiting list",
+    "text.dungeonz.left_waiting_list_with_refund": "Left waiting list and received refund",
+    "text.dungeonz.elytra_allowed": "Elytra allowed",
+    "text.dungeonz.respawn_allowed": "Respawn allowed",
     "text.dungeonz.dungeon_full": "Dungeon is full",
     "text.dungeonz.dungeon_private": "Dungeon is on private mode",
     "text.dungeonz.dungeon_cooldown": "Dungeon is on cooldown",

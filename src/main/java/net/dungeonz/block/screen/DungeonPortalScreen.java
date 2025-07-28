@@ -6,12 +6,15 @@ import java.util.UUID;
 
 import com.mojang.blaze3d.systems.RenderSystem;
 
+import io.netty.buffer.Unpooled;
 import net.dungeonz.DungeonzMain;
 import net.dungeonz.init.DimensionInit;
 import net.dungeonz.network.DungeonClientPacket;
+import net.dungeonz.network.DungeonServerPacket;
 import net.dungeonz.util.InventoryHelper;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.fabricmc.loader.api.FabricLoader;
 import net.levelz.access.PlayerStatsManagerAccess;
 import net.levelz.stats.PlayerStatsManager;
@@ -23,10 +26,12 @@ import net.minecraft.client.gui.widget.ButtonWidget;
 import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerListener;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
+import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.MathHelper;
 import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.group.GroupManager;
@@ -41,9 +46,11 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
 
     public DungeonDifficultyButton difficultyButton;
     private DungeonButton dungeonButton;
+    private DungeonButton leaveButton; // New leave button
     private DungeonSliderButton effectButton;
     private DungeonSliderButton privateButton;
     private final PlayerEntity playerEntity;
+    private boolean hasNotifiedServerOfOpen = false; // Track if we've already notified the server
 
     public DungeonPortalScreen(DungeonPortalScreenHandler handler, PlayerInventory inventory, Text title) {
         super(handler, inventory, title);
@@ -51,6 +58,10 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         TEXTURE = handler.getBackgroundId() != null ? handler.getBackgroundId() : TEXTURE;
         this.backgroundWidth = 256;
         this.backgroundHeight = 222;
+    }
+
+    public DungeonPortalScreenHandler getHandler() {
+        return this.handler;
     }
 
     @Override
@@ -61,21 +72,52 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
 
         this.handler.addListener(this);
 
+        // Send GUI opened packet to server (only once per screen instance)
+        if (!hasNotifiedServerOfOpen) {
+            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+            buf.writeBlockPos(this.handler.getPos());
+            ClientPlayNetworking.send(DungeonServerPacket.GUI_OPENED_PACKET, buf);
+            hasNotifiedServerOfOpen = true;
+        }
+
         final boolean playerIsInDungeonWorld = playerEntity.getWorld().getRegistryKey() == DimensionInit.DUNGEON_WORLD;
         Text buttonText = playerIsInDungeonWorld ? LEAVE : JOIN;
 
-        this.dungeonButton = this.addDrawableChild(new DungeonButton(this.x + this.backgroundWidth / 2 - 26, this.y + this.backgroundHeight - 28, buttonText, (button) -> {
+        this.dungeonButton = this.addDrawableChild(new DungeonButton(this.x + this.backgroundWidth - 130, this.y + this.backgroundHeight - 28, buttonText, (button) -> {
             if (button.active) {
+                // Send packet to server
                 DungeonClientPacket.writeC2SDungeonTeleportPacket(this.client, this.handler.getPos(), this.playerEntity.getUuid());
                 this.handler.setWaitingGroupSize(this.handler.getWaitingGroupSize() + 1);
-                button.active = false;
-                difficultyButton.active = false;
-                this.close();
+                
+                // Immediately update client-side entity state for responsive UI
+                this.handler.getDungeonPortalEntity().addWaitingUuid(this.playerEntity.getUuid());
+                
+                // Update button states based on new state
+                this.refresh();
             }
         }));
+
+        // Add Leave button next to Join button - START AS DISABLED
+        this.leaveButton = this.addDrawableChild(new DungeonButton(this.x + this.backgroundWidth - 74, this.y + this.backgroundHeight - 28, Text.translatable("dungeon.task.leave_waiting"), (button) -> {
+            if (button.active) {
+                // Send leave waiting packet to server
+                DungeonClientPacket.writeC2SLeaveWaitingPacket(this.client, this.handler.getPos());
+                
+                // Immediately update client-side entity state for responsive UI
+                this.handler.getDungeonPortalEntity().removeWaitingUuid(this.playerEntity.getUuid());
+                this.handler.setWaitingGroupSize(this.handler.getWaitingGroupSize() - 1);
+                
+                // Update button states based on new state
+                this.refresh();
+            }
+        }));
+        
+        // Initialize leave button as disabled by default
+        this.leaveButton.active = false;
         this.difficultyButton = this.addDrawableChild(new DungeonDifficultyButton(this.x + 144, this.y + 36, Text.of(""), (button) -> {
             if (button.active) {
                 DungeonClientPacket.writeC2SChangeDifficultyPacket(this.client, this.handler.getPos());
+                this.refresh();
             }
         }));
         this.effectButton = this.addDrawableChild(new DungeonSliderButton(this.x + 144, this.y + 63, (button) -> {
@@ -83,19 +125,25 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                 ((DungeonSliderButton) button).cycleEnabled();
                 this.handler.getDungeonPortalEntity().setDisableEffects(((DungeonSliderButton) button).isEnabled());
                 DungeonClientPacket.writeC2SChangeEffectsPacket(client, this.handler.getPos(), ((DungeonSliderButton) button).isEnabled());
+                this.refresh();
             }
         }));
         this.privateButton = this.addDrawableChild(new DungeonSliderButton(this.x + 144, this.y + 79, (button) -> {
             if (button.active) {
                 ((DungeonSliderButton) button).cycleEnabled();
+                this.handler.getDungeonPortalEntity().setPrivateGroup(((DungeonSliderButton) button).isEnabled());
                 DungeonClientPacket.writeC2SChangePrivateGroupPacket(client, this.handler.getPos(), ((DungeonSliderButton) button).isEnabled());
+                this.refresh();
             }
         }));
 
         this.effectButton.enabled = this.handler.getDungeonPortalEntity().getDisableEffects();
         this.privateButton.enabled = this.handler.getDungeonPortalEntity().getPrivateGroup();
+        
+        // Initialize button states properly
         if (playerIsInDungeonWorld) {
             this.dungeonButton.active = true;
+            this.leaveButton.active = false;
             this.difficultyButton.active = false;
             this.effectButton.active = false;
             this.privateButton.active = false;
@@ -104,15 +152,18 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                 this.difficultyButton.active = false;
                 this.effectButton.active = false;
                 this.privateButton.active = false;
+                this.leaveButton.active = false; // Leave button disabled when dungeon is active
             } else if (this.handler.getDungeonPortalEntity().getWaitingUuids().contains(this.playerEntity.getUuid())){
                 this.dungeonButton.active = false;
                 this.difficultyButton.active = false;
                 this.effectButton.active = true;
                 this.privateButton.active = true;
+                this.leaveButton.active = true; // Leave button enabled for waiting players
             } else {
                 this.difficultyButton.active = true;
                 this.effectButton.active = true;
                 this.privateButton.active = true;
+                this.leaveButton.active = false; // Leave button disabled for non-waiting players
             }
 
             boolean hasRequiredItems = InventoryHelper.hasRequiredItemStacks(
@@ -121,18 +172,19 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
             );
 
             boolean isPlayerDead = this.handler.getDungeonPortalEntity()
-                .getDeadDungeonPlayerUUIDs().contains(this.playerEntity.getUuid());
+                .getDeadDungeonPlayerUuids().contains(this.playerEntity.getUuid());
 
             boolean isSomeoneWaiting = this.handler.getDungeonPortalEntity().getWaitingUuids().size() >= 1;
-
-            this.difficultyButton.active = !isSomeoneWaiting;
             
             boolean isPlayerWaiting = this.handler.getDungeonPortalEntity()
                 .getWaitingUuids().contains(this.playerEntity.getUuid());
 
             boolean isUnderMaxGroupSize = (this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size()
-                + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().size()) < this.handler.getDungeonPortalEntity().getMaxGroupSize();
+                + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUuids().size()) < this.handler.getDungeonPortalEntity().getMaxGroupSize();
 
+            // Difficulty button should be disabled if anyone is waiting OR if dungeon is already active
+            this.difficultyButton.active = !isSomeoneWaiting && this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().isEmpty();
+            
             this.dungeonButton.active = hasRequiredItems && !isPlayerDead && !isPlayerWaiting && isUnderMaxGroupSize;
 
             if (this.dungeonButton.active && DungeonzMain.isLevelZLoaded) {
@@ -165,6 +217,41 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         }
     }
 
+    @Override
+    public void close() {
+        // Send GUI closed packet to server before closing
+        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        buf.writeBlockPos(this.handler.getPos());
+        ClientPlayNetworking.send(DungeonServerPacket.GUI_CLOSED_PACKET, buf);
+        
+        super.close();
+    }
+
+    @Override
+    public void removed() {
+        // Also send close packet when screen is removed (alternative close method)
+        if (hasNotifiedServerOfOpen) {
+            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+            buf.writeBlockPos(this.handler.getPos());
+            ClientPlayNetworking.send(DungeonServerPacket.GUI_CLOSED_PACKET, buf);
+        }
+        
+        super.removed();
+    }
+
+    @Override
+    public boolean keyPressed(int keyCode, int scanCode, int modifiers) {
+        // Handle ESC key and other close keys
+        if (keyCode == 256 || this.client.options.inventoryKey.matchesKey(keyCode, scanCode)) {
+            // Send close packet before handling the key press
+            PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+            buf.writeBlockPos(this.handler.getPos());
+            ClientPlayNetworking.send(DungeonServerPacket.GUI_CLOSED_PACKET, buf);
+        }
+        
+        return super.keyPressed(keyCode, scanCode, modifiers);
+    }
+
     private Text getPlayerName(UUID playerId, int length, int substringLength) {
         if (this.client.getNetworkHandler().getPlayerListEntry(playerId) != null) {
             String playerName = this.client.getNetworkHandler().getPlayerListEntry(playerId).getProfile().getName();
@@ -174,6 +261,93 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
             return Text.of(playerName);
         }
         return Text.translatable("text.dungeonz.empty_name");
+    }
+
+    public void refresh() {
+        // Update button states without recreating the entire GUI
+        this.updateButtonStates();
+    }
+
+    private void updateButtonStates() {
+        final boolean playerIsInDungeonWorld = playerEntity.getWorld().getRegistryKey() == DimensionInit.DUNGEON_WORLD;
+        
+        if (playerIsInDungeonWorld) {
+            this.dungeonButton.active = true;
+            this.difficultyButton.active = false;
+            this.effectButton.active = false;
+            this.privateButton.active = false;
+        } else {
+            boolean hasRequiredItems = InventoryHelper.hasRequiredItemStacks(
+                this.playerEntity.getInventory(),
+                this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty())
+            );
+
+            boolean isPlayerDead = this.handler.getDungeonPortalEntity()
+                .getDeadDungeonPlayerUuids().contains(this.playerEntity.getUuid());
+
+            boolean isSomeoneWaiting = this.handler.getDungeonPortalEntity().getWaitingUuids().size() >= 1;
+            
+            boolean isPlayerWaiting = this.handler.getDungeonPortalEntity()
+                .getWaitingUuids().contains(this.playerEntity.getUuid());
+
+            boolean isUnderMaxGroupSize = (this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size()
+                + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUuids().size()) < this.handler.getDungeonPortalEntity().getMaxGroupSize();
+
+            boolean isDungeonActive = !this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().isEmpty();
+
+            // Update difficulty button state
+            this.difficultyButton.active = !isSomeoneWaiting && !isDungeonActive;
+            
+            // Update effect and private buttons
+            if (isDungeonActive) {
+                this.effectButton.active = false;
+                this.privateButton.active = false;
+            } else if (isSomeoneWaiting) {
+                // Only the waiting player(s) can change effects and private settings
+                this.effectButton.active = isPlayerWaiting;
+                this.privateButton.active = isPlayerWaiting;
+            } else {
+                this.effectButton.active = true;
+                this.privateButton.active = true;
+            }
+            
+            // Update join and leave button states
+            this.dungeonButton.active = hasRequiredItems && !isPlayerDead && !isPlayerWaiting && isUnderMaxGroupSize;
+            this.leaveButton.active = isPlayerWaiting; // Leave button only active if player is waiting
+
+            if (this.dungeonButton.active && DungeonzMain.isLevelZLoaded) {
+                PlayerStatsManager PlayerStatsManager = ((PlayerStatsManagerAccess) this.playerEntity).getPlayerStatsManager();
+                if (PlayerStatsManager.getOverallLevel() < this.handler.getDungeonPortalEntity().getRequiredLevel()) {
+                    this.dungeonButton.active = false;
+                }
+            }
+
+            if (this.dungeonButton.active && this.privateButton.enabled && !this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().isEmpty()) {
+                if (DungeonzMain.isPartyAddonLoaded) {
+                    GroupManager groupManager = ((GroupManagerAccess) this.playerEntity).getGroupManager();
+                    if (groupManager.getGroupPlayerIdList().isEmpty() || !groupManager.getGroupPlayerIdList().contains(this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().get(0))) {
+                        this.dungeonButton.active = false;
+                    }
+                } else {
+                    this.dungeonButton.active = false;
+                }
+            }
+
+            if (this.handler.getDungeonPortalEntity().isOnCooldown((int) this.client.world.getTime())) {
+                this.dungeonButton.active = false;
+            }
+        }
+
+        // Update difficulty button text
+        if (this.handler.getDifficulties().contains(this.handler.getDungeonPortalEntity().getDifficulty())) {
+            this.difficultyButton.setText(Text.translatable("dungeonz.difficulty." + this.handler.getDungeonPortalEntity().getDifficulty()));
+        } else {
+            this.difficultyButton.setText(Text.translatable("dungeonz.difficulty." + this.handler.getDifficulties().get(0)));
+        }
+
+        // Update slider button states
+        this.effectButton.enabled = this.handler.getDungeonPortalEntity().getDisableEffects();
+        this.privateButton.enabled = this.handler.getDungeonPortalEntity().getPrivateGroup();
     }
 
     @Override
@@ -193,7 +367,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         int k = this.y + 37;
         context.drawText(this.textRenderer,
                 Text.translatable("text.dungeonz.player_list",
-                        this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().size(),
+                        this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUuids().size(),
                         this.handler.getDungeonPortalEntity().getMaxGroupSize()),
                 this.x + 9, this.y + 24, 0x3F3F3F, false);
         for (int i = 0; i < this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() && i < 7; i++) {
@@ -284,6 +458,19 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         if (DungeonzMain.isLevelZLoaded) {
             context.drawText(this.textRenderer, Text.translatable("text.dungeonz.required_level", this.handler.getDungeonPortalEntity().getRequiredLevel()), this.x + 9, this.y + 200, 0x3F3F3F, false);
         }
+        
+        // Elytra Allowed status - get from handler data
+        boolean elytraAllowed = this.handler.isElytraAllowed();
+        context.drawText(this.textRenderer, Text.translatable("text.dungeonz.elytra_allowed"), this.x + 9, this.y + 184, 0x3F3F3F, false);
+        context.drawTexture(ICONS, this.x + 12 + this.textRenderer.getWidth(Text.translatable("text.dungeonz.elytra_allowed")), this.y + 181,
+                52 + (elytraAllowed ? 0 : 14), 0, 14, 14);
+        
+        // Respawn Allowed status - get from handler data
+        boolean respawnAllowed = this.handler.isRespawnAllowed();
+        context.drawText(this.textRenderer, Text.translatable("text.dungeonz.respawn_allowed"), this.x + 9, this.y + 168, 0x3F3F3F, false);
+        context.drawTexture(ICONS, this.x + 12 + this.textRenderer.getWidth(Text.translatable("text.dungeonz.respawn_allowed")), this.y + 165,
+                52 + (respawnAllowed ? 0 : 14), 0, 14, 14);
+        
         this.drawMouseoverTooltip(context, mouseX, mouseY);
     }
 
@@ -337,11 +524,11 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                     int hours = cooldown / 60 / 60;
                     text = Text.translatable("text.dungeonz.dungeon_cooldown_time", hours, minutes, seconds);
                 } else if ((DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size()
-                        + DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().size()) >= DungeonPortalScreen.this.handler.getDungeonPortalEntity()
+                        + DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUuids().size()) >= DungeonPortalScreen.this.handler.getDungeonPortalEntity()
                         .getMaxGroupSize()) {
                     text = Text.translatable("text.dungeonz.dungeon_full");
-                } else if (client.player != null && !DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().isEmpty()
-                        && DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().contains(client.player.getUuid())) {
+                } else if (client.player != null && !DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUuids().isEmpty()
+                        && DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUuids().contains(client.player.getUuid())) {
                     text = Text.translatable("text.dungeonz.dead_player");
                 } else if (!InventoryHelper.hasRequiredItemStacks(client.player.getInventory(), DungeonPortalScreen.this.handler.getRequiredItemStacks().get(DungeonPortalScreen.this.handler.getDungeonPortalEntity().getDifficulty()))) {
                     text = Text.translatable("text.dungeonz.missing");

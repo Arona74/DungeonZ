@@ -21,12 +21,12 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerContext;
+import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
-import net.minecraft.util.Identifier;
 import net.minecraft.util.Formatting;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -323,7 +323,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                     }
                 }
                 blockEntity.getDungeonPlayerUuids().clear();
-                blockEntity.getDeadDungeonPlayerUUIDs().clear();
+                blockEntity.getDeadDungeonPlayerUuids().clear();
                 blockEntity.autoKickTime = 0;
             }
         } else if (blockEntity.autoKickTime != 0) {
@@ -393,9 +393,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         for (int i = 0; i < this.getDungeonPlayerCount(); i++) {
             buf.writeUuid(this.getDungeonPlayerUuids().get(i));
         }
-        buf.writeInt(this.getDeadDungeonPlayerUUIDs().size());
-        for (int i = 0; i < this.getDeadDungeonPlayerUUIDs().size(); i++) {
-            buf.writeUuid(this.getDeadDungeonPlayerUUIDs().get(i));
+        buf.writeInt(this.getDeadDungeonPlayerUuids().size());
+        for (int i = 0; i < this.getDeadDungeonPlayerUuids().size(); i++) {
+            buf.writeUuid(this.getDeadDungeonPlayerUuids().get(i));
         }
 
         if (this.getDungeon() != null) {
@@ -445,6 +445,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         buf.writeString(this.getDifficulty());
         buf.writeBoolean(this.getDisableEffects());
         buf.writeBoolean(this.getPrivateGroup());
+
+        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isElytraAllowed() : false);
+        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isRespawnAllowed() : false);
     }
 
     public void finishDungeon(ServerWorld world, BlockPos pos) {
@@ -480,6 +483,12 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         markDirty();
     }
 
+    private void syncGuiToAllViewers() {
+        if (this.world != null && !this.world.isClient && this.world.getServer() != null) {
+            DungeonServerPacket.writeS2CSyncScreenPacketToAllViewing(this.world.getServer(), this);
+        }
+    }
+
     @Nullable
     public Dungeon getDungeon() {
         return Dungeon.getDungeon(this.dungeonType);
@@ -487,6 +496,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setDungeonType(String dungeonType) {
         this.dungeonType = dungeonType;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public String getDungeonType() {
@@ -495,6 +506,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setDifficulty(String difficulty) {
         this.difficulty = difficulty;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public String getDifficulty() {
@@ -512,11 +525,17 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     public void joinDungeon(UUID playerUuid) {
         if (!this.dungeonPlayerUuids.contains(playerUuid)) {
             this.dungeonPlayerUuids.add(playerUuid);
+            this.markDirty();
+            this.syncGuiToAllViewers();
         }
     }
 
     public void leaveDungeon(UUID playerUuid) {
-        this.dungeonPlayerUuids.remove(playerUuid);
+        boolean removed = this.dungeonPlayerUuids.remove(playerUuid);
+        if (removed) {
+            this.markDirty();
+            this.syncGuiToAllViewers();
+        }
     }
 
     public int getDungeonPlayerCount() {
@@ -525,6 +544,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setDungeonPlayerUuids(List<UUID> dungeonPlayerUuids) {
         this.dungeonPlayerUuids = dungeonPlayerUuids;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public List<UUID> getDungeonPlayerUuids() {
@@ -533,13 +554,17 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void addDeadDungeonPlayerUuids(UUID deadDungeonPlayerUuids) {
         this.deadDungeonPlayerUuids.add(deadDungeonPlayerUuids);
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public void setDeadDungeonPlayerUuids(List<UUID> deadDungeonPlayerUuids) {
         this.deadDungeonPlayerUuids = deadDungeonPlayerUuids;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
-    public List<UUID> getDeadDungeonPlayerUUIDs() {
+    public List<UUID> getDeadDungeonPlayerUuids() {
         return this.deadDungeonPlayerUuids;
     }
 
@@ -554,6 +579,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setRequiredLevel(int requiredLevel) {
         this.requiredLevel = requiredLevel;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public int getRequiredLevel() {
@@ -562,6 +589,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setCooldownTime(int cooldownTime) {
         this.cooldownTime = cooldownTime;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public int getCooldownTime() {
@@ -577,10 +606,14 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setMaxGroupSize(int maxGroupSize) {
         this.maxGroupSize = maxGroupSize;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public void setMinGroupSize(int minGroupSize) {
         this.minGroupSize = minGroupSize;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public List<UUID> getWaitingUuids() {
@@ -589,11 +622,33 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setWaitingUuids(List<UUID> waitingUuids) {
         this.waitingUuids = waitingUuids;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public void addWaitingUuid(UUID uuid) {
         if (!this.waitingUuids.contains(uuid)) {
             this.waitingUuids.add(uuid);
+            this.markDirty();
+            this.syncGuiToAllViewers();
+        }
+    }
+
+    // Add this new method for removing waiting players
+    public void removeWaitingUuid(UUID uuid) {
+        boolean removed = this.waitingUuids.remove(uuid);
+        if (removed) {
+            this.markDirty();
+            this.syncGuiToAllViewers();
+        }
+    }
+
+    // Add this method to clear all waiting players (useful when dungeon starts)
+    public void clearWaitingUuids() {
+        if (!this.waitingUuids.isEmpty()) {
+            this.waitingUuids.clear();
+            this.markDirty();
+            this.syncGuiToAllViewers();
         }
     }
 
@@ -607,6 +662,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setDisableEffects(boolean disableEffects) {
         this.disableEffects = disableEffects;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public boolean getDisableEffects() {
@@ -615,6 +672,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setPrivateGroup(boolean privateGroup) {
         this.privateGroup = privateGroup;
+        this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public boolean getPrivateGroup() {
@@ -729,6 +788,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
 
         this.markDirty();
+        this.syncGuiToAllViewers();
     }
 
     public int getdungeonTeleportCountdown() {

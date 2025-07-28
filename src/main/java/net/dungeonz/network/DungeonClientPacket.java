@@ -21,6 +21,7 @@ import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.client.networking.v1.ClientPlayNetworking;
 import net.minecraft.client.MinecraftClient;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.c2s.play.CustomPayloadC2SPacket;
 import net.minecraft.text.Text;
@@ -29,6 +30,8 @@ import net.minecraft.util.math.BlockPos;
 
 @Environment(EnvType.CLIENT)
 public class DungeonClientPacket {
+
+    public static final Identifier LEAVE_WAITING_PACKET = new Identifier("dungeonz", "leave_waiting");
 
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(DungeonServerPacket.DUNGEON_INFO_PACKET, (client, handler, buf, sender) -> {
@@ -39,35 +42,45 @@ public class DungeonClientPacket {
                 ((ClientPlayerAccess) client.player).setClientDungeonInfo(breakableBlockIdList, placeableBlockIdList, allowElytra);
             });
         });
-        ClientPlayNetworking.registerGlobalReceiver(DungeonServerPacket.SYNC_SCREEN_PACKET, (client, handler, buf, sender) -> {
-            BlockPos dungeonPortalPos = buf.readBlockPos();
+        ClientPlayNetworking.registerGlobalReceiver(DungeonServerPacket.SYNC_SCREEN_PACKET, (client, handler, buf, responseSender) -> {
+            BlockPos pos = buf.readBlockPos();
             String difficulty = buf.readString();
+            
             int dungeonPlayerCount = buf.readInt();
             List<UUID> dungeonPlayerUUIDs = new ArrayList<>();
             for (int i = 0; i < dungeonPlayerCount; i++) {
                 dungeonPlayerUUIDs.add(buf.readUuid());
             }
-            int waitingGroupSize = buf.readInt();
+            
+            int waitingCount = buf.readInt();
             List<UUID> waitingUUIDs = new ArrayList<>();
-            for (int i = 0; i < waitingGroupSize; i++) {
+            for (int i = 0; i < waitingCount; i++) {
                 waitingUUIDs.add(buf.readUuid());
             }
-
+            
+            // Read the new required items data
+            int requiredItemCount = buf.readInt();
+            List<ItemStack> requiredItems = new ArrayList<>();
+            for (int i = 0; i < requiredItemCount; i++) {
+                requiredItems.add(buf.readItemStack());
+            }
+            
             client.execute(() -> {
-                if (client.world.getBlockEntity(dungeonPortalPos) != null && client.world.getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {
-                    dungeonPortalEntity.setDifficulty(difficulty);
-                    dungeonPortalEntity.setDungeonPlayerUuids(dungeonPlayerUUIDs);
-                    dungeonPortalEntity.setWaitingUuids(waitingUUIDs);
-
-                    if (client.currentScreen instanceof DungeonPortalScreen dungeonPortalScreen) {
-                        dungeonPortalScreen.difficultyButton.setText(Text.translatable("dungeonz.difficulty." + difficulty));
+                if (client.player != null && client.player.currentScreenHandler instanceof DungeonPortalScreenHandler screenHandler) {
+                    if (screenHandler.getPos().equals(pos)) {
+                        // Update all the data
+                        screenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
+                        screenHandler.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
+                        screenHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
+                        
+                        // Update the required items for the current difficulty
+                        screenHandler.getRequiredItemStacks().put(difficulty, requiredItems);
+                        
+                        // Refresh the screen if it's open
+                        if (client.currentScreen instanceof DungeonPortalScreen portalScreen) {
+                            portalScreen.refresh();
+                        }
                     }
-                    if (client.player.currentScreenHandler instanceof DungeonPortalScreenHandler dungeonPortalScreenHandler) {
-                        dungeonPortalScreenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
-                        dungeonPortalScreenHandler.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
-                        dungeonPortalScreenHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
-                    }
-
                 }
             });
         });
@@ -131,6 +144,13 @@ public class DungeonClientPacket {
                 client.player.playSound(SoundInit.DUNGEON_COUNTDOWN_EVENT, 1.0f, 1.0f);
             });
         });
+    }
+
+    public static void writeC2SLeaveWaitingPacket(MinecraftClient client, BlockPos portalBlockPos) {
+        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        buf.writeBlockPos(portalBlockPos);
+        CustomPayloadC2SPacket packet = new CustomPayloadC2SPacket(DungeonClientPacket.LEAVE_WAITING_PACKET, buf);
+        client.getNetworkHandler().sendPacket(packet);
     }
 
     public static void writeC2SChangeDifficultyPacket(MinecraftClient client, BlockPos portalBlockPos) {

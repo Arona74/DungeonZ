@@ -134,7 +134,7 @@ public class DungeonHelper {
                     return;
                 }
                 if (dungeonPortalEntity.getDungeon() != null) {
-                    if ((dungeonPortalEntity.getDungeonPlayerCount() + dungeonPortalEntity.getDeadDungeonPlayerUUIDs().size()) < dungeonPortalEntity.getMaxGroupSize()) {
+                    if ((dungeonPortalEntity.getDungeonPlayerCount() + dungeonPortalEntity.getDeadDungeonPlayerUuids().size()) < dungeonPortalEntity.getMaxGroupSize()) {
 
                         if (dungeonPortalEntity.isOnCooldown((int) dungeonWorld.getTime())) {
                             player.sendMessage(Text.translatable("text.dungeonz.dungeon_cooldown"), false);
@@ -190,7 +190,7 @@ public class DungeonHelper {
                         } else if (dungeonPortalEntity.getdungeonTeleportCountdown() > 0) {
                             dungeonPortalEntity.addWaitingUuid(requiredMinGroupUuid);
                             player.closeHandledScreen();
-                        } else if (!dungeonPortalEntity.getDeadDungeonPlayerUUIDs().contains(player.getUuid()) || dungeonPortalEntity.getDungeon().isRespawnAllowed()) {
+                        } else if (!dungeonPortalEntity.getDeadDungeonPlayerUuids().contains(player.getUuid()) || dungeonPortalEntity.getDungeon().isRespawnAllowed()) {
                             teleportPlayer(player, dungeonWorld, dungeonPortalEntity, dungeonPortalPos);
                         } else {
                             player.sendMessage(Text.translatable("text.dungeonz.dead_player"), false);

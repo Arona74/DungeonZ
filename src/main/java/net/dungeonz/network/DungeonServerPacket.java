@@ -1,7 +1,11 @@
 package net.dungeonz.network;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import java.util.Map;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 
 import org.jetbrains.annotations.Nullable;
 
@@ -16,6 +20,7 @@ import net.dungeonz.item.DungeonCompassItem;
 import net.dungeonz.util.DungeonHelper;
 import net.dungeonz.util.InventoryHelper;
 import net.fabricmc.fabric.api.networking.v1.ServerPlayNetworking;
+import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.s2c.play.CustomPayloadS2CPacket;
 import net.minecraft.registry.Registries;
@@ -45,8 +50,76 @@ public class DungeonServerPacket {
     public static final Identifier OP_SCREEN_PACKET = new Identifier("dungeonz", "op_screen");
     public static final Identifier COMPASS_SCREEN_PACKET = new Identifier("dungeonz", "compass_screen");
     public static final Identifier DUNGEON_PORTAL_PACKET = new Identifier("dungeonz", "dungeon_portal_packet");
+    
+    // New packets for tracking GUI state
+    public static final Identifier GUI_OPENED_PACKET = new Identifier("dungeonz", "gui_opened");
+    public static final Identifier GUI_CLOSED_PACKET = new Identifier("dungeonz", "gui_closed");
+
+    // Track which players have which GUIs open
+    // Map: BlockPos -> Set of player UUIDs who have that GUI open
+    private static final Map<BlockPos, Set<UUID>> openGuis = new ConcurrentHashMap<>();
 
     public static void init() {
+        // Register GUI tracking packets
+        ServerPlayNetworking.registerGlobalReceiver(GUI_OPENED_PACKET, (server, player, handler, buffer, sender) -> {
+            BlockPos pos = buffer.readBlockPos();
+            server.execute(() -> {
+                openGuis.computeIfAbsent(pos, k -> ConcurrentHashMap.newKeySet()).add(player.getUuid());
+            });
+        });
+        
+        ServerPlayNetworking.registerGlobalReceiver(GUI_CLOSED_PACKET, (server, player, handler, buffer, sender) -> {
+            BlockPos pos = buffer.readBlockPos();
+            server.execute(() -> {
+                Set<UUID> players = openGuis.get(pos);
+                if (players != null) {
+                    players.remove(player.getUuid());
+                    if (players.isEmpty()) {
+                        openGuis.remove(pos);
+                    }
+                }
+            });
+        });
+        ServerPlayNetworking.registerGlobalReceiver(DungeonClientPacket.LEAVE_WAITING_PACKET, (server, player, handler, buffer, sender) -> {
+            BlockPos dungeonPortalPos = buffer.readBlockPos();
+            server.execute(() -> {
+                if (player.getWorld().getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {
+                    // Check if player is actually in the waiting list
+                    if (dungeonPortalEntity.getWaitingUuids().contains(player.getUuid())) {
+                        // Remove player from waiting list (use setWaitingUuids to avoid sync issues)
+                        List<UUID> waitingList = new ArrayList<>(dungeonPortalEntity.getWaitingUuids());
+                        waitingList.remove(player.getUuid());
+                        dungeonPortalEntity.setWaitingUuids(waitingList);
+                        
+                        // Only refund items if player is NOT in creative mode
+                        if (!player.isCreative()) {
+                            // Get the required items for refund
+                            if (dungeonPortalEntity.getDungeon() != null) {
+                                Map<String, List<ItemStack>> requiredItemStacksMap = DungeonHelper.getRequiredItemStackList(dungeonPortalEntity.getDungeon());
+                                String difficulty = dungeonPortalEntity.getDifficulty();
+                                
+                                if (requiredItemStacksMap.containsKey(difficulty)) {
+                                    List<ItemStack> requiredItems = requiredItemStacksMap.get(difficulty);
+                                    
+                                    // Add items back to player's inventory
+                                    for (ItemStack stack : requiredItems) {
+                                        if (stack != null && !stack.isEmpty()) {
+                                            player.getInventory().offerOrDrop(stack.copy());
+                                        }
+                                    }
+                                }
+                            }
+                            player.sendMessage(Text.translatable("text.dungeonz.left_waiting_list_with_refund"), false);
+                        } else {
+                            // Creative players don't get refunds since they didn't pay anything
+                            player.sendMessage(Text.translatable("text.dungeonz.left_waiting_list"), false);
+                        }
+                        
+                        // GUI sync is automatically handled by setWaitingUuids() in the entity
+                    }
+                }
+            });
+        });
         ServerPlayNetworking.registerGlobalReceiver(CHANGE_DUNGEON_DIFFICULTY_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             server.execute(() -> {
@@ -64,11 +137,13 @@ public class DungeonServerPacket {
                             dungeonPortalEntity.setDifficulty(difficulties.get(index));
                         }
                         dungeonPortalEntity.markDirty();
-                        writeS2CSyncScreenPacket(player, dungeonPortalEntity);
+                        // Updated to sync with all players who have the GUI open (now includes required items)
+                        writeS2CSyncScreenPacketToAllViewing(server, dungeonPortalEntity);
                     }
                 }
             });
         });
+        
         ServerPlayNetworking.registerGlobalReceiver(DUNGEON_TELEPORT_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             Boolean isMinGroupRequired = buffer.readBoolean();
@@ -77,6 +152,7 @@ public class DungeonServerPacket {
                 DungeonHelper.teleportDungeon(player, dungeonPortalPos, uuid);
             });
         });
+        
         ServerPlayNetworking.registerGlobalReceiver(CHANGE_DUNGEON_EFFECTS_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             boolean disableEffects = buffer.readBoolean();
@@ -87,10 +163,13 @@ public class DungeonServerPacket {
                     if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                         dungeonPortalEntity.setDisableEffects(disableEffects);
                         dungeonPortalEntity.markDirty();
+                        // Updated to sync with all players who have the GUI open
+                        writeS2CSyncScreenPacketToAllViewing(player.getServer(), dungeonPortalEntity);
                     }
                 }
             });
         });
+        
         ServerPlayNetworking.registerGlobalReceiver(CHANGE_DUNGEON_PRIVATE_GROUP_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             boolean privateGroup = buffer.readBoolean();
@@ -101,10 +180,13 @@ public class DungeonServerPacket {
                     if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                         dungeonPortalEntity.setPrivateGroup(privateGroup);
                         dungeonPortalEntity.markDirty();
+                        // Updated to sync with all players who have the GUI open
+                        writeS2CSyncScreenPacketToAllViewing(player.getServer(), dungeonPortalEntity);
                     }
                 }
             });
         });
+        
         ServerPlayNetworking.registerGlobalReceiver(SET_DUNGEON_TYPE_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             String dungeonType = buffer.readString();
@@ -123,6 +205,8 @@ public class DungeonServerPacket {
                                 dungeonPortalEntity.setRequiredLevel(dungeon.getRequiredLevel());
                                 dungeonPortalEntity.markDirty();
                                 player.sendMessage(Text.of("Set dungeon type successfully!"), false);
+                                // Updated to sync with all players who have the GUI open
+                                writeS2CSyncScreenPacketToAllViewing(server, dungeonPortalEntity);
                                 return;
                             }
                         } else {
@@ -134,6 +218,7 @@ public class DungeonServerPacket {
                 }
             });
         });
+        
         ServerPlayNetworking.registerGlobalReceiver(SET_GATE_BLOCK_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos gatePos = buffer.readBlockPos();
             String blockId = buffer.readString();
@@ -158,6 +243,7 @@ public class DungeonServerPacket {
                 }
             });
         });
+        
         ServerPlayNetworking.registerGlobalReceiver(SET_DUNGEON_COMPASS_PACKET, (server, player, handler, buffer, sender) -> {
             String dungeonType = buffer.readString();
             server.execute(() -> {
@@ -169,6 +255,12 @@ public class DungeonServerPacket {
         });
     }
 
+    // Helper method to clean up disconnected players
+    public static void cleanupDisconnectedPlayer(UUID playerUuid) {
+        openGuis.values().forEach(playerSet -> playerSet.remove(playerUuid));
+        openGuis.entrySet().removeIf(entry -> entry.getValue().isEmpty());
+    }
+
     public static void writeS2CDungeonInfoPacket(ServerPlayerEntity serverPlayerEntity, List<Integer> breakableBlockIdList, List<Integer> placeableBlockIdList, boolean allowElytra) {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
         buf.writeIntList(new IntArrayList(breakableBlockIdList));
@@ -178,6 +270,7 @@ public class DungeonServerPacket {
         serverPlayerEntity.networkHandler.sendPacket(packet);
     }
 
+    // Original method for backward compatibility
     public static void writeS2CSyncScreenPacket(ServerPlayerEntity serverPlayerEntity, DungeonPortalEntity dungeonPortalEntity) {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
         buf.writeBlockPos(dungeonPortalEntity.getPos());
@@ -194,6 +287,49 @@ public class DungeonServerPacket {
         }
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SYNC_SCREEN_PACKET, buf);
         serverPlayerEntity.networkHandler.sendPacket(packet);
+    }
+
+    // New method to sync screen with all players who have the GUI open
+    public static void writeS2CSyncScreenPacketToAllViewing(net.minecraft.server.MinecraftServer server, DungeonPortalEntity dungeonPortalEntity) {
+        Set<UUID> viewingPlayers = openGuis.get(dungeonPortalEntity.getPos());
+        if (viewingPlayers == null || viewingPlayers.isEmpty()) {
+            return;
+        }
+
+        // Get the required items for the current difficulty
+        Map<String, List<ItemStack>> requiredItemStacksMap = DungeonHelper.getRequiredItemStackList(dungeonPortalEntity.getDungeon());
+        List<ItemStack> requiredItems = requiredItemStacksMap.getOrDefault(dungeonPortalEntity.getDifficulty(), new ArrayList<>());
+
+        // Create the packet data once
+        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        buf.writeBlockPos(dungeonPortalEntity.getPos());
+        buf.writeString(dungeonPortalEntity.getDifficulty());
+        List<UUID> dungeonPlayerUUIDs = dungeonPortalEntity.getDungeonPlayerUuids();
+        buf.writeInt(dungeonPlayerUUIDs.size());
+        for (UUID uuid : dungeonPlayerUUIDs) {
+            buf.writeUuid(uuid);
+        }
+        List<UUID> waitingUUIDs = dungeonPortalEntity.getWaitingUuids();
+        buf.writeInt(waitingUUIDs.size());
+        for (UUID uuid : waitingUUIDs) {
+            buf.writeUuid(uuid);
+        }
+        
+        // Add required items to the sync packet
+        buf.writeInt(requiredItems.size());
+        for (ItemStack stack : requiredItems) {
+            buf.writeItemStack(stack);
+        }
+
+        CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SYNC_SCREEN_PACKET, buf);
+
+        // Send to all viewing players
+        for (UUID playerUuid : viewingPlayers) {
+            ServerPlayerEntity player = server.getPlayerManager().getPlayer(playerUuid);
+            if (player != null) {
+                player.networkHandler.sendPacket(packet);
+            }
+        }
     }
 
     public static void writeS2COpenOpScreenPacket(ServerPlayerEntity serverPlayerEntity, @Nullable DungeonPortalEntity dungeonPortalEntity, @Nullable DungeonGateEntity dungeonGateEntity) {
@@ -247,5 +383,4 @@ public class DungeonServerPacket {
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(DUNGEON_TELEPORT_COUNTDOWN_PACKET, buf);
         serverPlayerEntity.networkHandler.sendPacket(packet);
     }
-
 }

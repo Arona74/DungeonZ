@@ -32,6 +32,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
     private Map<String, List<ItemStack>> possibleLootDifficultyItemStackMap = new HashMap<String, List<ItemStack>>();
     private Map<String, List<ItemStack>> requiredItemStacks = new HashMap<String, List<ItemStack>>();
     private int waitingGroupSize = 0;
+    private boolean elytraAllowed = false;
+    private boolean respawnAllowed = false;
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
         this(syncId, playerInventory, new DungeonPortalEntity(buf.readBlockPos(), playerInventory.player.getWorld().getBlockState(buf.readBlockPos())), ScreenHandlerContext.EMPTY);
@@ -93,11 +95,15 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         String difficulty = buf.readString();
         boolean disableEffects = buf.readBoolean();
         boolean privateGroup = buf.readBoolean();
+        boolean elytraAllowed = buf.readBoolean();
+        boolean respawnAllowed = buf.readBoolean();
 
         this.setDifficulties(difficulties);
         this.setPossibleLootItemStacks(possibleLootDifficultyItemStacks);
         this.setRequiredItemStacks(requiredItemStacks);
         this.setWaitingGroupSize(waitingGroupSize);
+        this.setElytraAllowed(elytraAllowed);
+        this.setRespawnAllowed(respawnAllowed);
 
         this.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadDungeonPlayerUUIDs);
@@ -122,6 +128,11 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
             setDifficulties(this.dungeonPortalEntity.getDungeon().getDifficultyList());
             setRequiredItemStacks(DungeonHelper.getRequiredItemStackList(this.dungeonPortalEntity.getDungeon()));
             setPossibleLootItemStacks(DungeonHelper.getPossibleLootItemStackMap(this.dungeonPortalEntity.getDungeon(), this.world.getServer()));
+            
+            if (this.dungeonPortalEntity.getDungeon() != null) {
+                setElytraAllowed(this.dungeonPortalEntity.getDungeon().isElytraAllowed());
+                setRespawnAllowed(this.dungeonPortalEntity.getDungeon().isRespawnAllowed());
+            }
         }
     }
 
@@ -186,5 +197,21 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     public BlockPos getPos() {
         return this.pos;
+    }
+
+    public boolean isElytraAllowed() {
+    return this.elytraAllowed;
+    }
+
+    public void setElytraAllowed(boolean elytraAllowed) {
+        this.elytraAllowed = elytraAllowed;
+    }
+
+    public boolean isRespawnAllowed() {
+        return this.respawnAllowed;
+    }
+
+    public void setRespawnAllowed(boolean respawnAllowed) {
+        this.respawnAllowed = respawnAllowed;
     }
 }
