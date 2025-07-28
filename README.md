@@ -3,8 +3,10 @@
 
 ### What are the differences with original DungeonZ (1.20.1)?
 - **Feature: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
+- **Feature**: Full dungeon structure regeneration, allowing proceduraly generated structure
+- **Feature**: Improved multiplayer support on Portal GUI (more settings displayed, waiting player list, you can leave the waiting list and been refunded)
 - **Backport**: LevelZ requirement (originaly in DungeonZ 1.21.1)
-- **Change**: Dungeon portal blocks are now solid to avoid them been breakable from flowing liquid and solving the multiple triggering when crossing them. Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the /dungeon leave command.
+- **Change**: Dungeon portal blocks are now solid to avoid them been breakable from flowing liquid and solving the multiple triggering when crossing them. Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the "/dungeon leave" command.
 - **Change**: Few fixes on dark dungeon (easier parkour), missing vines in temple dungeon, etc
 - **Change**: Fix to avoid fire to break blocks (like vines)
 - **Change**: Fix the "flying not allowed" kick on server when teleporting player to dungeon
