@@ -50,6 +50,8 @@ public class DungeonServerPacket {
     public static final Identifier OP_SCREEN_PACKET = new Identifier("dungeonz", "op_screen");
     public static final Identifier COMPASS_SCREEN_PACKET = new Identifier("dungeonz", "compass_screen");
     public static final Identifier DUNGEON_PORTAL_PACKET = new Identifier("dungeonz", "dungeon_portal_packet");
+
+    public static final Identifier LEAVE_WAITING_PACKET = new Identifier("dungeonz", "leave_waiting");
     
     // New packets for tracking GUI state
     public static final Identifier GUI_OPENED_PACKET = new Identifier("dungeonz", "gui_opened");
@@ -80,7 +82,7 @@ public class DungeonServerPacket {
                 }
             });
         });
-        ServerPlayNetworking.registerGlobalReceiver(DungeonClientPacket.LEAVE_WAITING_PACKET, (server, player, handler, buffer, sender) -> {
+        ServerPlayNetworking.registerGlobalReceiver(LEAVE_WAITING_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             server.execute(() -> {
                 if (player.getWorld().getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {

@@ -24,14 +24,11 @@ import net.minecraft.client.MinecraftClient;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.network.packet.c2s.play.CustomPayloadC2SPacket;
-import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 
 @Environment(EnvType.CLIENT)
 public class DungeonClientPacket {
-
-    public static final Identifier LEAVE_WAITING_PACKET = new Identifier("dungeonz", "leave_waiting");
 
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(DungeonServerPacket.DUNGEON_INFO_PACKET, (client, handler, buf, sender) -> {
@@ -149,7 +146,7 @@ public class DungeonClientPacket {
     public static void writeC2SLeaveWaitingPacket(MinecraftClient client, BlockPos portalBlockPos) {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
         buf.writeBlockPos(portalBlockPos);
-        CustomPayloadC2SPacket packet = new CustomPayloadC2SPacket(DungeonClientPacket.LEAVE_WAITING_PACKET, buf);
+        CustomPayloadC2SPacket packet = new CustomPayloadC2SPacket(DungeonServerPacket.LEAVE_WAITING_PACKET, buf);
         client.getNetworkHandler().sendPacket(packet);
     }
 
