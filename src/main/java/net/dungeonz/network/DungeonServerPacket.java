@@ -323,6 +323,14 @@ public class DungeonServerPacket {
             buf.writeItemStack(stack);
         }
 
+        // Add DisableEffects and PrivateGroup to the sync packet
+        buf.writeBoolean(dungeonPortalEntity.getDisableEffects());
+        buf.writeBoolean(dungeonPortalEntity.getPrivateGroup());
+
+        // Add Timer data to the sync packet
+        buf.writeBoolean(dungeonPortalEntity.isDungeonTimerActive());
+        buf.writeInt(dungeonPortalEntity.getDungeonTimeRemaining());
+
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SYNC_SCREEN_PACKET, buf);
 
         // Send to all viewing players

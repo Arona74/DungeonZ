@@ -311,7 +311,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                 this.privateButton.active = true;
             }
             
-            // Update join and leave button states
+            // Update join and leave button states            
             this.dungeonButton.active = hasRequiredItems && !isPlayerDead && !isPlayerWaiting && isUnderMaxGroupSize;
             this.leaveButton.active = isPlayerWaiting; // Leave button only active if player is waiting
 
@@ -362,6 +362,41 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
 
         // Title
         context.drawText(this.textRenderer, this.title, this.x + this.backgroundWidth / 2 - this.textRenderer.getWidth(this.title) / 2, this.y + 8, 0x000000, false);
+
+        // Dungeon Timer (top left corner in dark blue)
+        if (this.handler.isDungeonTimerActive() && this.handler.getDungeonTimeRemaining() > 0) {
+            int timeRemaining = this.handler.getDungeonTimeRemaining();
+            int seconds = timeRemaining % 60;
+            int minutes = timeRemaining / 60 % 60;
+            int hours = timeRemaining / 60 / 60;
+            
+            String timerText;
+            if (hours > 0) {
+                timerText = String.format("Run: %dh:%02dm:%02ds", hours, minutes, seconds);
+            } else {
+                timerText = String.format("Run: %dm:%02ds", minutes, seconds);
+            }
+            
+            context.drawText(this.textRenderer, timerText, this.x + 8, this.y + 8, 0x000080, false);
+        }
+
+        // Cooldown Timer (top right corner, aligned with title)
+        if (this.handler.getDungeonPortalEntity().isOnCooldown((int) this.client.world.getTime())) {
+            int cooldown = (this.handler.getDungeonPortalEntity().getCooldownTime() - (int) this.client.world.getTime()) / 20;
+            int seconds = cooldown % 60;
+            int minutes = cooldown / 60 % 60;
+            int hours = cooldown / 60 / 60;
+            
+            String cooldownText;
+            if (hours > 0) {
+                cooldownText = String.format("CD: %dh:%02dm:%02ds", hours, minutes, seconds);
+            } else {
+                cooldownText = String.format("CD: %dm:%02ds", minutes, seconds);
+            }
+            
+            int cooldownTextWidth = this.textRenderer.getWidth(cooldownText);
+            context.drawText(this.textRenderer, cooldownText, this.x + this.backgroundWidth - cooldownTextWidth - 8, this.y + 8, 0xFF0000, false);
+        }
 
         // Dungeon player list
         int k = this.y + 37;

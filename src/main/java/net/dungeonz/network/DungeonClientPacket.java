@@ -55,12 +55,20 @@ public class DungeonClientPacket {
                 waitingUUIDs.add(buf.readUuid());
             }
             
-            // Read the new required items data
+            // Read the required items data
             int requiredItemCount = buf.readInt();
             List<ItemStack> requiredItems = new ArrayList<>();
             for (int i = 0; i < requiredItemCount; i++) {
                 requiredItems.add(buf.readItemStack());
             }
+            
+            // Read the DisableEffects and PrivateGroup values
+            boolean disableEffects = buf.readBoolean();
+            boolean privateGroup = buf.readBoolean();
+
+            // Read the Timer data
+            boolean dungeonTimerActive = buf.readBoolean();
+            int dungeonTimeRemaining = buf.readInt();
             
             client.execute(() -> {
                 if (client.player != null && client.player.currentScreenHandler instanceof DungeonPortalScreenHandler screenHandler) {
@@ -69,6 +77,14 @@ public class DungeonClientPacket {
                         screenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
                         screenHandler.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
                         screenHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
+
+                        // Update the boolean values
+                        screenHandler.getDungeonPortalEntity().setDisableEffects(disableEffects);
+                        screenHandler.getDungeonPortalEntity().setPrivateGroup(privateGroup);
+
+                        // Update the timer data
+                        screenHandler.setDungeonTimerActive(dungeonTimerActive);
+                        screenHandler.setDungeonTimeRemaining(dungeonTimeRemaining);
                         
                         // Update the required items for the current difficulty
                         screenHandler.getRequiredItemStacks().put(difficulty, requiredItems);

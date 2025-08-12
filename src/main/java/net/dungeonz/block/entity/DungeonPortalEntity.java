@@ -21,7 +21,6 @@ import net.minecraft.network.PacketByteBuf;
 import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerContext;
-import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
@@ -50,6 +49,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private List<UUID> waitingUuids = new ArrayList<UUID>();
     private int requiredLevel = 0;
     private int cooldownTime = 0;
+    private int dungeonStartTime = 0;
+    private boolean dungeonTimerActive = false;
     private int autoKickTime = 0;
     private boolean disableEffects = false;
     private boolean privateGroup = false;
@@ -88,6 +89,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         this.minGroupSize = nbt.getInt("MinGroupSize");
         this.requiredLevel = nbt.getInt("RequiredLevel");
         this.cooldownTime = nbt.getInt("CooldownTime");
+        this.dungeonStartTime = nbt.getInt("DungeonStartTime");
+        this.dungeonTimerActive = nbt.getBoolean("DungeonTimerActive");
         this.autoKickTime = nbt.getInt("AutoKickTime");
         this.disableEffects = nbt.getBoolean("DisableEffects");
         this.privateGroup = nbt.getBoolean("PrivateGroup");
@@ -182,6 +185,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         nbt.putInt("MinGroupSize", this.minGroupSize);
         nbt.putInt("RequiredLevel", this.requiredLevel);
         nbt.putInt("CooldownTime", this.cooldownTime);
+        nbt.putInt("DungeonStartTime", this.dungeonStartTime);
+        nbt.putBoolean("DungeonTimerActive", this.dungeonTimerActive);
         nbt.putInt("AutoKickTime", this.autoKickTime);
         nbt.putBoolean("DisableEffects", this.disableEffects);
         nbt.putBoolean("PrivateGroup", this.privateGroup);
@@ -329,6 +334,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         } else if (blockEntity.autoKickTime != 0) {
             blockEntity.autoKickTime = 0;
         }
+        
         if (blockEntity.dungeonTeleportCountdown >= 1) {
             if (blockEntity.dungeonTeleportCountdown % 20 == 0) {
                 for (int i = 0; i < blockEntity.getWaitingUuids().size(); i++) {
@@ -337,13 +343,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                         DungeonServerPacket.writeS2CDungeonTeleportCountdown(serverPlayerEntity, blockEntity.dungeonTeleportCountdown);
                     }
                 }
-
             }
             blockEntity.dungeonTeleportCountdown--;
 
             if (blockEntity.dungeonTeleportCountdown == (ConfigInit.CONFIG.defaultDungeonTeleportCountdown / 2)) {
-                // CompletableFuture.runAsync(() -> DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
-                        // blockEntity.getDungeon(), blockEntity.getDifficulty(), blockEntity.getDisableEffects()));
                 DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
                         blockEntity.getDungeon(), blockEntity.getDifficulty(), blockEntity.getDisableEffects());
             }
@@ -356,7 +359,23 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                     }
                 }
                 blockEntity.getWaitingUuids().clear();
+                blockEntity.startDungeonTimer();
             }
+        }
+
+        // Stop timer if no players are in dungeon
+        if (blockEntity.isDungeonTimerActive() && blockEntity.getDungeonPlayerCount() == 0) {
+            blockEntity.stopDungeonTimer();
+        }
+        
+        // Sync timer every second for real-time GUI updates
+        if (blockEntity.isDungeonTimerActive() && world.getTime() % 20 == 0) {
+            blockEntity.syncGuiToAllViewers();
+        }
+        
+        // Check if timer expired
+        if (blockEntity.isDungeonTimerExpired()) {
+            blockEntity.handleDungeonTimerExpired();
         }
     }
 
@@ -448,6 +467,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isElytraAllowed() : false);
         buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isRespawnAllowed() : false);
+        buf.writeBoolean(this.isDungeonTimerActive());
+        buf.writeInt(this.getDungeonTimeRemaining());
     }
 
     public void finishDungeon(ServerWorld world, BlockPos pos) {
@@ -479,6 +500,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), this.getDungeon().getDifficultyBossLootTableMap().get(this.getDifficulty()),
                 this.getDisableEffects());
 
+        this.stopDungeonTimer();
         this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
         markDirty();
     }
@@ -816,6 +838,75 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         public int getFacing() {
             return facing;
+        }
+    }
+
+    public void startDungeonTimer() {
+        if (this.getDungeon() != null && this.getDungeon().hasTimeLimit()) {
+            this.dungeonStartTime = (int) this.world.getTime();
+            this.dungeonTimerActive = true;
+            this.markDirty();
+            this.syncGuiToAllViewers();
+        }
+    }
+
+    public void stopDungeonTimer() {
+        this.dungeonTimerActive = false;
+        this.markDirty();
+        this.syncGuiToAllViewers();
+    }
+
+    public boolean isDungeonTimerActive() {
+        return this.dungeonTimerActive;
+    }
+
+    public int getDungeonTimeRemaining() {
+        if (!this.dungeonTimerActive || this.getDungeon() == null || !this.getDungeon().hasTimeLimit()) {
+            return 0;
+        }
+        
+        int currentTime = (int) this.world.getTime();
+        int elapsed = (currentTime - this.dungeonStartTime) / 20; // Convert to seconds
+        int remaining = this.getDungeon().getTimeLimit() - elapsed;
+        return Math.max(0, remaining);
+    }
+
+    public boolean isDungeonTimerExpired() {
+        return this.dungeonTimerActive && this.getDungeonTimeRemaining() <= 0;
+    }
+
+    private void handleDungeonTimerExpired() {
+        if (!this.world.isClient() && this.isDungeonTimerActive()) {
+            // Create a copy of the player list to avoid ConcurrentModificationException
+            List<UUID> playersToTeleport = new ArrayList<>(this.getDungeonPlayerUuids());
+            
+            // Teleport all players out and send message
+            for (UUID playerUuid : playersToTeleport) {
+                ServerPlayerEntity player = null;
+                
+                // Try to find player in dungeon world
+                ServerWorld dungeonWorld = this.world.getServer().getWorld(DimensionInit.DUNGEON_WORLD);
+                if (dungeonWorld != null) {
+                    player = (ServerPlayerEntity) dungeonWorld.getPlayerByUuid(playerUuid);
+                }
+                
+                // If not found, try server player manager
+                if (player == null) {
+                    player = this.world.getServer().getPlayerManager().getPlayer(playerUuid);
+                }
+                
+                if (player != null) {
+                    DungeonHelper.teleportOutOfDungeon(player);
+                    player.sendMessage(Text.translatable("text.dungeonz.dungeon_time_expired"), false);
+                }
+            }
+            
+            // Clear player lists and start cooldown
+            this.setDungeonPlayerUuids(new ArrayList<>());
+            this.setDeadDungeonPlayerUuids(new ArrayList<>());
+            this.stopDungeonTimer();
+            this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
+            this.markDirty();
         }
     }
 

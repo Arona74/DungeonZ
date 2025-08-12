@@ -34,6 +34,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
     private int waitingGroupSize = 0;
     private boolean elytraAllowed = false;
     private boolean respawnAllowed = false;
+    private boolean dungeonTimerActive = false;
+    private int dungeonTimeRemaining = 0;
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
         this(syncId, playerInventory, new DungeonPortalEntity(buf.readBlockPos(), playerInventory.player.getWorld().getBlockState(buf.readBlockPos())), ScreenHandlerContext.EMPTY);
@@ -97,6 +99,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         boolean privateGroup = buf.readBoolean();
         boolean elytraAllowed = buf.readBoolean();
         boolean respawnAllowed = buf.readBoolean();
+        boolean dungeonTimerActive = buf.readBoolean();
+        int dungeonTimeRemaining = buf.readInt();
 
         this.setDifficulties(difficulties);
         this.setPossibleLootItemStacks(possibleLootDifficultyItemStacks);
@@ -104,6 +108,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.setWaitingGroupSize(waitingGroupSize);
         this.setElytraAllowed(elytraAllowed);
         this.setRespawnAllowed(respawnAllowed);
+        this.setDungeonTimerActive(dungeonTimerActive);
+        this.setDungeonTimeRemaining(dungeonTimeRemaining);
 
         this.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadDungeonPlayerUUIDs);
@@ -132,6 +138,11 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
             if (this.dungeonPortalEntity.getDungeon() != null) {
                 setElytraAllowed(this.dungeonPortalEntity.getDungeon().isElytraAllowed());
                 setRespawnAllowed(this.dungeonPortalEntity.getDungeon().isRespawnAllowed());
+            }
+
+            if (this.dungeonPortalEntity.isDungeonTimerActive()) {
+                setDungeonTimerActive(true);
+                setDungeonTimeRemaining(this.dungeonPortalEntity.getDungeonTimeRemaining());
             }
         }
     }
@@ -213,5 +224,21 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     public void setRespawnAllowed(boolean respawnAllowed) {
         this.respawnAllowed = respawnAllowed;
+    }
+
+    public boolean isDungeonTimerActive() {
+        return this.dungeonTimerActive;
+    }
+
+    public void setDungeonTimerActive(boolean active) {
+        this.dungeonTimerActive = active;
+    }
+
+    public int getDungeonTimeRemaining() {
+        return this.dungeonTimeRemaining;
+    }
+
+    public void setDungeonTimeRemaining(int timeRemaining) {
+        this.dungeonTimeRemaining = timeRemaining;
     }
 }

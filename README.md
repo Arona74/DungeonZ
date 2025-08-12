@@ -134,6 +134,7 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "min_group_size": 0, // optional
     "required_level": 0, // optional, levelZ compat
     "cooldown": 108000, // Cooldown after the dungeon is completed or failed in ticks
+    "time_limit": 1800, // Optional, Time to complete the dungeon in seconds
     "background_texture": "", // For custom dungeon portal backgrounds, set your texture path here
     "dungeon_structure_pool_id": "dungeonz:dark_dungeon/dungeon_spawn" // Structure part which the dungeon generates start of
 }

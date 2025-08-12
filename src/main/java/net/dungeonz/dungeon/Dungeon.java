@@ -50,6 +50,7 @@ public class Dungeon {
     private final int minGroupSize;
     private final int requiredLevel;
     private final int cooldown;
+    private int timeLimit = 0; // In seconds, 0 = no time limit
 
     private final Identifier dungeonBackgroundId;
     private final Identifier dungeonStructurePoolId;
@@ -59,7 +60,7 @@ public class Dungeon {
                     List<Integer> placeableBlockIds, HashMap<String, Float> difficultyMobHealthModificator, HashMap<String, Float> difficultyMobDamageModificator, HashMap<String, Float> difficultyMobProtectionModificator,
                     HashMap<String, List<String>> difficultyLootTableIds, HashMap<String, Float> difficultyBossHealthModificator, HashMap<String, Float> difficultyBossDamageModificator, HashMap<String, Float> difficultyBossProtectionModificator,
                     HashMap<String, String> difficultyBossLootTable, EntityType<?> bossEntityType, @Nullable NbtCompound bossNbtCompound, int bossBlockId, int bossLootBlockId, int exitBlockId, boolean allowRespawn,
-                    boolean allowElytra, int maxGroupSize, int minGroupSize, int requiredLevel, int cooldown, @Nullable Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId) {
+                    boolean allowElytra, int maxGroupSize, int minGroupSize, int requiredLevel, int cooldown, int timeLimit, @Nullable Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId) {
         this.dungeonTypeId = dungeonTypeId;
         this.blockIdEntityMap = blockIdEntityMap;
         this.blockIdEntitySpawnChance = blockIdEntitySpawnChance;
@@ -87,6 +88,7 @@ public class Dungeon {
         this.minGroupSize = minGroupSize;
         this.requiredLevel = requiredLevel;
         this.cooldown = cooldown;
+        this.timeLimit = timeLimit;
         this.dungeonBackgroundId = dungeonBackgroundId;
         this.dungeonStructurePoolId = dungeonStructurePoolId;
     }
@@ -205,12 +207,20 @@ public class Dungeon {
         return this.cooldown;
     }
 
+    public int getTimeLimit() {
+        return this.timeLimit;
+    }
+
     public boolean isElytraAllowed() {
         return this.allowElytra;
     }
 
     public boolean isRespawnAllowed() {
         return this.allowRespawn;
+    }
+
+    public boolean hasTimeLimit() {
+        return this.timeLimit > 0;
     }
 
     public boolean containsBlockId(int blockId) {
