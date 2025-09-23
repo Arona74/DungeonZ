@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.Final;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Mutable;
 import org.spongepowered.asm.mixin.Shadow;
+import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
@@ -31,7 +32,9 @@ public abstract class ServerPlayerEntityMixin extends PlayerEntity implements Se
     @Final
     public MinecraftServer server;
 
+    @Unique
     private BlockPos dungeonPortalBlockPos = new BlockPos(0, 0, 0);
+    @Unique
     private BlockPos dungeonSpawnBlockPos = new BlockPos(0, 0, 0);
     @Nullable
     private ServerWorld oldWorld = null;

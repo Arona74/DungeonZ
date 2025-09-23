@@ -51,6 +51,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 int timeLimit = data.get("time_limit").getAsInt();
                 boolean allowElytra = data.has("elytra") ? data.get("elytra").getAsBoolean() : false;
                 boolean allowRespawn = data.has("respawn") ? data.get("respawn").getAsBoolean() : true;
+                boolean keepInventory = data.has("keep_inventory") ? data.get("keep_inventory").getAsBoolean() : false;
                 Identifier dungeonBackgroundId = new Identifier(data.has("background_texture") ? data.get("background_texture").getAsString() : "");
                 Identifier dungeonStructurePoolId = new Identifier(data.get("dungeon_structure_pool_id").getAsString());
 
@@ -229,7 +230,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 Dungeon.addDungeon(new Dungeon(dungeonTypeId, blockIdEntityMap, blockIdEntitySpawnChance, blockIdBlockReplacement, spawnerEntityIdCountMap, difficultyRequiredItemCountMap, breakableBlockIds,
                         placeableBlockIds, difficultyMobHealthModificator, difficultyMobDamageModificator, difficultyMobProtectionModificator, difficultyLootTableIds, difficultyBossHealthModificator, 
                         difficultyBossDamageModificator, difficultyBossProtectionModificator, difficultyBossLootTable, bossEntityType, bossNbtCompound, bossBlockId,
-                        bossLootBlockId, exitBlockId, allowRespawn, allowElytra, maxGroupSize, minGroupSize, requiredLevel, cooldown, timeLimit, dungeonBackgroundId, dungeonStructurePoolId));
+                        bossLootBlockId, exitBlockId, allowRespawn, allowElytra, keepInventory, maxGroupSize, minGroupSize, requiredLevel, cooldown, timeLimit, dungeonBackgroundId, dungeonStructurePoolId));
             } catch (Exception e) {
                 DungeonzMain.LOGGER.error("Error occurred while loading resource {}. {}", id.toString(), e.toString());
             }

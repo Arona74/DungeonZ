@@ -128,12 +128,14 @@ public class DimensionStructure extends Structure {
         });
 
         if (!list.isEmpty()) {
-            DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) world.getBlockEntity(list.get(0));
-            dungeonPortalEntity.setDungeonType(dungeonType);
-            dungeonPortalEntity.setDifficulty(dungeonPortalEntity.getDungeon().getDifficultyList().get(0));
-            dungeonPortalEntity.setMaxGroupSize(dungeonPortalEntity.getDungeon().getMaxGroupSize());
-            dungeonPortalEntity.setMinGroupSize(dungeonPortalEntity.getDungeon().getMinGroupSize());
-            dungeonPortalEntity.markDirty();
+            for (int i = 0; i < list.size(); i++) {
+                DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) world.getBlockEntity(list.get(i));
+                dungeonPortalEntity.setDungeonType(dungeonType);
+                dungeonPortalEntity.setDifficulty(dungeonPortalEntity.getDungeon().getDifficultyList().get(0));
+                dungeonPortalEntity.setMaxGroupSize(dungeonPortalEntity.getDungeon().getMaxGroupSize());
+                dungeonPortalEntity.setMinGroupSize(dungeonPortalEntity.getDungeon().getMinGroupSize());
+                dungeonPortalEntity.markDirty();
+            }
         }
     }
 

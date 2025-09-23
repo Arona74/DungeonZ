@@ -128,13 +128,14 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
             "minecraft:diamond": 10
         }
     },
-    "respawn": false, // optional: is respawn allowed?
-    "elytra": false, // is Elytra usage allowed?
-    "max_group_size": 5,
-    "min_group_size": 0, // optional
-    "required_level": 0, // optional, levelZ compat
+    "respawn": false, // OPTIONAL: is respawn allowed?
+    "elytra": false, // Is Elytra usage allowed?
+    "keep_inventory": false, // OPTIONAL, false by default, if true: keepInventory will be on when dying in the dungeon
+    "max_group_size": 5, // Maximum number of player in the dungeon
+    "min_group_size": 0, // OPTIONAL, minimum number of player to start the dungeon
+    "required_level": 0, // OPTIONAL, levelZ compat
     "cooldown": 108000, // Cooldown after the dungeon is completed or failed in ticks
-    "time_limit": 1800, // Optional, Time to complete the dungeon in seconds
+    "time_limit": 1800, // OPTIONAL, Time to complete the dungeon in seconds, if dungeon isn't completed and players are still inside, they will be teleported out and dungeon will start cooldown
     "background_texture": "", // For custom dungeon portal backgrounds, set your texture path here
     "dungeon_structure_pool_id": "dungeonz:dark_dungeon/dungeon_spawn" // Structure part which the dungeon generates start of
 }

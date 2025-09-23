@@ -12,6 +12,7 @@ import org.jetbrains.annotations.Nullable;
 import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.dungeonz.DungeonzMain;
+import net.dungeonz.block.DungeonPortalBlock;
 import net.dungeonz.block.entity.DungeonGateEntity;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.dungeon.Dungeon;
@@ -198,7 +199,11 @@ public class DungeonServerPacket {
                     if (Dungeon.getDungeon(dungeonType) != null) {
                         Dungeon dungeon = Dungeon.getDungeon(dungeonType);
                         if (dungeon.getDifficultyList().contains(defaultDifficulty)) {
-                            if (player.getWorld().getBlockEntity(dungeonPortalPos) != null && player.getWorld().getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity) {
+                            BlockPos pos = dungeonPortalPos;
+                            if (DungeonPortalBlock.isOtherDungeonPortalBlockNearby(player.getWorld(), dungeonPortalPos)) {
+                                pos = DungeonPortalBlock.getMainDungeonPortalBlockPos(player.getWorld(), pos);
+                            }
+                            if (player.getWorld().getBlockEntity(pos) != null && player.getWorld().getBlockEntity(pos) instanceof DungeonPortalEntity) {
                                 DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) player.getWorld().getBlockEntity(dungeonPortalPos);
                                 dungeonPortalEntity.setDungeonType(dungeonType);
                                 dungeonPortalEntity.setDifficulty(defaultDifficulty);

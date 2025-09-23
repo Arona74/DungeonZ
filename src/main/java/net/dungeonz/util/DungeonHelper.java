@@ -88,8 +88,7 @@ public class DungeonHelper {
         HashMap<String, List<ItemStack>> possibleLootItemStackMap = new HashMap<String, List<ItemStack>>();
         for (Entry<String, String> entry : dungeon.getDifficultyBossLootTableMap().entrySet()) {
             LootTable lootTable = server.getLootManager().getLootTable(new Identifier(entry.getValue()));
-            LootContextParameterSet.Builder builder = new LootContextParameterSet.Builder(server.getOverworld()).add(LootContextParameters.ORIGIN,
-                    server.getOverworld().getPlayers().get(server.getOverworld().getRandom().nextInt(server.getOverworld().getPlayers().size())).getPos());
+            LootContextParameterSet.Builder builder = new LootContextParameterSet.Builder(server.getOverworld()).add(LootContextParameters.ORIGIN, server.getPlayerManager().getPlayerList().get(server.getOverworld().getRandom().nextInt(server.getPlayerManager().getPlayerList().size())).getPos());
             Inventory inventory = new SimpleInventory(27);
             lootTable.supplyInventory(inventory, builder.build(LootContextTypes.CHEST), server.getOverworld().getRandom().nextLong());
 
@@ -151,6 +150,10 @@ public class DungeonHelper {
                                 player.sendMessage(Text.translatable("text.dungeonz.dungeon_private"), false);
                                 return;
                             }
+                        }
+                        if (!dungeonPortalEntity.getWaitingUuids().isEmpty() && dungeonPortalEntity.getWaitingUuids().contains(player.getUuid())) {
+                            player.closeHandledScreen();
+                            return;
                         }
                         if (!player.isCreative()) {
                             if (DungeonHelper.getRequiredItemStackList(dungeonPortalEntity.getDungeon()).containsKey(dungeonPortalEntity.getDifficulty())) {

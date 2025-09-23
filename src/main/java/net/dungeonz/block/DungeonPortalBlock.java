@@ -1,5 +1,11 @@
 package net.dungeonz.block;
 
+import net.minecraft.block.FluidFillable;
+import net.minecraft.fluid.Fluid;
+import net.minecraft.fluid.FluidState;
+import net.minecraft.world.BlockView;
+import net.minecraft.world.WorldAccess;
+
 import org.jetbrains.annotations.Nullable;
 
 import net.dungeonz.DungeonzMain;
@@ -29,7 +35,7 @@ import net.partyaddon.access.GroupManagerAccess;
 import net.partyaddon.network.PartyAddonServerPacket;
 
 @SuppressWarnings("deprecation")
-public class DungeonPortalBlock extends BlockWithEntity {
+public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable {
 
     public DungeonPortalBlock(Settings settings) {
         super(settings);
@@ -76,6 +82,11 @@ public class DungeonPortalBlock extends BlockWithEntity {
         }
 
         return super.onUse(state, world, pos, player, hand, hit);
+    }
+
+    @Override
+    public boolean canBucketPlace(BlockState state, Fluid fluid) {
+        return false;
     }
 
     @Override
@@ -158,6 +169,16 @@ public class DungeonPortalBlock extends BlockWithEntity {
             (random.nextDouble() - 0.5) * 2.0,
             (random.nextDouble() - 0.5) * 2.0
         );
+    }
+
+    @Override
+    public boolean canFillWithFluid(BlockView world, BlockPos pos, BlockState state, Fluid fluid) {
+        return false;
+    }
+
+    @Override
+    public boolean tryFillWithFluid(WorldAccess world, BlockPos pos, BlockState state, FluidState fluidState) {
+        return false;
     }
 
 }
