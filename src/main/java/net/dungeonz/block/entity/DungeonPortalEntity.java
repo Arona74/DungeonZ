@@ -481,7 +481,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                     false
             );
             player.sendMessage(
-                Text.literal("Click here to leave or use /dungeon leave")
+                Text.literal("Click here to leave or go through portal or use /dungeon leave")
                             .styled(style -> style
                             .withColor(Formatting.GREEN)
                             .withUnderline(true)

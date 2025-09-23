@@ -6,7 +6,11 @@
 - **Feature**: Full dungeon structure regeneration, allowing proceduraly generated structure
 - **Feature**: Improved multiplayer support on Portal GUI (more settings displayed, waiting player list, you can leave the waiting list and been refunded)
 - **Backport**: LevelZ requirement (originaly in DungeonZ 1.21.1)
-- **Change**: Dungeon portal blocks are now solid to avoid them been breakable from flowing liquid and solving the multiple triggering when crossing them. Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the "/dungeon leave" command.
+- **Backport**: Fix to multiple trigger cost when going through portal block (originaly in DungeonZ 1.21.1)
+- **Backport**: Fix to portal block getting broken to flowing water (originaly in DungeonZ 1.21.1)
+- **Backport**: Fix to portal block screen in other dimensions (originaly in DungeonZ 1.21.1)
+- **Backport**: keepInventory option (originaly in DungeonZ 1.21.1)
+- **Change**: Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the "/dungeon leave" command.
 - **Change**: Few fixes on dark dungeon (easier parkour), missing vines in temple dungeon, etc
 - **Change**: Fix to avoid fire to break blocks (like vines)
 - **Change**: Fix the "flying not allowed" kick on server when teleporting player to dungeon
@@ -36,7 +40,7 @@ Same as DungeonZ:
 - Requires [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config).
 
 ### License
-DungeonZ - BIE is licensed under MIT.
+DungeonZ - BLIS is licensed under MIT.
 
 ### Datapacks - Slighlty different from original DungeonZ
 If you don't know how to create a datapack check out [Data Pack Wiki](https://minecraft.fandom.com/wiki/Data_Pack) website and try to create your first one for the vanilla game.
