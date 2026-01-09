@@ -3,18 +3,24 @@ package net.dungeonz.block;
 import net.minecraft.block.FluidFillable;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.network.PacketByteBuf;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldAccess;
+
+import java.util.Optional;
 
 import org.jetbrains.annotations.Nullable;
 
 import net.dungeonz.DungeonzMain;
 import net.dungeonz.block.entity.DungeonPortalEntity;
+import net.dungeonz.block.screen.DungeonPortalScreenHandler;
 import net.dungeonz.init.BlockInit;
 import net.dungeonz.network.DungeonServerPacket;
+import net.dungeonz.network.packet.DungeonPortalPacket;
 import net.dungeonz.util.DungeonHelper;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.block.BlockRenderType;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.BlockWithEntity;
@@ -23,8 +29,12 @@ import net.minecraft.block.entity.BlockEntityTicker;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.player.PlayerEntity;
+import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.particle.ParticleTypes;
+import net.minecraft.screen.ScreenHandler;
 import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.ActionResult;
 import net.minecraft.util.Hand;
 import net.minecraft.util.hit.BlockHitResult;
@@ -53,32 +63,100 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
 
     @Override
     public ActionResult onUse(BlockState state, World world, BlockPos pos, PlayerEntity player, Hand hand, BlockHitResult hit) {
-		if (!world.isClient() && world.getRegistryKey().getValue().toString().equals("dungeonz:dungeon")) {
+        // Prevent spectators from interacting with portals
+        if (player.isSpectator()) {
+            return ActionResult.PASS;
+        }
+        
+        // Add additional safety check
+        if (world.isClient()) {
+            return ActionResult.SUCCESS;
+        }
+
+        // Double-check spectator mode on server side before proceeding
+        if (player.isSpectator()) {
+            return ActionResult.PASS;
+        }
+        
+        // Ensure the block entity exists and is valid before proceeding
+        if (!(player.getWorld().getBlockEntity(pos) instanceof DungeonPortalEntity dungeonPortalEntity)) {
+            return ActionResult.PASS;
+        }
+
+        // Make player leave when using it in dungeonz dimension
+        if (!world.isClient() && world.getRegistryKey().getValue().toString().equals("dungeonz:dungeon")) {
 			if (player instanceof ServerPlayerEntity serverPlayer) {
 				serverPlayer.getServer().getCommandManager().executeWithPrefix(serverPlayer.getCommandSource(), "/dungeon leave");
 			}
 			return ActionResult.success(true);
 		}
 
-		if (player.getWorld().getBlockEntity(pos) != null && player.getWorld().getBlockEntity(pos) instanceof DungeonPortalEntity dungeonPortalEntity) {
-			if (isOtherDungeonPortalBlockNearby(world, pos)) {
-				dungeonPortalEntity = getMainDungeonPortalEntity(world, pos);
-				pos = getMainDungeonPortalBlockPos(world, pos);
-			}
-			if (player.isCreativeLevelTwoOp() && (dungeonPortalEntity.getDungeon() == null || player.isSneaking())) {
-				if (!world.isClient()) {
-					DungeonServerPacket.writeS2COpenOpScreenPacket((ServerPlayerEntity) player, dungeonPortalEntity, null);
-				}
-				return ActionResult.success(world.isClient());
-			} else if (dungeonPortalEntity.getDungeon() != null) {
-				if (!world.isClient()) {
-					if (DungeonzMain.isPartyAddonLoaded) {
-						PartyAddonServerPacket.writeS2CSyncGroupManagerPacket((ServerPlayerEntity) player, ((GroupManagerAccess) player).getGroupManager());									   
-                }
-                player.openHandledScreen(state.createScreenHandlerFactory(world, pos));
-            }
+		// Get the main portal entity if this is part of a multi-block structure
+        BlockPos finalPos = pos;
+        if (isOtherDungeonPortalBlockNearby(world, pos)) {
+            dungeonPortalEntity = getMainDungeonPortalEntity(world, pos);
+            finalPos = getMainDungeonPortalBlockPos(world, pos);
+        }
+        
+        // Create final references for use in anonymous class
+        final DungeonPortalEntity finalEntity = dungeonPortalEntity;
+        final BlockPos finalBlockPos = finalPos;
+        
+        if (player.isCreativeLevelTwoOp() && (finalEntity.getDungeon() == null || player.isSneaking())) {
+            DungeonServerPacket.writeS2COpenOpScreenPacket((ServerPlayerEntity) player, finalEntity, null);
             return ActionResult.success(world.isClient());
+        } else if (finalEntity.getDungeon() != null) {
+            // CRITICAL: Final spectator check before opening screen
+            if (player.isSpectator()) {
+                return ActionResult.PASS;
             }
+            if (DungeonzMain.isPartyAddonLoaded) {
+                PartyAddonServerPacket.writeS2CSyncGroupManagerPacket((ServerPlayerEntity) player, ((GroupManagerAccess) player).getGroupManager());
+            }
+            
+            // Create and send the packet with all necessary data
+            DungeonPortalPacket packet = new DungeonPortalPacket(
+                finalEntity.getPos(),
+                finalEntity.getDungeonPlayerUuids(),
+                finalEntity.getDeadDungeonPlayerUuids(), 
+                finalEntity.getWaitingUuids(),
+                finalEntity.getDungeon().getDifficultyList(),
+                DungeonHelper.getPossibleLootItemStackMap(finalEntity.getDungeon(), ((ServerWorld)world).getServer()),
+                DungeonHelper.getRequiredItemStackList(finalEntity.getDungeon()),
+                finalEntity.getMaxGroupSize(),
+                finalEntity.getMinGroupSize(),
+                finalEntity.getWaitingUuids().size(),
+                finalEntity.getDungeon().getRequiredLevel(),
+                finalEntity.getCooldownTime(),
+                finalEntity.getDifficulty(),
+                finalEntity.getDungeon().isEnderPearlAllowed(),
+                finalEntity.getDungeon().isPositiveEffectsAllowed(),
+                finalEntity.getDungeon().isElytraAllowed(),
+                finalEntity.getDungeon().isRespawnAllowed(),
+                finalEntity.getDungeon().isKeepInventory(),
+                finalEntity.getPrivateGroup(),
+                Optional.ofNullable(finalEntity.getDungeon().getBackgroundId())
+            );
+
+            // Send the packet to open the screen
+            ((ServerPlayerEntity) player).openHandledScreen(new ExtendedScreenHandlerFactory() {
+                @Override
+                public ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity player) {
+                    return new DungeonPortalScreenHandler(syncId, playerInventory, DungeonPortalPacket.toBuf(packet));
+                }
+                
+                @Override
+                public Text getDisplayName() {
+                    return finalEntity.getDisplayName();
+                }
+                
+                @Override
+                public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
+                    DungeonPortalPacket.encode(packet, buf);
+                }
+            });
+
+            return ActionResult.success(world.isClient());
         }
 
         return super.onUse(state, world, pos, player, hand, hit);

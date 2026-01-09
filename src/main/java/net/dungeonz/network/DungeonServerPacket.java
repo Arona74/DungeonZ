@@ -39,7 +39,6 @@ public class DungeonServerPacket {
     public static final Identifier DUNGEON_TELEPORT_COUNTDOWN_PACKET = new Identifier("dungeonz", "dungeon_teleport_countdown");
 
     public static final Identifier CHANGE_DUNGEON_DIFFICULTY_PACKET = new Identifier("dungeonz", "change_dungeon_difficulty");
-    public static final Identifier CHANGE_DUNGEON_EFFECTS_PACKET = new Identifier("dungeonz", "change_dungeon_effects");
     public static final Identifier CHANGE_DUNGEON_PRIVATE_GROUP_PACKET = new Identifier("dungeonz", "change_dungeon_private_group");
 
     public static final Identifier SET_DUNGEON_TYPE_PACKET = new Identifier("dungeonz", "set_dungeon_type");
@@ -156,23 +155,6 @@ public class DungeonServerPacket {
             });
         });
         
-        ServerPlayNetworking.registerGlobalReceiver(CHANGE_DUNGEON_EFFECTS_PACKET, (server, player, handler, buffer, sender) -> {
-            BlockPos dungeonPortalPos = buffer.readBlockPos();
-            boolean disableEffects = buffer.readBoolean();
-            server.execute(() -> {
-                if (player.getWorld().getBlockEntity(dungeonPortalPos) != null && player.getWorld().getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity) {
-                    DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) player.getWorld().getBlockEntity(dungeonPortalPos);
-
-                    if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
-                        dungeonPortalEntity.setDisableEffects(disableEffects);
-                        dungeonPortalEntity.markDirty();
-                        // Updated to sync with all players who have the GUI open
-                        writeS2CSyncScreenPacketToAllViewing(player.getServer(), dungeonPortalEntity);
-                    }
-                }
-            });
-        });
-        
         ServerPlayNetworking.registerGlobalReceiver(CHANGE_DUNGEON_PRIVATE_GROUP_PACKET, (server, player, handler, buffer, sender) -> {
             BlockPos dungeonPortalPos = buffer.readBlockPos();
             boolean privateGroup = buffer.readBoolean();
@@ -209,7 +191,6 @@ public class DungeonServerPacket {
                                 dungeonPortalEntity.setDifficulty(defaultDifficulty);
                                 dungeonPortalEntity.setMaxGroupSize(dungeon.getMaxGroupSize());
                                 dungeonPortalEntity.setMinGroupSize(dungeon.getMinGroupSize());
-                                dungeonPortalEntity.setRequiredLevel(dungeon.getRequiredLevel());
                                 dungeonPortalEntity.markDirty();
                                 player.sendMessage(Text.of("Set dungeon type successfully!"), false);
                                 // Updated to sync with all players who have the GUI open
@@ -329,7 +310,6 @@ public class DungeonServerPacket {
         }
 
         // Add DisableEffects and PrivateGroup to the sync packet
-        buf.writeBoolean(dungeonPortalEntity.getDisableEffects());
         buf.writeBoolean(dungeonPortalEntity.getPrivateGroup());
 
         // Add Timer data to the sync packet

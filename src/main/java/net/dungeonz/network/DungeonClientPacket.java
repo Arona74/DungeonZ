@@ -62,8 +62,6 @@ public class DungeonClientPacket {
                 requiredItems.add(buf.readItemStack());
             }
             
-            // Read the DisableEffects and PrivateGroup values
-            boolean disableEffects = buf.readBoolean();
             boolean privateGroup = buf.readBoolean();
 
             // Read the Timer data
@@ -79,7 +77,6 @@ public class DungeonClientPacket {
                         screenHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
 
                         // Update the boolean values
-                        screenHandler.getDungeonPortalEntity().setDisableEffects(disableEffects);
                         screenHandler.getDungeonPortalEntity().setPrivateGroup(privateGroup);
 
                         // Update the timer data
@@ -170,14 +167,6 @@ public class DungeonClientPacket {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
         buf.writeBlockPos(portalBlockPos);
         CustomPayloadC2SPacket packet = new CustomPayloadC2SPacket(DungeonServerPacket.CHANGE_DUNGEON_DIFFICULTY_PACKET, buf);
-        client.getNetworkHandler().sendPacket(packet);
-    }
-
-    public static void writeC2SChangeEffectsPacket(MinecraftClient client, BlockPos portalBlockPos, boolean disableEffects) {
-        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
-        buf.writeBlockPos(portalBlockPos);
-        buf.writeBoolean(disableEffects);
-        CustomPayloadC2SPacket packet = new CustomPayloadC2SPacket(DungeonServerPacket.CHANGE_DUNGEON_EFFECTS_PACKET, buf);
         client.getNetworkHandler().sendPacket(packet);
     }
 

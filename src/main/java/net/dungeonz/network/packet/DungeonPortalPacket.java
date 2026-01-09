@@ -13,6 +13,7 @@ public class DungeonPortalPacket {
     public static final Identifier DUNGEON_PORTAL_PACKET = new Identifier("dungeonz", "dungeon_portal_packet");
 
     public final BlockPos blockPos;
+    //public final String dungeonType;
     public final List<UUID> playerUuids;
     public final List<UUID> deadPlayerUuids;
     public final List<UUID> waitingPlayerUuids;
@@ -21,11 +22,12 @@ public class DungeonPortalPacket {
     public final Map<String, List<ItemStack>> requiredItemStacks;
     public final int maxGroupSize, minGroupSize, waitingPlayerCount, requiredLevel, cooldownTime;
     public final String difficulty;
-    public final boolean disableEffects, privateGroup;
+    public final boolean allowEnderPearl, allowPositiveEffects, allowElytra, allowRespawn, keepInventory, privateGroup;
     public final Optional<Identifier> backgroundId;
     public final long timestamp;
 
     public DungeonPortalPacket(BlockPos blockPos,
+                               //String dungeonType,
                                List<UUID> playerUuids,
                                List<UUID> deadPlayerUuids,
                                List<UUID> waitingPlayerUuids,
@@ -38,10 +40,15 @@ public class DungeonPortalPacket {
                                int requiredLevel,
                                int cooldownTime,
                                String difficulty,
-                               boolean disableEffects,
+                               boolean allowEnderPearl,
+                               boolean allowPositiveEffects,
+                               boolean allowElytra,
+                               boolean allowRespawn,
+                               boolean keepInventory,
                                boolean privateGroup,
                                Optional<Identifier> backgroundId) {
         this.blockPos = blockPos;
+        //this.dungeonType = dungeonType;
         this.playerUuids = playerUuids;
         this.deadPlayerUuids = deadPlayerUuids;
         this.waitingPlayerUuids = waitingPlayerUuids;
@@ -54,14 +61,20 @@ public class DungeonPortalPacket {
         this.requiredLevel = requiredLevel;
         this.cooldownTime = cooldownTime;
         this.difficulty = difficulty;
-        this.disableEffects = disableEffects;
+        this.allowEnderPearl = allowEnderPearl;
+        this.allowPositiveEffects = allowPositiveEffects;
+        this.allowElytra = allowElytra;
+        this.allowRespawn = allowRespawn;
+        this.keepInventory = keepInventory;
         this.privateGroup = privateGroup;
         this.backgroundId = backgroundId;
         this.timestamp = System.currentTimeMillis();
     }
 
     public static void encode(DungeonPortalPacket p, PacketByteBuf buf) {
+        // Fabric ExtendedScreenHandlerType expects blockPos first for entity creation
         buf.writeBlockPos(p.blockPos);
+        //buf.writeString(p.dungeonType);
 
         buf.writeInt(p.playerUuids.size());
         p.playerUuids.forEach(buf::writeUuid);
@@ -95,7 +108,11 @@ public class DungeonPortalPacket {
         buf.writeInt(p.requiredLevel);
         buf.writeInt(p.cooldownTime);
         buf.writeString(p.difficulty);
-        buf.writeBoolean(p.disableEffects);
+        buf.writeBoolean(p.allowEnderPearl);
+        buf.writeBoolean(p.allowPositiveEffects);
+        buf.writeBoolean(p.allowElytra);
+        buf.writeBoolean(p.allowRespawn);
+        buf.writeBoolean(p.keepInventory);
         buf.writeBoolean(p.privateGroup);
 
         buf.writeBoolean(p.backgroundId.isPresent());
@@ -106,6 +123,7 @@ public class DungeonPortalPacket {
 
     public static DungeonPortalPacket decode(PacketByteBuf buf) {
         BlockPos blockPos = buf.readBlockPos();
+        //String dungeonType = buf.readString();
 
         int nPlayers = buf.readInt();
         List<UUID> playerUuids = new ArrayList<>(nPlayers);
@@ -150,7 +168,11 @@ public class DungeonPortalPacket {
         int cooldown = buf.readInt();
 
         String difficulty = buf.readString(32767);
-        boolean disable = buf.readBoolean();
+        boolean enderpearl = buf.readBoolean();
+        boolean positive = buf.readBoolean();
+        boolean elytra = buf.readBoolean();
+        boolean respawn = buf.readBoolean();
+        boolean keepinventory = buf.readBoolean();
         boolean priv = buf.readBoolean();
 
         Optional<Identifier> bg = buf.readBoolean() ? Optional.of(buf.readIdentifier()) : Optional.empty();
@@ -158,7 +180,7 @@ public class DungeonPortalPacket {
         long timestamp = buf.readLong();
 
         return new DungeonPortalPacket(blockPos, playerUuids, dead, waiting, diffs, possibleLoot, reqStacks,
-                max, min, waitingCount, level, cooldown, difficulty, disable, priv, bg);
+                max, min, waitingCount, level, cooldown, difficulty, enderpearl, positive, elytra, respawn, keepinventory, priv, bg);
     }
 
     public static PacketByteBuf toBuf(DungeonPortalPacket p) {

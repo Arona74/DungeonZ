@@ -1,21 +1,26 @@
-# DungeonZ - Bleak Isles Edition <img alt="Factions Mod Icon" src="src/main/resources/assets/dungeonz/icon.png">
+# DungeonZ - Bleak Isles Edition <img alt="DungeonZ Mod Icon" src="src/main/resources/assets/dungeonz/icon.png">
 **DungeonZ - BLIS** is a fork made by Arona74 from **DungeonZ** mod made by Globox_Z, created for [Conquest of the Bleak Isles Modpack](https://modrinth.com/modpack/bleak-isles) needs.
 
 ### What are the differences with original DungeonZ (1.20.1)?
-- **Feature: Splitted Mob/Boss modifiers for Health, Damage and Protection, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
+- **Feature: Splitted Mob/Boss modifiers for Health, Damage, Protection and Mouvement Speed, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
 - **Feature**: Full dungeon structure regeneration, allowing proceduraly generated structure
 - **Feature**: Improved multiplayer support on Portal GUI (more settings displayed, waiting player list, you can leave the waiting list and been refunded)
+- **Feature**: Time limit to finish the dungeon (set in dungeon file)
 - **Backport**: LevelZ requirement (originaly in DungeonZ 1.21.1)
 - **Backport**: Fix to multiple trigger cost when going through portal block (originaly in DungeonZ 1.21.1)
 - **Backport**: Fix to portal block getting broken to flowing water (originaly in DungeonZ 1.21.1)
 - **Backport**: Fix to portal block screen in other dimensions (originaly in DungeonZ 1.21.1)
 - **Backport**: keepInventory option (originaly in DungeonZ 1.21.1)
+- **Backport**: ender pearl option, info button and positive effect change (originaly in DungeonZ 1.21.1)
+- **Backport**: fixed hole by LeDok (originaly in DungeonZ 1.21.1)
 - **Change**: Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the "/dungeon leave" command.
 - **Change**: Few fixes on dark dungeon (easier parkour), missing vines in temple dungeon, etc
 - **Change**: Fix to avoid fire to break blocks (like vines)
 - **Change**: Fix the "flying not allowed" kick on server when teleporting player to dungeon
 - **Change**: Fix effects button on dungeon screen
 - **Change**: GUI textures build from [Conquest Reforged mod](https://conquestreforged.com/mod) ressources
+- **Change**: Fix Compass out of bound exception by listnt
+- **Change**: Prevent spectators to interact with dungeon blocks
 - **Content**: Temple dungeon made by xeven (originaly in DungeonZ 1.21.1)
 - **Content**: French translation made by hirtz-gregoire (originaly in DungeonZ 1.21.1)
 - **Content**: [Desert dungeon made by D1scoball](https://www.curseforge.com/minecraft/mc-mods/desert-dungeon-dungeonz-addon)
@@ -54,6 +59,7 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
             "mob_health_modificator": 1.0, // modificator to increase mob base health
             "mob_damage_modificator": 1.0, // modificator to increase mob base attack damage
             "mob_protection_modificator": 1.0, // modificator to increase mob base armor
+            "mob_speed_modificator": 1.0, // modificator to increase mob base mouvement speed
             "loot_table_ids": [ // a list of different loot tables chests and barrels will get filled with
                 "dungeonz:chests/dark_dungeon_low_tier_chest_loot",
                 "dungeonz:chests/dark_dungeon_mid_tier_chest_loot"
@@ -61,12 +67,14 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
             "boss_health_modificator": 1.0, // modificator to increase boss base health
             "boss_damage_modificator": 1.0, // modificator to increase boss base attack damage
             "boss_protection_modificator": 1.0, // modificator to increase boss base armor
+            "boss_speed_modificator": 1.0, // modificator to increase boss base mouvement speed
             "boss_loot_table_id": "dungeonz:chests/dark_dungeon_easy_boss_loot"
         },
         "normal": {
             "mob_health_modificator": 1.5,
             "mob_damage_modificator": 1.5,
             "mob_protection_modificator": 1.5,
+            "mob_speed_modificator": 1.15,
             "loot_table_ids": [
                 "dungeonz:chests/dark_dungeon_low_tier_chest_loot",
                 "dungeonz:chests/dark_dungeon_mid_tier_chest_loot",
@@ -75,6 +83,7 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
             "boss_health_modificator": 2.0,
             "boss_damage_modificator": 2.0,
             "boss_protection_modificator": 2.0,
+            "boss_speed_modificator": 1.15,
             "boss_loot_table_id": "dungeonz:chests/dark_dungeon_normal_boss_loot"
         }
     },
@@ -132,20 +141,23 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
             "minecraft:diamond": 10
         }
     },
-    "respawn": false, // OPTIONAL: is respawn allowed?
-    "elytra": false, // Is Elytra usage allowed?
+    "respawn": false, // OPTIONAL: is respawn allowed? true by default
+    "elytra": false, // Is Elytra usage allowed? false by default
     "keep_inventory": false, // OPTIONAL, false by default, if true: keepInventory will be on when dying in the dungeon
+    "ender_pearl": false, // Is Ender pearl usage allowed? false by default
+    "positive_effects": false, // Are positive effects enabled? true by default
     "max_group_size": 5, // Maximum number of player in the dungeon
     "min_group_size": 0, // OPTIONAL, minimum number of player to start the dungeon
     "required_level": 0, // OPTIONAL, levelZ compat
     "cooldown": 108000, // Cooldown after the dungeon is completed or failed in ticks
     "time_limit": 1800, // OPTIONAL, Time to complete the dungeon in seconds, if dungeon isn't completed and players are still inside, they will be teleported out and dungeon will start cooldown
-    "background_texture": "", // For custom dungeon portal backgrounds, set your texture path here
+    "background_texture": "", // For custom dungeon portal backgrounds, set your texture path here using proper identifier like this "dungeonz:textures/gui/dark_dungeon_portal.png"
     "dungeon_structure_pool_id": "dungeonz:dark_dungeon/dungeon_spawn" // Structure part which the dungeon generates start of
 }
 ```
 
 Make sure your first structure piece (`"dungeon_structure_pool_id"`) has a jigsaw block named `dungeonz:spawn`. This is the block where the player will teleport to.
+To add information about your dungeon add `"dungeon.your_dungeon_type.description.1":"..."` (add up to 9 lines) translations keys at your lang file.
 
 An example part for the overworld structure which leads to the dungeon:
 

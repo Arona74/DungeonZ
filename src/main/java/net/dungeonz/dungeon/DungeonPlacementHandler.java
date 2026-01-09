@@ -10,6 +10,7 @@ import net.dungeonz.block.entity.DungeonSpawnerEntity;
 import net.dungeonz.init.BlockInit;
 import net.dungeonz.init.TagInit;
 import net.dungeonz.util.InventoryHelper;
+import net.dungeonz.util.PropertyUtil;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
@@ -80,7 +81,7 @@ import com.mojang.brigadier.exceptions.CommandSyntaxException;
 public class DungeonPlacementHandler {
 
     public static TeleportTarget enter(ServerPlayerEntity serverPlayerEntity, ServerWorld dungeonWorld, ServerWorld oldWorld, DungeonPortalEntity portalEntity, BlockPos portalPos, String difficulty,
-                                       boolean disableEffects) {
+                                       boolean positiveEffects) {
         BlockPos playerBlockPos = serverPlayerEntity.getBlockPos().mutableCopy();
 
         if (oldWorld.getBlockState(playerBlockPos).isOf(BlockInit.DUNGEON_PORTAL) || oldWorld.getBlockState(playerBlockPos.down()).isOf(BlockInit.DUNGEON_PORTAL)) {
@@ -100,7 +101,7 @@ public class DungeonPlacementHandler {
             }
         }
         ((ServerPlayerAccess) serverPlayerEntity).setDungeonInfo(oldWorld, portalPos, playerBlockPos);
-        if (disableEffects) {
+        if (!positiveEffects) {
             serverPlayerEntity.clearStatusEffects();
         }
 
@@ -210,8 +211,8 @@ public class DungeonPlacementHandler {
                                     }
                                 } else if (state.getBlock() instanceof LandingBlock) {
                                     movingBlockMap.put(checkPos, blockId);
-                                } else if (state.contains(Properties.POWERED)) {
-                                    poweredBlockMap.put(checkPos, new DungeonPortalEntity.Powered(blockId, state.get(Properties.POWERED), state.contains(Properties.HORIZONTAL_FACING) ? state.get(Properties.HORIZONTAL_FACING).getHorizontal() : 0));
+                                } else if (state.contains(Properties.POWERED) && !state.isOf(Blocks.OBSERVER)) {
+                                    poweredBlockMap.put(checkPos, new DungeonPortalEntity.Powered(blockId, state.get(Properties.POWERED), PropertyUtil.getHorizontalFacing(state), PropertyUtil.getBlockFacing(state)));
                                 }
                             }
                         }
@@ -449,7 +450,7 @@ public class DungeonPlacementHandler {
         }
     }
 
-    public static void refreshDungeon(MinecraftServer server, ServerWorld world, DungeonPortalEntity portalEntity, Dungeon dungeon, String difficulty, boolean luck) {
+    public static void refreshDungeon(MinecraftServer server, ServerWorld world, DungeonPortalEntity portalEntity, Dungeon dungeon, String difficulty) {
 
         // Could be tested with create = true
         // world.getChunkManager().threadedAnvilChunkStorage.getChunk(holder, requiredStatus).thenApply(either -> {
@@ -528,7 +529,7 @@ public class DungeonPlacementHandler {
         // Refresh chests
         for (int i = 0; i < portalEntity.getChestPosList().size(); i++) {
             String lootTableString = dungeon.getDifficultyLootTableIdMap().get(difficulty).get(world.getRandom().nextInt(dungeon.getDifficultyLootTableIdMap().get(difficulty).size()));
-            InventoryHelper.fillInventoryWithLoot(server, world, portalEntity.getChestPosList().get(i), lootTableString, luck);
+            InventoryHelper.fillInventoryWithLoot(server, world, portalEntity.getChestPosList().get(i), lootTableString);
         }
         // Refresh exit
         for (int i = 0; i < portalEntity.getExitPosList().size(); i++) {
@@ -557,19 +558,22 @@ public class DungeonPlacementHandler {
         for (Entry<BlockPos, Integer> entry : portalEntity.getReplaceBlockIdMap().entrySet()) {
             world.setBlockState(entry.getKey(), Registries.BLOCK.get(entry.getValue()).getDefaultState(), 3);
         }
-        // Refresh powered blocks
-        for (Entry<BlockPos, DungeonPortalEntity.Powered> entry : portalEntity.getPoweredBlockMap().entrySet()) {
-            BlockState blockState = Registries.BLOCK.get(entry.getValue().getBlockId()).getDefaultState().with(Properties.POWERED, entry.getValue().getPowered());
-            boolean hasFacing = blockState.contains(Properties.HORIZONTAL_FACING);
-            if (hasFacing) {
-                blockState = blockState.with(Properties.HORIZONTAL_FACING, Direction.fromHorizontal(entry.getValue().getFacing()));
-            }
-            world.setBlockState(entry.getKey(), blockState, 3);
-            world.updateNeighborsAlways(entry.getKey(), world.getBlockState(entry.getKey()).getBlock());
-            if (hasFacing) {
-                world.updateNeighborsAlways(entry.getKey().offset(world.getBlockState(entry.getKey()).get(Properties.HORIZONTAL_FACING).getOpposite()), world.getBlockState(entry.getKey()).getBlock());
-            }
-        }
+        // Refresh powered blocks - Disabled as we regenerate the all structure
+        // for (Entry<BlockPos, DungeonPortalEntity.Powered> entry : portalEntity.getPoweredBlockMap().entrySet()) {
+        //     BlockState blockState = Registries.BLOCK.get(entry.getValue().getBlockId()).getDefaultState().with(Properties.POWERED, entry.getValue().getPowered());
+        //     boolean hasFacing = blockState.contains(Properties.HORIZONTAL_FACING);
+        //     if (hasFacing) {
+        //         blockState = blockState.with(Properties.HORIZONTAL_FACING, Direction.fromHorizontal(entry.getValue().getFacing()));
+        //     }
+        //     if (blockState.contains(Properties.WALL_MOUNT_LOCATION)) {
+        //         blockState = blockState.with(Properties.WALL_MOUNT_LOCATION, PropertyUtil.getBlockFaceFromInt(entry.getValue().getBlockFacing()));
+        //     }
+        //     world.setBlockState(entry.getKey(), blockState, 3);
+        //     world.updateNeighborsAlways(entry.getKey(), world.getBlockState(entry.getKey()).getBlock());
+        //     if (hasFacing) {
+        //         world.updateNeighborsAlways(entry.getKey().offset(world.getBlockState(entry.getKey()).get(Properties.HORIZONTAL_FACING).getOpposite()), world.getBlockState(entry.getKey()).getBlock());
+        //     }
+        // }
         // Refresh moving blocks
         List<BlockPos> freshPlacedBlockPoses = new ArrayList<>();
         for (Entry<BlockPos, Integer> entry : portalEntity.getMovingBlockMap().entrySet()) {
@@ -625,9 +629,11 @@ public class DungeonPlacementHandler {
         double mobHealth = mobEntity.getAttributeValue(EntityAttributes.GENERIC_MAX_HEALTH);
         double mobDamage = 0.0D;
         double mobProtection = 0.0D;
+        double mobSpeed = 0.0D;
 
         boolean hasAttackDamageAttribute = mobEntity.getAttributes().hasAttribute(EntityAttributes.GENERIC_ATTACK_DAMAGE);
         boolean hasArmorAttribute = mobEntity.getAttributes().hasAttribute(EntityAttributes.GENERIC_ARMOR);
+        boolean hasSpeedAttribute = mobEntity.getAttributes().hasAttribute(EntityAttributes.GENERIC_MOVEMENT_SPEED);
 
         if (hasAttackDamageAttribute) {
             mobDamage = mobEntity.getAttributeValue(EntityAttributes.GENERIC_ATTACK_DAMAGE);
@@ -635,27 +641,37 @@ public class DungeonPlacementHandler {
         if (hasArmorAttribute) {
             mobProtection = mobEntity.getAttributeValue(EntityAttributes.GENERIC_ARMOR);
         }
+        if (hasSpeedAttribute) {
+            mobSpeed = mobEntity.getAttributeValue(EntityAttributes.GENERIC_MOVEMENT_SPEED);
+        }
+
         float healthFactor = 0.0f;
         float damageFactor = 0.0f;
         float protectionFactor = 0.0f;
+        float speedFactor = 0.0f;
+
         if (isBossEntity) {
             healthFactor = dungeon.getDifficultyBossHealthModificatorMap().get(difficulty);
             damageFactor = dungeon.getDifficultyBossDamageModificatorMap().get(difficulty);
             protectionFactor = dungeon.getDifficultyBossProtectionModificatorMap().get(difficulty);
+            speedFactor = dungeon.getDifficultyBossSpeedModificatorMap().get(difficulty);
         } else {
             healthFactor = dungeon.getDifficultyMobHealthModificatorMap().get(difficulty);
-            damageFactor = dungeon.getDifficultyBossDamageModificatorMap().get(difficulty);
+            damageFactor = dungeon.getDifficultyMobDamageModificatorMap().get(difficulty);
             protectionFactor = dungeon.getDifficultyMobProtectionModificatorMap().get(difficulty);
+            speedFactor = dungeon.getDifficultyMobSpeedModificatorMap().get(difficulty);
         }
 
         mobHealth *= healthFactor;
         mobDamage *= damageFactor;
         mobProtection *= protectionFactor;
+        mobSpeed *= speedFactor;
 
         // round factor
         mobHealth = Math.round(mobHealth * 100.0D) / 100.0D;
         mobDamage = Math.round(mobDamage * 100.0D) / 100.0D;
         mobProtection = Math.round(mobProtection * 100.0D) / 100.0D;
+        mobSpeed = Math.round(mobSpeed * 100.0D) / 100.0D;
 
         // Set Values
         mobEntity.getAttributeInstance(EntityAttributes.GENERIC_MAX_HEALTH).setBaseValue(mobHealth);
@@ -665,6 +681,9 @@ public class DungeonPlacementHandler {
         }
         if (hasArmorAttribute) {
             mobEntity.getAttributeInstance(EntityAttributes.GENERIC_ARMOR).setBaseValue(mobProtection);
+        }
+        if (hasSpeedAttribute) {
+            mobEntity.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED).setBaseValue(mobSpeed);
         }
         if (DungeonzMain.isRpgDifficultyLoaded) {
             MobStrengthener.setMobHealthMultiplier(mobEntity, healthFactor);

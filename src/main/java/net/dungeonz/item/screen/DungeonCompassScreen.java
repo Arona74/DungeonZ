@@ -12,6 +12,7 @@ import net.dungeonz.network.DungeonClientPacket;
 import net.dungeonz.util.InventoryHelper;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.levelz.screen.SkillScreen.WidgetButtonPage;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -210,7 +211,7 @@ public class DungeonCompassScreen extends Screen {
         }
 
         public void renderTooltip(DrawContext context, int mouseX, int mouseY) {
-            if (this.hovered) {
+            if (this.hovered && this.index + DungeonCompassScreen.this.indexStartOffset < DungeonCompassScreen.this.dungeonIds.size()) {
                 Text text = Text.translatable("dungeon." + DungeonCompassScreen.this.dungeonIds.get(this.index + DungeonCompassScreen.this.indexStartOffset));
                 if (client.textRenderer.getWidth(text) > 78) {
                     context.drawTooltip(textRenderer, text, mouseX, mouseY);

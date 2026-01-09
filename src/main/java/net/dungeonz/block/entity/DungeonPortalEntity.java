@@ -47,12 +47,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private int maxGroupSize = 0;
     private int minGroupSize = 0;
     private List<UUID> waitingUuids = new ArrayList<UUID>();
-    private int requiredLevel = 0;
     private int cooldownTime = 0;
     private int dungeonStartTime = 0;
     private boolean dungeonTimerActive = false;
     private int autoKickTime = 0;
-    private boolean disableEffects = false;
     private boolean privateGroup = false;
     private HashMap<Integer, ArrayList<BlockPos>> blockBlockPosMap = new HashMap<Integer, ArrayList<BlockPos>>();
     private List<BlockPos> chestPosList = new ArrayList<BlockPos>();
@@ -87,12 +85,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
         this.maxGroupSize = nbt.getInt("MaxGroupSize");
         this.minGroupSize = nbt.getInt("MinGroupSize");
-        this.requiredLevel = nbt.getInt("RequiredLevel");
         this.cooldownTime = nbt.getInt("CooldownTime");
         this.dungeonStartTime = nbt.getInt("DungeonStartTime");
         this.dungeonTimerActive = nbt.getBoolean("DungeonTimerActive");
         this.autoKickTime = nbt.getInt("AutoKickTime");
-        this.disableEffects = nbt.getBoolean("DisableEffects");
         this.privateGroup = nbt.getBoolean("PrivateGroup");
         this.blockBlockPosMap.clear();
         if (nbt.getInt("BlockMapSize") > 0) {
@@ -146,7 +142,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         if (nbt.getInt("PoweredPosSize") > 0) {
             this.poweredBlockMap.clear();
             for (int i = 0; i < nbt.getInt("PoweredPosSize"); i++) {
-                this.poweredBlockMap.put(new BlockPos(nbt.getInt("PoweredPosX" + i), nbt.getInt("PoweredPosY" + i), nbt.getInt("PoweredPosZ" + i)), new Powered(nbt.getInt("PoweredBlockId" + i), nbt.getBoolean("PoweredBlock" + i), nbt.getInt("PoweredBlockFacing" + i)));
+                int[] poweredPos = nbt.getIntArray("PoweredPos" + i);
+                boolean isPowered = poweredPos[4] == 1;
+                this.poweredBlockMap.put(new BlockPos(poweredPos[0], poweredPos[1], poweredPos[2]), new Powered(poweredPos[3], isPowered, poweredPos[5], poweredPos[6]));
             }
         }
 
@@ -183,12 +181,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
         nbt.putInt("MaxGroupSize", this.maxGroupSize);
         nbt.putInt("MinGroupSize", this.minGroupSize);
-        nbt.putInt("RequiredLevel", this.requiredLevel);
         nbt.putInt("CooldownTime", this.cooldownTime);
         nbt.putInt("DungeonStartTime", this.dungeonStartTime);
         nbt.putBoolean("DungeonTimerActive", this.dungeonTimerActive);
         nbt.putInt("AutoKickTime", this.autoKickTime);
-        nbt.putBoolean("DisableEffects", this.disableEffects);
         nbt.putBoolean("PrivateGroup", this.privateGroup);
 
         nbt.putInt("BlockMapSize", this.blockBlockPosMap.size());
@@ -280,12 +276,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             int count = 0;
             while (iterator.hasNext()) {
                 Entry<BlockPos, Powered> entry = iterator.next();
-                nbt.putInt("PoweredPosX" + count, entry.getKey().getX());
-                nbt.putInt("PoweredPosY" + count, entry.getKey().getY());
-                nbt.putInt("PoweredPosZ" + count, entry.getKey().getZ());
-                nbt.putInt("PoweredBlockId" + count, entry.getValue().getBlockId());
-                nbt.putBoolean("PoweredBlock" + count, entry.getValue().getPowered());
-                nbt.putInt("PoweredBlockFacing" + count, entry.getValue().getFacing());
+                int isPowered = entry.getValue().getPowered() ? 1 : 0;
+                nbt.putIntArray("PoweredPos" + count, List.of(entry.getKey().getX(), entry.getKey().getY(), entry.getKey().getZ(), entry.getValue().getBlockId(), isPowered, entry.getValue().getFacing(), entry.getValue().getBlockFacing()));
                 count++;
             }
         }
@@ -347,8 +339,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             blockEntity.dungeonTeleportCountdown--;
 
             if (blockEntity.dungeonTeleportCountdown == (ConfigInit.CONFIG.defaultDungeonTeleportCountdown / 2)) {
-                DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
-                        blockEntity.getDungeon(), blockEntity.getDifficulty(), blockEntity.getDisableEffects());
+               DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
+                        blockEntity.getDungeon(), blockEntity.getDifficulty());
             }
 
             if (blockEntity.dungeonTeleportCountdown == 0) {
@@ -459,10 +451,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         for (int i = 0; i < this.getWaitingUuids().size(); i++) {
             buf.writeUuid(this.getWaitingUuids().get(i));
         }
-        buf.writeInt(this.getRequiredLevel());
         buf.writeInt(this.getCooldownTime());
         buf.writeString(this.getDifficulty());
-        buf.writeBoolean(this.getDisableEffects());
         buf.writeBoolean(this.getPrivateGroup());
 
         buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isElytraAllowed() : false);
@@ -497,8 +487,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
 
         world.setBlockState(this.getBossLootBlockPos(), Blocks.CHEST.getDefaultState(), 3);
-        InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), this.getDungeon().getDifficultyBossLootTableMap().get(this.getDifficulty()),
-                this.getDisableEffects());
+        InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), this.getDungeon().getDifficultyBossLootTableMap().get(this.getDifficulty()));
 
         this.stopDungeonTimer();
         this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
@@ -599,16 +588,6 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         return this.blockBlockPosMap;
     }
 
-    public void setRequiredLevel(int requiredLevel) {
-        this.requiredLevel = requiredLevel;
-        this.markDirty();
-        this.syncGuiToAllViewers();
-    }
-
-    public int getRequiredLevel() {
-        return this.requiredLevel;
-    }
-
     public void setCooldownTime(int cooldownTime) {
         this.cooldownTime = cooldownTime;
         this.markDirty();
@@ -680,16 +659,6 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public int getMinGroupSize() {
         return this.minGroupSize;
-    }
-
-    public void setDisableEffects(boolean disableEffects) {
-        this.disableEffects = disableEffects;
-        this.markDirty();
-        this.syncGuiToAllViewers();
-    }
-
-    public boolean getDisableEffects() {
-        return this.disableEffects;
     }
 
     public void setPrivateGroup(boolean privateGroup) {
@@ -821,11 +790,13 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         private final int blockId;
         private final boolean powered;
         private final int facing;
+        private final int blockFacing;
 
-        public Powered(int blockId, boolean powered, int facing) {
+        public Powered(int blockId, boolean powered, int facing, int blockFacing) {
             this.blockId = blockId;
             this.powered = powered;
             this.facing = facing;
+            this.blockFacing = blockFacing;
         }
 
         public int getBlockId() {
@@ -836,8 +807,15 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             return powered;
         }
 
+        // Horizontal facing
         public int getFacing() {
             return facing;
+        }
+
+        // Block facing for example: cealing
+        // 0 = none, 1 = ("floor"), 2 = WALL("wall"), 3 = CEILING("ceiling");
+        public int getBlockFacing() {
+            return blockFacing;
         }
     }
 

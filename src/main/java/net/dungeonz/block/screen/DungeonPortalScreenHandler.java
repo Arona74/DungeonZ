@@ -23,104 +23,175 @@ import net.minecraft.world.World;
 
 public class DungeonPortalScreenHandler extends ScreenHandler {
 
-    private final World world;
-    private final ScreenHandlerContext context;
-    private final DungeonPortalEntity dungeonPortalEntity;
+    private World world;
+    private ScreenHandlerContext context;
+    private DungeonPortalEntity dungeonPortalEntity;
     private BlockPos pos;
 
     private List<String> difficulties = new ArrayList<String>();
     private Map<String, List<ItemStack>> possibleLootDifficultyItemStackMap = new HashMap<String, List<ItemStack>>();
     private Map<String, List<ItemStack>> requiredItemStacks = new HashMap<String, List<ItemStack>>();
     private int waitingGroupSize = 0;
-    private boolean elytraAllowed = false;
-    private boolean respawnAllowed = false;
+
+    private int requiredLevel = 0;
+    private boolean allowRespawn = false;
+    private boolean keepInventory = false;
+    private boolean allowPositiveEffects = false;
+    private boolean allowEnderPearl = false;
+    private boolean allowElytra = false;
+
+    @Nullable
+    private Identifier backgroundId = null;
+
     private boolean dungeonTimerActive = false;
     private int dungeonTimeRemaining = 0;
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
-        this(syncId, playerInventory, new DungeonPortalEntity(buf.readBlockPos(), playerInventory.player.getWorld().getBlockState(buf.readBlockPos())), ScreenHandlerContext.EMPTY);
-        this.pos = buf.readBlockPos();
+        super(BlockInit.PORTAL, syncId);
+    
+        // CRITICAL: Immediately reject spectators to prevent any data reading
+        if (playerInventory.player.isSpectator()) {
+            // Initialize with absolute minimum to prevent any errors
+            this.world = playerInventory.player.getWorld();
+            this.context = ScreenHandlerContext.EMPTY;
+            this.pos = BlockPos.ORIGIN;
+            this.dungeonPortalEntity = null;
+            
+            // Set all fields to safe empty values
+            this.difficulties = new ArrayList<>();
+            this.possibleLootDifficultyItemStackMap = new HashMap<>();
+            this.requiredItemStacks = new HashMap<>();
+            this.waitingGroupSize = 0;
+            this.requiredLevel = 0;
+            this.allowRespawn = false;
+            this.keepInventory = false;
+            this.allowPositiveEffects = false;
+            this.allowEnderPearl = false;
+            this.allowElytra = false;
+            this.backgroundId = null;
+            this.dungeonTimerActive = false;
+            this.dungeonTimeRemaining = 0;
+            
+            // Don't read anything from the buffer - just return
+            return;
+        }
+
+        // Read exactly what your packet writes, in the same order
+        
+        // 1. BlockPos
+        BlockPos blockPos = buf.readBlockPos();
+        
+        // Initialize fields
+        this.world = playerInventory.player.getWorld();
+        this.context = ScreenHandlerContext.EMPTY;
+        this.dungeonPortalEntity = new DungeonPortalEntity(blockPos, this.world.getBlockState(blockPos));
+        this.pos = blockPos;
+        
+        // 2. playerUuids
         int dungeonPlayerCount = buf.readInt();
         List<UUID> dungeonPlayerUUIDs = new ArrayList<UUID>();
         for (int i = 0; i < dungeonPlayerCount; i++) {
             dungeonPlayerUUIDs.add(buf.readUuid());
         }
+        
+        // 3. deadPlayerUuids
         int deadDungeonPlayerCount = buf.readInt();
         List<UUID> deadDungeonPlayerUUIDs = new ArrayList<UUID>();
         for (int i = 0; i < deadDungeonPlayerCount; i++) {
             deadDungeonPlayerUUIDs.add(buf.readUuid());
         }
+        
+        // 4. waitingPlayerUuids
+        int waitingPlayerCount = buf.readInt();
+        List<UUID> waitingUUIDs = new ArrayList<UUID>();
+        for (int i = 0; i < waitingPlayerCount; i++) {
+            waitingUUIDs.add(buf.readUuid());
+        }
+        
+        // 5. difficulties
         int difficultyCount = buf.readInt();
         List<String> difficulties = new ArrayList<String>();
-        if (difficultyCount != 0) {
-            for (int i = 0; i < difficultyCount; i++) {
-                difficulties.add(buf.readString());
-            }
+        for (int i = 0; i < difficultyCount; i++) {
+            difficulties.add(buf.readString(32767));
         }
+        
+        // 6. possibleLoot
         int possibleLootCount = buf.readInt();
         Map<String, List<ItemStack>> possibleLootDifficultyItemStackMap = new HashMap<String, List<ItemStack>>();
-        if (possibleLootCount != 0) {
-            for (int i = 0; i < possibleLootCount; i++) {
-                List<ItemStack> itemStacks = new ArrayList<ItemStack>();
-                String difficulty = buf.readString();
-                int lootCount = buf.readInt();
-                for (int u = 0; u < lootCount; u++) {
-                    itemStacks.add(buf.readItemStack());
-                }
-                possibleLootDifficultyItemStackMap.put(difficulty, itemStacks);
+        for (int i = 0; i < possibleLootCount; i++) {
+            String difficulty = buf.readString(32767);
+            int lootCount = buf.readInt();
+            List<ItemStack> itemStacks = new ArrayList<ItemStack>();
+            for (int u = 0; u < lootCount; u++) {
+                itemStacks.add(buf.readItemStack());
             }
+            possibleLootDifficultyItemStackMap.put(difficulty, itemStacks);
         }
-        final Map<String, List<ItemStack>> possibleLootDifficultyItemStacks = possibleLootDifficultyItemStackMap;
+
+        // 7. requiredItemStacks
         int requiredItemCount = buf.readInt();
         Map<String, List<ItemStack>> requiredItemStacksMap = new HashMap<String, List<ItemStack>>();
-        if (requiredItemCount != 0) {
-            for (int i = 0; i < requiredItemCount; i++) {
-                List<ItemStack> itemStacks = new ArrayList<ItemStack>();
-                String difficulty = buf.readString();
-                int reqCount = buf.readInt();
-                for (int u = 0; u < reqCount; u++) {
-                    itemStacks.add(buf.readItemStack());
-                }
-                requiredItemStacksMap.put(difficulty, itemStacks);
+        for (int i = 0; i < requiredItemCount; i++) {
+            String difficulty = buf.readString(32767);
+            int reqCount = buf.readInt();
+            List<ItemStack> itemStacks = new ArrayList<ItemStack>();
+            for (int u = 0; u < reqCount; u++) {
+                itemStacks.add(buf.readItemStack());
             }
+            requiredItemStacksMap.put(difficulty, itemStacks);
         }
-        final Map<String, List<ItemStack>> requiredItemStacks = requiredItemStacksMap;
+        
+        // 8. Five integers
         int maxGroupSize = buf.readInt();
         int minGroupSize = buf.readInt();
         int waitingGroupSize = buf.readInt();
-        List<UUID> waitingUUIDs = new ArrayList<UUID>();
-        for (int i = 0; i < waitingGroupSize; i++) {
-            waitingUUIDs.add(buf.readUuid());
-        }
         int requiredLevel = buf.readInt();
         int cooldownTime = buf.readInt();
-        String difficulty = buf.readString();
-        boolean disableEffects = buf.readBoolean();
+        
+        // 9. difficulty string
+        String difficulty = buf.readString(32767);
+        
+        // 10. Five booleans
+        boolean allowEnderPearl = buf.readBoolean();
+        boolean allowPositiveEffects = buf.readBoolean();
+        boolean allowElytra = buf.readBoolean();
+        boolean allowRespawn = buf.readBoolean();
+        boolean keepInventory = buf.readBoolean();
         boolean privateGroup = buf.readBoolean();
-        boolean elytraAllowed = buf.readBoolean();
-        boolean respawnAllowed = buf.readBoolean();
-        boolean dungeonTimerActive = buf.readBoolean();
-        int dungeonTimeRemaining = buf.readInt();
+        
+        // 11. Optional backgroundId
+        Identifier backgroundId = null;
+        if (buf.readBoolean()) {
+            backgroundId = buf.readIdentifier();
+        }
+        
+        // 12. timestamp
+        long timestamp = buf.readLong();
 
+        // Set all values
         this.setDifficulties(difficulties);
-        this.setPossibleLootItemStacks(possibleLootDifficultyItemStacks);
-        this.setRequiredItemStacks(requiredItemStacks);
+        this.setPossibleLootItemStacks(possibleLootDifficultyItemStackMap);
+        this.setRequiredItemStacks(requiredItemStacksMap);
         this.setWaitingGroupSize(waitingGroupSize);
-        this.setElytraAllowed(elytraAllowed);
-        this.setRespawnAllowed(respawnAllowed);
-        this.setDungeonTimerActive(dungeonTimerActive);
-        this.setDungeonTimeRemaining(dungeonTimeRemaining);
-
+        this.setDungeonTimerActive(false);
+        this.setDungeonTimeRemaining(0);
+        
         this.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadDungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setMaxGroupSize(maxGroupSize);
         this.getDungeonPortalEntity().setMinGroupSize(minGroupSize);
         this.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
-        this.getDungeonPortalEntity().setRequiredLevel(requiredLevel);
         this.getDungeonPortalEntity().setCooldownTime(cooldownTime);
         this.getDungeonPortalEntity().setDifficulty(difficulty);
-        this.getDungeonPortalEntity().setDisableEffects(disableEffects);
         this.getDungeonPortalEntity().setPrivateGroup(privateGroup);
+        
+        this.requiredLevel = requiredLevel;
+        this.allowRespawn = allowRespawn;
+        this.keepInventory = keepInventory;
+        this.allowPositiveEffects = allowPositiveEffects;
+        this.allowEnderPearl = allowEnderPearl;
+        this.allowElytra = allowElytra;
+        this.backgroundId = backgroundId;
     }
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, DungeonPortalEntity dungeonPortalEntity, ScreenHandlerContext context) {
@@ -134,11 +205,6 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
             setDifficulties(this.dungeonPortalEntity.getDungeon().getDifficultyList());
             setRequiredItemStacks(DungeonHelper.getRequiredItemStackList(this.dungeonPortalEntity.getDungeon()));
             setPossibleLootItemStacks(DungeonHelper.getPossibleLootItemStackMap(this.dungeonPortalEntity.getDungeon(), this.world.getServer()));
-            
-            if (this.dungeonPortalEntity.getDungeon() != null) {
-                setElytraAllowed(this.dungeonPortalEntity.getDungeon().isElytraAllowed());
-                setRespawnAllowed(this.dungeonPortalEntity.getDungeon().isRespawnAllowed());
-            }
 
             if (this.dungeonPortalEntity.isDungeonTimerActive()) {
                 setDungeonTimerActive(true);
@@ -154,6 +220,10 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     @Override
     public boolean canUse(PlayerEntity player) {
+        // CRITICAL: Spectators should NEVER be able to use this screen
+        if (player.isSpectator() || this.dungeonPortalEntity == null) {
+            return false;
+        }
         return this.context.get((world, pos) -> {
             if (!this.world.getBlockState(pos).isOf(BlockInit.DUNGEON_PORTAL)) {
                 return false;
@@ -164,10 +234,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     @Nullable
     public Identifier getBackgroundId() {
-        if (this.dungeonPortalEntity.getDungeon() == null) {
-            return null;
-        }
-        return this.dungeonPortalEntity.getDungeon().getBackgroundId();
+        return this.backgroundId;
     }
 
     public DungeonPortalEntity getDungeonPortalEntity() {
@@ -210,24 +277,32 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         return this.pos;
     }
 
-    public boolean isElytraAllowed() {
-    return this.elytraAllowed;
+    public int getRequiredLevel() {
+        return this.requiredLevel;
     }
 
-    public void setElytraAllowed(boolean elytraAllowed) {
-        this.elytraAllowed = elytraAllowed;
+    public boolean isAllowRespawn() {
+        return allowRespawn;
     }
 
-    public boolean isRespawnAllowed() {
-        return this.respawnAllowed;
+    public boolean isKeepInventory() {
+        return keepInventory;
     }
 
-    public void setRespawnAllowed(boolean respawnAllowed) {
-        this.respawnAllowed = respawnAllowed;
+    public boolean isAllowPositiveEffects() {
+        return allowPositiveEffects;
     }
+
+    public boolean isAllowEnderPearl() {
+        return allowEnderPearl;
+    }
+
+    public boolean isAllowElytra() {
+        return allowElytra;
+    } 
 
     public boolean isDungeonTimerActive() {
-        return this.dungeonTimerActive;
+        return dungeonTimerActive;
     }
 
     public void setDungeonTimerActive(boolean active) {

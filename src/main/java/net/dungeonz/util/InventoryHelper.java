@@ -17,19 +17,19 @@ import net.minecraft.util.math.Vec3d;
 
 public class InventoryHelper {
 
-    public static void fillInventoryWithLoot(MinecraftServer server, ServerWorld world, BlockPos pos, String lootTableString, boolean luck) {
+    public static void fillInventoryWithLoot(MinecraftServer server, ServerWorld world, BlockPos pos, String lootTableString) {
         // Clear inventory
         ((Inventory) world.getBlockEntity(pos)).clear();
         // Generate loot
         LootTable lootTable = server.getLootManager().getLootTable(new Identifier(lootTableString));
         LootContextParameterSet.Builder builder = new LootContextParameterSet.Builder(world).add(LootContextParameters.ORIGIN, new Vec3d(pos.getX(), pos.getY(), pos.getZ()));
-        if (luck) {
-            builder.luck(1.1f);
-        }
         lootTable.supplyInventory((Inventory) world.getBlockEntity(pos), builder.build(LootContextTypes.CHEST), world.getRandom().nextLong());
     }
 
     public static boolean hasRequiredItemStacks(PlayerInventory playerInventory, List<ItemStack> requiredItemStacks) {
+        if (requiredItemStacks == null || requiredItemStacks.isEmpty()) {
+            return true; // No requirements means always satisfied
+        }
         if (playerInventory.player.isCreative()) {
             return true;
         }
