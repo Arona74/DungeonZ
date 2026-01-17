@@ -70,6 +70,8 @@
 
     "dungeon.op_screen.dungeon_type": "Type de Donjon",
     "dungeon.op_screen.default_difficulty": "Difficulté par Défaut",
+    "dungeon.op_screen.checking_portals": "Vérification des portails proches...",
+    "dungeon.op_screen.portal_too_close": "Un portail de donjon est trop proche ! Distance: %s blocks (minimum requis: %s)",
     "dungeon.op_screen.gate_block_id": "Identifiant du Bloc de la Porte",
     "dungeon.op_screen.gate_particle_id": "Identifiant des Particules de la Porte",
     "dungeon.op_screen.gate_unlock_item_id": "Identifiant de l'Objet de Déverrouillage de la Porte",

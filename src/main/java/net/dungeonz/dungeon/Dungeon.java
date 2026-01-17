@@ -17,7 +17,7 @@ public class Dungeon {
     private final HashMap<Integer, HashMap<String, Float>> blockIdEntitySpawnChance;
     private final HashMap<Integer, Integer> blockIdBlockReplacement;
 
-    private final HashMap<Integer, Integer> spawnerEntityIdCountMap;
+    private final HashMap<String, Integer> spawnerEntityIdCountMap;
 
     private final HashMap<String, HashMap<Integer, Integer>> difficultyRequiredItemCountMap;
 
@@ -60,7 +60,7 @@ public class Dungeon {
     private final Identifier dungeonStructurePoolId;
 
     public Dungeon(String dungeonTypeId, HashMap<Integer, List<EntityType<?>>> blockIdEntityMap, HashMap<Integer, HashMap<String, Float>> blockIdEntitySpawnChance,
-                    HashMap<Integer, Integer> blockIdBlockReplacement, HashMap<Integer, Integer> spawnerEntityIdCountMap, HashMap<String, HashMap<Integer, Integer>> difficultyRequiredItemCountMap, List<Integer> breakableBlockIds,
+                    HashMap<Integer, Integer> blockIdBlockReplacement, HashMap<String, Integer> spawnerEntityIdCountMap, HashMap<String, HashMap<Integer, Integer>> difficultyRequiredItemCountMap, List<Integer> breakableBlockIds,
                     List<Integer> placeableBlockIds, List<String> difficultyList, HashMap<String, Float> difficultyMobHealthModificator, HashMap<String, Float> difficultyMobDamageModificator, HashMap<String, Float> difficultyMobProtectionModificator, HashMap<String, Float> difficultyMobSpeedModificator,
                     HashMap<String, List<String>> difficultyLootTableIds, HashMap<String, Float> difficultyBossHealthModificator, HashMap<String, Float> difficultyBossDamageModificator, HashMap<String, Float> difficultyBossProtectionModificator, HashMap<String, Float> difficultyBossSpeedModificator,
                     HashMap<String, String> difficultyBossLootTable, EntityType<?> bossEntityType, @Nullable NbtCompound bossNbtCompound, int bossBlockId, int bossLootBlockId, int exitBlockId, boolean allowRespawn,
@@ -171,7 +171,7 @@ public class Dungeon {
         return this.difficultyBossLootTable;
     }
 
-    public HashMap<Integer, Integer> getSpawnerEntityIdMap() {
+    public HashMap<String, Integer> getSpawnerEntityIdMap() {
         return this.spawnerEntityIdCountMap;
     }
 

@@ -82,7 +82,7 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
             "replace": "minecraft:stone_bricks"
         }
     },
-    "spawner": { // use Dungeon Spawner in your structure build to set the max spawn time for the spawner here before the spawner will automatically break
+    "spawner": { // use Dungeon Spawner in your structure build, you can set the max spawn count here by entity before the spawner will automatically break, no entry or value 0 means infinite
         "minecraft:zombie": 10,
         "minecraft:skeleton": 5
     },
@@ -153,6 +153,31 @@ DungeonZ provides a advancement criterion trigger called `dungeonz:dungeon_compl
         }
     }
 ```
+
+### Dungeon Spawner
+The Dungeon Spawner is a special block you can place in your structure templates.
+
+- Spawns mobs when players enter the room
+- Configure max spawn count per entity type in the `"spawner"` section of your dungeon JSON
+- Value `0` or no entry means infinite spawns
+- Spawner breaks automatically when max count is reached
+
+### Dungeon Gate
+The Dungeon Gate is a block that acts as a lockable barrier in your dungeon.
+
+**Placement:**
+- Place gates in your structure template at room exits
+- Gates use the structure piece bounding box as their monitoring area
+- Shift-click in creative to configure: display block, particle effect, and unlock item
+
+**Unlock behavior:**
+- **With unlock item:** Player must use the specified item on the gate to unlock
+- **Without unlock item:** Gate auto-unlocks when all hostile mobs in the area are killed
+
+**Tips:**
+- Place gates at structure piece boundaries for proper area detection
+- All connected gate blocks unlock together
+- Gates stay unlocked once opened (won't re-lock if new mobs spawn)
 
 ### Commands
 `/dungeon leave`

@@ -62,7 +62,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private Map<BlockPos, Powered> poweredBlockMap = new HashMap<>();
     private BlockPos bossBlockPos = new BlockPos(0, 0, 0);
     private BlockPos bossLootBlockPos = new BlockPos(0, 0, 0);
-    private HashMap<BlockPos, Integer> spawnerPosEntityIdMap = new HashMap<BlockPos, Integer>();
+    private HashMap<BlockPos, String> spawnerPosEntityIdMap = new HashMap<BlockPos, String>();
     private HashMap<BlockPos, Integer> replacePosBlockIdMap = new HashMap<BlockPos, Integer>();
     private List<Integer> dungeonEdgeList = new ArrayList<Integer>();
     private int dungeonTeleportCountdown = 0;
@@ -131,7 +131,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             this.spawnerPosEntityIdMap.clear();
             for (int i = 0; i < nbt.getInt("SpawnerListSize"); i++) {
                 int[] spawnerPos = nbt.getIntArray("SpawnerPos" + i);
-                this.spawnerPosEntityIdMap.put(new BlockPos(spawnerPos[0], spawnerPos[1], spawnerPos[2]), spawnerPos[3]);
+                String entityId = nbt.getString("SpawnerEntityId" + i);
+                this.spawnerPosEntityIdMap.put(new BlockPos(spawnerPos[0], spawnerPos[1], spawnerPos[2]), entityId);
             }
         }
 
@@ -230,11 +231,12 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         nbt.putInt("SpawnerMapSize", this.spawnerPosEntityIdMap.size());
         if (!this.spawnerPosEntityIdMap.isEmpty()) {
-            Iterator<Entry<BlockPos, Integer>> iterator = this.spawnerPosEntityIdMap.entrySet().iterator();
+            Iterator<Entry<BlockPos, String>> iterator = this.spawnerPosEntityIdMap.entrySet().iterator();
             int count = 0;
             while (iterator.hasNext()) {
-                Entry<BlockPos, Integer> entry = iterator.next();
-                nbt.putIntArray("SpawnerPos" + count, List.of(entry.getKey().getX(), entry.getKey().getY(), entry.getKey().getZ(), entry.getValue()));
+                Entry<BlockPos, String> entry = iterator.next();
+                nbt.putIntArray("SpawnerPos" + count, List.of(entry.getKey().getX(), entry.getKey().getY(), entry.getKey().getZ()));
+                nbt.putString("SpawnerEntityId" + count, entry.getValue());
                 count++;
             }
         }
@@ -622,11 +624,11 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         return this.dungeonEdgeList;
     }
 
-    public void setSpawnerPosEntityIdMap(HashMap<BlockPos, Integer> spawnerPosEntityIdMap) {
+    public void setSpawnerPosEntityIdMap(HashMap<BlockPos, String> spawnerPosEntityIdMap) {
         this.spawnerPosEntityIdMap = spawnerPosEntityIdMap;
     }
 
-    public HashMap<BlockPos, Integer> getSpawnerPosEntityIdMap() {
+    public HashMap<BlockPos, String> getSpawnerPosEntityIdMap() {
         return this.spawnerPosEntityIdMap;
     }
 
@@ -650,7 +652,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         if (!isDungeonStructureGenerated) {
             this.setDungeonStructureGenerated();
+            DungeonPlacementHandler.clearArea(dungeonWorld, origin);
             DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
+            
         } else {
             if (ConfigInit.CONFIG.forcedRegeneration) {
                 for (int i = 0; i < this.getDungeonPlayerUuids().size(); i++) {

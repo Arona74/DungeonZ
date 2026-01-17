@@ -51,7 +51,7 @@ public abstract class DungeonSpawnerLogic {
     private int totalSpawnCount = 0;
     private String difficulty = "";
     private Dungeon dungeon = null;
-    private int entityTypeId = 0;
+    private String entityTypeId = "";
 
     private boolean isPlayerInRange(World world, BlockPos pos) {
         return isPlayerInRange(world, (double) pos.getX() + 0.5, (double) pos.getY() + 0.5, (double) pos.getZ() + 0.5, this.requiredPlayerRange);
@@ -151,10 +151,10 @@ public abstract class DungeonSpawnerLogic {
                 }
             }
             if (!world.spawnNewEntityAndPassengers(entity2)) {
-                this.totalSpawnCount++;
                 this.updateSpawns(world, pos);
                 return;
             }
+            this.totalSpawnCount++;
             world.syncWorldEvent(WorldEvents.SPAWNER_SPAWNS_MOB, pos, 0);
             world.emitGameEvent(entity2, GameEvent.ENTITY_PLACE, blockPos);
             if (entity2 instanceof MobEntity) {
@@ -218,7 +218,12 @@ public abstract class DungeonSpawnerLogic {
         if (nbt.contains("Dungeon")) {
             this.dungeon = Dungeon.getDungeon(nbt.getString("Dungeon"));
         }
-        this.entityTypeId = nbt.getInt("EntityTypeId");
+        // First try to read from our custom field
+        this.entityTypeId = nbt.getString("EntityTypeId");
+        // If empty, extract from SpawnData (for spawners placed from structure NBT)
+        if (this.entityTypeId.isEmpty() && this.spawnEntry.getNbt().contains("id", NbtElement.STRING_TYPE)) {
+            this.entityTypeId = this.spawnEntry.getNbt().getString("id");
+        }
     }
 
     public NbtCompound writeNbt(NbtCompound nbt) {
@@ -237,7 +242,7 @@ public abstract class DungeonSpawnerLogic {
         if (this.dungeon != null) {
             nbt.putString("Dungeon", this.dungeon.getDungeonTypeId());
         }
-        nbt.putInt("EntityTypeId", this.entityTypeId);
+        nbt.putString("EntityTypeId", this.entityTypeId);
         return nbt;
     }
 
@@ -274,11 +279,12 @@ public abstract class DungeonSpawnerLogic {
     }
 
     public void setEntityId(EntityType<?> type) {
-        this.spawnEntry.getNbt().putString("id", Registries.ENTITY_TYPE.getId(type).toString());
-        this.entityTypeId = Registries.ENTITY_TYPE.getRawId(type);
+        String entityId = Registries.ENTITY_TYPE.getId(type).toString();
+        this.spawnEntry.getNbt().putString("id", entityId);
+        this.entityTypeId = entityId;
     }
 
-    public int getEntityId() {
+    public String getEntityId() {
         return this.entityTypeId;
     }
 
