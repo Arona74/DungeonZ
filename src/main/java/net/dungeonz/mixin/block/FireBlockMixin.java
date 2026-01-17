@@ -11,6 +11,8 @@ import net.minecraft.block.FireBlock;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.BlockView;
+import net.minecraft.world.WorldView;
+import net.minecraft.block.BlockState;
 
 @Mixin(FireBlock.class)
 public class FireBlockMixin {
@@ -18,7 +20,14 @@ public class FireBlockMixin {
     @Inject(method = "areBlocksAroundFlammable", at = @At("HEAD"), cancellable = true)
     private void areBlocksAroundFlammableMixin(BlockView world, BlockPos pos, CallbackInfoReturnable<Boolean> info) {
         if ((world instanceof ServerWorld && ((ServerWorld) world).getRegistryKey() == DimensionInit.DUNGEON_WORLD) || ConfigInit.CONFIG.devMode) {
-            info.cancel();
+            info.setReturnValue(false);
+        }
+    }
+
+    @Inject(method = "canPlaceAt", at = @At("HEAD"), cancellable = true)
+    private void canPlaceAtMixin(BlockState state, WorldView world, BlockPos pos, CallbackInfoReturnable<Boolean> info) {
+        if ((world instanceof ServerWorld && ((ServerWorld) world).getRegistryKey() == DimensionInit.DUNGEON_WORLD) || ConfigInit.CONFIG.devMode) {
+            info.setReturnValue(false);
         }
     }
 

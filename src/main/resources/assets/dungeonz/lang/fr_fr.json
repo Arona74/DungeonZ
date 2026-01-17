@@ -62,6 +62,9 @@
     "text.dungeonz.dungeon_missing": "Aucun donjon trouvé !",
     "text.dungeonz.dungeon_min_group_size": "Attendez %s membres de groupe de donjon supplémentaires !",
     "text.dungeonz.dungeon_autokick": "Vous avez été expulsé automatiquement car vous avez mis trop de temps à terminer le donjon !",
+    "text.dungeonz.dungeon_safekick": "Le donjon se régénère. Vous avez été déplacé dans un endroit sûr.",
+    "text.dungeonz.dungeon_completion": "Félicitations ! Vous avez terminé le donjon ! N'oubliez-pas de vérifier le coffre du Boss qui est apparu dans la salle.",
+    "text.dungeonz.dungeon_leave": "Cliquez ici pour quitter ou passez dans le portail ou utilisez /dungeon leave",
 
     "hud.dungeonz.dungeon_countdown": "%s",
 
@@ -82,5 +85,7 @@
     "text.autoconfig.dungeonz.option.defaultDungeonTeleportCountdown": "Compte à Rebours de Téléportation du Donjon par Défaut",
     "text.autoconfig.dungeonz.option.countdownX": "Position X du Compte à Rebours",
     "text.autoconfig.dungeonz.option.countdownY": "Position Y du Compte à Rebours",
-    "text.autoconfig.dungeonz.option.countdownSize": "Taille du Compte à Rebours"
+    "text.autoconfig.dungeonz.option.countdownSize": "Taille du Compte à Rebours",
+    "text.autoconfig.dungeonz.option.lootrIntegration": "Compatibilité Lootr",
+    "text.autoconfig.dungeonz.option.forcedRegeneration": "Forcer la régénération totale des Donjons"
 }

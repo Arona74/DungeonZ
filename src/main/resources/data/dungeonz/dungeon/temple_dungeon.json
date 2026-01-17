@@ -217,7 +217,7 @@
     "positive_effects": true,
     "max_group_size": 5,
     "min_group_size": 0,
-    "cooldown": 36000,
+    "cooldown": 200,
     "background_texture": "",
     "dungeon_structure_pool_id": "dungeonz:temple_dungeon/temple_spawn"
 }

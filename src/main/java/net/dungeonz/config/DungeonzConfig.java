@@ -16,5 +16,9 @@ public class DungeonzConfig implements ConfigData {
     public float countdownSize = 6.0f;
     @Comment("Among other things crops won't grow")
     public boolean devMode = false;
+    @Comment("When restarting a dungeon: if false it will only refresh, if true it will delete everything and fully regenerate the structure")
+    public boolean forcedRegeneration = false;
+    @Comment("Enable Lootr mod integration for per-player dungeon chest loot (requires Lootr mod)")
+    public boolean lootrIntegration = true;
 
 }

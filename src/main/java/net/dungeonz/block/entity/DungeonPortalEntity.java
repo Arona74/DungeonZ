@@ -1,6 +1,7 @@
 package net.dungeonz.block.entity;
 
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
+import net.dungeonz.compat.LootrCompat;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.dungeon.DungeonPlacementHandler;
 import net.dungeonz.init.*;
@@ -26,7 +27,9 @@ import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
 import net.minecraft.util.math.Box;
@@ -398,6 +401,20 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         List<PlayerEntity> players = world.getPlayers(TargetPredicate.createAttackable().setBaseMaxDistance(64.0), null, new Box(pos).expand(64.0, 64.0, 64.0));
         for (PlayerEntity player : players) {
             CriteriaInit.DUNGEON_COMPLETION.trigger((ServerPlayerEntity) player, this.getDungeonType(), this.getDifficulty());
+            player.sendMessage(
+                Text.translatable("text.dungeonz.dungeon_completion")
+                    .formatted(Formatting.GOLD),
+                    false
+            );
+            player.sendMessage(
+                Text.translatable("text.dungeonz.dungeon_leave")
+                            .styled(style -> style
+                            .withColor(Formatting.GREEN)
+                            .withUnderline(true)
+                            .withClickEvent(new ClickEvent(ClickEvent.Action.RUN_COMMAND, "/dungeon leave"))
+                ),
+                false
+            );
         }
         world.playSound(null, pos, SoundInit.DUNGEON_COMPLETION_EVENT, SoundCategory.BLOCKS, 1.0f, 0.9f + world.getRandom().nextFloat() * 0.2f);
 
@@ -405,8 +422,14 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             world.setBlockState(this.getExitPosList().get(i), BlockInit.DUNGEON_PORTAL.getDefaultState(), 3);
         }
 
-        world.setBlockState(this.getBossLootBlockPos(), Blocks.CHEST.getDefaultState(), 3);
-        InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), this.getDungeon().getDifficultyBossLootTableMap().get(this.getDifficulty()));
+        String bossLootTableString = this.getDungeon().getDifficultyBossLootTableMap().get(this.getDifficulty());
+        if (ConfigInit.CONFIG.lootrIntegration && LootrCompat.isLootrAvailable()) {
+            world.setBlockState(this.getBossLootBlockPos(), Blocks.CHEST.getDefaultState(), 3);
+            LootrCompat.convertToLootrChest(world, this.getBossLootBlockPos(), bossLootTableString);
+        } else {
+            world.setBlockState(this.getBossLootBlockPos(), Blocks.CHEST.getDefaultState(), 3);
+            InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), bossLootTableString);
+        }
 
         this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
         markDirty();
@@ -623,11 +646,25 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         this.dungeonTeleportCountdown = ConfigInit.CONFIG.defaultDungeonTeleportCountdown;
 
         boolean isDungeonStructureGenerated = this.isDungeonStructureGenerated();
+        BlockPos origin = new BlockPos(0, 0, 0).add(this.getPos().getX() * 16, 100, this.getPos().getZ() * 16);
+
         if (!isDungeonStructureGenerated) {
             this.setDungeonStructureGenerated();
-            DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, new BlockPos(0, 0, 0).add(this.getPos().getX() * 16, 100, this.getPos().getZ() * 16), this);
+            DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
         } else {
-            DungeonPlacementHandler.prepareDungeon(dungeonWorld, this);
+            if (ConfigInit.CONFIG.forcedRegeneration) {
+                for (int i = 0; i < this.getDungeonPlayerUuids().size(); i++) {
+                    ServerPlayerEntity player = (ServerPlayerEntity) dungeonWorld.getPlayerByUuid(this.getDungeonPlayerUuids().get(i));
+                    if (player != null && DungeonHelper.getCurrentDungeon(player) != null) {
+                        DungeonHelper.teleportOutOfDungeon(player);
+                        player.sendMessage(Text.translatable("text.dungeonz.dungeon_safekick"));
+                    }
+                }
+                DungeonPlacementHandler.clearDungeonAreaWithEntities(dungeonWorld, this);
+                DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
+            } else {
+                DungeonPlacementHandler.prepareDungeon(dungeonWorld, this);
+            }
         }
         this.markDirty();
     }

@@ -7,7 +7,9 @@ import net.dungeonz.block.DungeonGateBlock;
 import net.dungeonz.block.entity.DungeonGateEntity;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.block.entity.DungeonSpawnerEntity;
+import net.dungeonz.compat.LootrCompat;
 import net.dungeonz.init.BlockInit;
+import net.dungeonz.init.ConfigInit;
 import net.dungeonz.init.TagInit;
 import net.dungeonz.util.InventoryHelper;
 import net.dungeonz.util.PropertyUtil;
@@ -15,10 +17,17 @@ import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
 import net.minecraft.block.LandingBlock;
+import net.minecraft.block.entity.BlockEntity;
 import net.minecraft.entity.*;
 import net.minecraft.entity.attribute.EntityAttributes;
+import net.minecraft.entity.decoration.ArmorStandEntity;
+import net.minecraft.entity.decoration.ItemFrameEntity;
+import net.minecraft.entity.decoration.painting.PaintingEntity;
 import net.minecraft.entity.mob.MobEntity;
+import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.projectile.ProjectileEntity;
+import net.minecraft.entity.vehicle.BoatEntity;
+import net.minecraft.entity.vehicle.MinecartEntity;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.Registry;
@@ -187,6 +196,222 @@ public class DungeonPlacementHandler {
         return false;
     }
 
+    // Clear entire dungeon area as one merged box
+    public static void clearDungeonAreaWithEntities(ServerWorld world, DungeonPortalEntity portalEntity) {
+        int totalBlocks = 0;
+        int totalBlockEntities = 0;
+        int margin = 100;
+
+        // Calculate the merged bounding box for all dungeon areas
+        Box mergedBox = calculateMergedBoundingBox(portalEntity, margin);
+        
+        if (mergedBox == null) {
+            DungeonzMain.LOGGER.warn("No dungeon areas found to clear");
+            return;
+        }
+
+        DungeonzMain.LOGGER.info("Clearing merged dungeon area: ({}, {}, {}) to ({}, {}, {})", 
+            (int)mergedBox.minX, (int)mergedBox.minY, (int)mergedBox.minZ,
+            (int)mergedBox.maxX, (int)mergedBox.maxY, (int)mergedBox.maxZ);
+        
+        // Force chunk loading for entire merged area
+        forceLoadChunks(world, mergedBox);
+        
+        // Clear entities before block removal
+        clearEntitiesInArea(world, mergedBox);
+        
+        // Remove blocks from all individual dungeon boxes
+        List<BlockBox> dungeonBoxes = getDungeonBoxes(portalEntity);
+        for (BlockBox box : dungeonBoxes) {
+            BlockPos.Mutable mutable = new BlockPos.Mutable();
+            for (int y = box.getMaxY(); y >= box.getMinY(); y--) {
+                for (int x = box.getMinX(); x <= box.getMaxX(); x++) {
+                    for (int z = box.getMinZ(); z <= box.getMaxZ(); z++) {
+                        mutable.set(x, y, z);
+                        BlockState state = world.getBlockState(mutable);
+                        if (!state.isAir()) {
+                            BlockEntity be = world.getBlockEntity(mutable);
+                            if (be != null) {
+                                world.removeBlockEntity(mutable);
+                                totalBlockEntities++;
+                            }
+                            world.setBlockState(mutable, Blocks.AIR.getDefaultState(), Block.FORCE_STATE | Block.SKIP_DROPS);
+                            totalBlocks++;
+                        }
+                    }
+                }
+            }
+        }
+        
+        // Clear entities again after block removal
+        clearEntitiesInArea(world, mergedBox);
+
+        DungeonzMain.LOGGER.info("Block removal complete. Removed {} blocks, {} block entities.", totalBlocks, totalBlockEntities);
+        
+        // Schedule delayed entity clearing to catch any stragglers
+        scheduleDelayedEntityClear(world, mergedBox, 1);   // Next tick
+        scheduleDelayedEntityClear(world, mergedBox, 20);  // 1 second later
+    }
+
+    private static Box calculateMergedBoundingBox(DungeonPortalEntity portalEntity, int margin) {
+        List<BlockBox> dungeonBoxes = getDungeonBoxes(portalEntity);
+        
+        if (dungeonBoxes.isEmpty()) {
+            return null;
+        }
+        
+        // Find the overall min/max coordinates
+        int minX = Integer.MAX_VALUE;
+        int minY = Integer.MAX_VALUE;
+        int minZ = Integer.MAX_VALUE;
+        int maxX = Integer.MIN_VALUE;
+        int maxY = Integer.MIN_VALUE;
+        int maxZ = Integer.MIN_VALUE;
+        
+        for (BlockBox box : dungeonBoxes) {
+            minX = Math.min(minX, box.getMinX());
+            minY = Math.min(minY, box.getMinY());
+            minZ = Math.min(minZ, box.getMinZ());
+            maxX = Math.max(maxX, box.getMaxX());
+            maxY = Math.max(maxY, box.getMaxY());
+            maxZ = Math.max(maxZ, box.getMaxZ());
+        }
+        
+        // Return expanded box with margin
+        return new Box(
+            minX - margin, minY - margin, minZ - margin,
+            maxX + margin, maxY + margin, maxZ + margin
+        );
+    }
+
+    private static List<BlockBox> getDungeonBoxes(DungeonPortalEntity portalEntity) {
+        List<BlockBox> boxes = new ArrayList<>();
+        
+        for (int i = 0; i < portalEntity.getDungeonEdgeList().size() / 6; i++) {
+            int x1 = portalEntity.getDungeonEdgeList().get(6 * i);
+            int y1 = portalEntity.getDungeonEdgeList().get(1 + 6 * i);
+            int z1 = portalEntity.getDungeonEdgeList().get(2 + 6 * i);
+            int x2 = portalEntity.getDungeonEdgeList().get(3 + 6 * i);
+            int y2 = portalEntity.getDungeonEdgeList().get(4 + 6 * i);
+            int z2 = portalEntity.getDungeonEdgeList().get(5 + 6 * i);
+
+            BlockBox box = new BlockBox(
+                Math.min(x1, x2), Math.min(y1, y2), Math.min(z1, z2),
+                Math.max(x1, x2), Math.max(y1, y2), Math.max(z1, z2)
+            );
+            
+            boxes.add(box);
+        }
+        
+        return boxes;
+    }
+
+    private static void clearEntitiesInArea(ServerWorld world, Box box) {
+        int cleared = 0;
+        
+        try {
+            // Get all entities in the area
+            List<Entity> entities = world.getOtherEntities(null, box);
+            
+            for (Entity entity : entities) {
+                if (shouldClearEntity(entity)) {
+                    entity.discard();
+                    cleared++;
+                }
+            }
+            
+            // Clear specific entity types that might be missed
+            world.getEntitiesByType(EntityType.ITEM, box, entity -> true).forEach(Entity::discard);
+            world.getEntitiesByType(EntityType.EXPERIENCE_ORB, box, entity -> true).forEach(Entity::discard);
+            
+            // Clear mobs
+            world.getEntitiesByClass(MobEntity.class, box, entity -> true).forEach(Entity::discard);
+            
+        } catch (Exception e) {
+            DungeonzMain.LOGGER.error("Error clearing entities: {}", e.getMessage());
+        }
+        
+        if (cleared > 0) {
+            DungeonzMain.LOGGER.info("Cleared {} entities from merged area", cleared);
+        }
+    }
+
+    private static void scheduleDelayedEntityClear(ServerWorld world, Box area, int delayTicks) {
+        MinecraftServer server = world.getServer();
+        if (server != null) {
+            // Create a task that runs after the specified delay
+            server.execute(() -> {
+                scheduleTaskAfterDelay(server, () -> {
+                    int initialCount = world.getOtherEntities(null, area).size();
+                    if (initialCount > 0) {
+                        clearEntitiesInArea(world, area);
+                        DungeonzMain.LOGGER.info("Delayed clear ({} ticks): Found {} entities to clear", delayTicks, initialCount);
+                    }
+                }, delayTicks);
+            });
+        }
+    }
+
+    private static void scheduleTaskAfterDelay(MinecraftServer server, Runnable task, int delayTicks) {
+        new Thread(() -> {
+            try {
+                // Wait for the specified number of ticks (20 ticks = 1 second)
+                Thread.sleep(delayTicks * 50); // 50ms per tick
+                server.execute(task);
+            } catch (InterruptedException e) {
+                Thread.currentThread().interrupt();
+                DungeonzMain.LOGGER.error("Delayed task interrupted", e);
+            }
+        }).start();
+    }
+
+    private static boolean shouldClearEntity(Entity entity) {
+        // Don't clear players
+        if (entity instanceof PlayerEntity) {
+            return false;
+        }
+        
+        // Clear items, XP orbs, and mobs
+        if (entity instanceof ItemEntity || 
+            entity instanceof ExperienceOrbEntity || 
+            entity instanceof MobEntity) {
+            return true;
+        }
+        
+        // Clear other common entities
+        if (entity instanceof ArmorStandEntity || 
+            entity instanceof PaintingEntity || 
+            entity instanceof ItemFrameEntity || 
+            entity instanceof BoatEntity || 
+            entity instanceof MinecartEntity || 
+            entity instanceof FallingBlockEntity) {
+            return true;
+        }
+        
+        return false;
+    }
+
+    private static void forceLoadChunks(ServerWorld world, Box box) {
+        int minChunkX = (int) Math.floor(box.minX) >> 4;
+        int maxChunkX = (int) Math.floor(box.maxX) >> 4;
+        int minChunkZ = (int) Math.floor(box.minZ) >> 4;
+        int maxChunkZ = (int) Math.floor(box.maxZ) >> 4;
+        
+        DungeonzMain.LOGGER.info("Force loading chunks from ({}, {}) to ({}, {})", minChunkX, minChunkZ, maxChunkX, maxChunkZ);
+        
+        for (int chunkX = minChunkX; chunkX <= maxChunkX; chunkX++) {
+            for (int chunkZ = minChunkZ; chunkZ <= maxChunkZ; chunkZ++) {
+                try {
+                    ChunkPos chunkPos = new ChunkPos(chunkX, chunkZ);
+                    world.getChunkManager().addTicket(ChunkTicketType.PORTAL, chunkPos, 2, chunkPos.getStartPos());
+                    world.getChunk(chunkX, chunkZ);
+                } catch (Exception e) {
+                    DungeonzMain.LOGGER.error("Exception loading chunk ({}, {}): {}", chunkX, chunkZ, e.getMessage());
+                }
+            }
+        }
+    }
+
     public static void prepareDungeon(ServerWorld dungeonWorld, DungeonPortalEntity portalEntity) {
         List<ChunkPos> chunkPosList = new ArrayList<>();
         for (int i = 0; i < portalEntity.getDungeonEdgeList().size() / 6; i++) {
@@ -289,9 +514,14 @@ public class DungeonPlacementHandler {
         world.spawnEntity(bossEntity);
 
         // Refresh chests
+        boolean useLootr = ConfigInit.CONFIG.lootrIntegration && LootrCompat.isLootrAvailable();
         for (int i = 0; i < portalEntity.getChestPosList().size(); i++) {
             String lootTableString = dungeon.getDifficultyLootTableIdMap().get(difficulty).get(world.getRandom().nextInt(dungeon.getDifficultyLootTableIdMap().get(difficulty).size()));
-            InventoryHelper.fillInventoryWithLoot(server, world, portalEntity.getChestPosList().get(i), lootTableString);
+            if (useLootr) {
+                LootrCompat.convertToLootrChest(world, portalEntity.getChestPosList().get(i), lootTableString);
+            } else {
+                InventoryHelper.fillInventoryWithLoot(server, world, portalEntity.getChestPosList().get(i), lootTableString);
+            }
         }
         // Refresh exit
         for (int i = 0; i < portalEntity.getExitPosList().size(); i++) {
@@ -300,7 +530,8 @@ public class DungeonPlacementHandler {
                             ? Registries.BLOCK.get(dungeon.getBlockIdBlockReplacementMap().get(dungeon.getExitBlockId())).getDefaultState()
                             : Registries.BLOCK.get(dungeon.getExitBlockId()).getDefaultState(),
                     3);
-        } // Refresh gates
+        } 
+        // Refresh gates
         for (int i = 0; i < portalEntity.getGatePosList().size(); i++) {
             world.setBlockState(portalEntity.getGatePosList().get(i), world.getBlockState(portalEntity.getGatePosList().get(i)).cycle(DungeonGateBlock.ENABLED));
         }

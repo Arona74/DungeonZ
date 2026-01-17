@@ -83,6 +83,9 @@
     "text.dungeonz.dungeon_missing": "No dungeon found!",
     "text.dungeonz.dungeon_min_group_size": "Wait for %s more dungeon party member!",
     "text.dungeonz.dungeon_autokick": "You got autokicked cause it took you to long to finish the dungeon!",
+    "text.dungeonz.dungeon_safekick": "Dungeon is regenerating. You've been moved to a safe location.",
+    "text.dungeonz.dungeon_completion": "Congratulations! You've completed the dungeon! Don't forget to check the Boss chest that appeared in the room.",
+    "text.dungeonz.dungeon_leave": "Click here to leave or go through portal or use /dungeon leave",
 
     "hud.dungeonz.dungeon_countdown": "%s",
 
@@ -103,5 +106,7 @@
     "text.autoconfig.dungeonz.option.defaultDungeonTeleportCountdown": "Default Dungeon Teleport Countdown",
     "text.autoconfig.dungeonz.option.countdownX": "Countdown Hud X",
     "text.autoconfig.dungeonz.option.countdownY": "Countdown Hud Y",
-    "text.autoconfig.dungeonz.option.countdownSize": "Countdown Hud Size"
+    "text.autoconfig.dungeonz.option.countdownSize": "Countdown Hud Size",
+    "text.autoconfig.dungeonz.option.lootrIntegration": "Lootr Integration",
+    "text.autoconfig.dungeonz.option.forcedRegeneration": "Force Full Dungeon Regeneration"
 }
