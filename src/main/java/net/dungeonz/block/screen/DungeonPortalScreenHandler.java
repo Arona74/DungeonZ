@@ -45,6 +45,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     private boolean dungeonTimerActive = false;
     private int dungeonTimeRemaining = 0;
+    private Map<String, Integer> fameRewards = new HashMap<>();
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, PacketByteBuf buf) {
         super(BlockInit.PORTAL, syncId);
@@ -168,6 +169,13 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         // 12. timestamp
         long timestamp = buf.readLong();
 
+        // 13. Fame rewards (at the end)
+        int fameRewardCount = buf.readInt();
+        Map<String, Integer> fameRewardsMap = new HashMap<>();
+        for (int i = 0; i < fameRewardCount; i++) {
+            fameRewardsMap.put(buf.readString(32767), buf.readInt());
+        }
+
         // Set all values
         this.setDifficulties(difficulties);
         this.setPossibleLootItemStacks(possibleLootDifficultyItemStackMap);
@@ -192,6 +200,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.allowEnderPearl = allowEnderPearl;
         this.allowElytra = allowElytra;
         this.backgroundId = backgroundId;
+        this.fameRewards = fameRewardsMap;
     }
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, DungeonPortalEntity dungeonPortalEntity, ScreenHandlerContext context) {
@@ -315,5 +324,13 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     public void setDungeonTimeRemaining(int timeRemaining) {
         this.dungeonTimeRemaining = timeRemaining;
+    }
+
+    public Map<String, Integer> getFameRewards() {
+        return this.fameRewards;
+    }
+
+    public int getFameRewardForDifficulty(String difficulty) {
+        return this.fameRewards.getOrDefault(difficulty, 0);
     }
 }

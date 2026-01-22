@@ -6,6 +6,7 @@ import net.dungeonz.dungeon.DungeonPlacementHandler;
 import net.dungeonz.init.*;
 import net.dungeonz.network.DungeonServerPacket;
 import net.dungeonz.util.DungeonHelper;
+import net.dungeonz.util.FameHelper;
 import net.dungeonz.util.InventoryHelper;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.block.Block;
@@ -32,6 +33,9 @@ import net.minecraft.util.math.Box;
 import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.jetbrains.annotations.Nullable;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 
 import java.util.*;
 import java.util.Map.Entry;
@@ -165,20 +169,18 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
     }
 
+    private static final Logger LOGGER = LogManager.getLogger("writenbt_debug");
+
     @Override
-    public void writeNbt(NbtCompound nbt) {
+    protected void writeNbt(NbtCompound nbt) {
         super.writeNbt(nbt);
+
+        int lastSize;
+
+        // ---------------- BASIC METADATA ----------------
         nbt.putString("DungeonType", this.dungeonType);
         nbt.putString("Difficulty", this.difficulty);
         nbt.putBoolean("DungeonStructureGenerated", this.dungeonStructureGenerated);
-        nbt.putInt("DungeonPlayerCount", this.dungeonPlayerUuids.size());
-        for (int i = 0; i < this.dungeonPlayerUuids.size(); i++) {
-            nbt.putUuid("PlayerUUID" + i, this.dungeonPlayerUuids.get(i));
-        }
-        nbt.putInt("DeadDungeonPlayerCount", this.deadDungeonPlayerUuids.size());
-        for (int i = 0; i < this.deadDungeonPlayerUuids.size(); i++) {
-            nbt.putUuid("DeadPlayerUUID" + i, this.deadDungeonPlayerUuids.get(i));
-        }
         nbt.putInt("MaxGroupSize", this.maxGroupSize);
         nbt.putInt("MinGroupSize", this.minGroupSize);
         nbt.putInt("CooldownTime", this.cooldownTime);
@@ -187,119 +189,119 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         nbt.putInt("AutoKickTime", this.autoKickTime);
         nbt.putBoolean("PrivateGroup", this.privateGroup);
 
+        lastSize = nbt.toString().length();
+        LOGGER.error("[PortalBE][NBT] After BASIC METADATA: {} bytes", lastSize);
+
+        // ---------------- PLAYER UUIDS ----------------
+        nbt.putInt("DungeonPlayerCount", this.dungeonPlayerUuids.size());
+        for (int i = 0; i < this.dungeonPlayerUuids.size(); i++) {
+            nbt.putUuid("PlayerUUID" + i, this.dungeonPlayerUuids.get(i));
+        }
+
+        nbt.putInt("DeadDungeonPlayerCount", this.deadDungeonPlayerUuids.size());
+        for (int i = 0; i < this.deadDungeonPlayerUuids.size(); i++) {
+            nbt.putUuid("DeadPlayerUUID" + i, this.deadDungeonPlayerUuids.get(i));
+        }
+
+        int sizeAfterPlayers = nbt.toString().length();
+        LOGGER.error("[PortalBE][NBT] After PLAYER UUIDS: +{} bytes (total {})",
+                sizeAfterPlayers - lastSize, sizeAfterPlayers);
+        lastSize = sizeAfterPlayers;
+
+        // ---------------- BLOCK MAP ----------------
+        LOGGER.error("[PortalBE][NBT] blockBlockPosMap entries = {}",
+                this.blockBlockPosMap.values().stream().mapToInt(List::size).sum());
+
         nbt.putInt("BlockMapSize", this.blockBlockPosMap.size());
-        if (!this.blockBlockPosMap.isEmpty()) {
-            int blockCount = 0;
-            for (Entry<Integer, ArrayList<BlockPos>> entry : this.blockBlockPosMap.entrySet()) {
-                nbt.putInt("BlockId" + blockCount, entry.getKey());
-                nbt.putInt("BlockListSize" + blockCount, entry.getValue().size());
-                for (int i = 0; i < entry.getValue().size(); i++) {
-                    nbt.putInt("BlockPosX" + blockCount + "" + i, entry.getValue().get(i).getX());
-                    nbt.putInt("BlockPosY" + blockCount + "" + i, entry.getValue().get(i).getY());
-                    nbt.putInt("BlockPosZ" + blockCount + "" + i, entry.getValue().get(i).getZ());
-                }
-                blockCount++;
+        int blockCount = 0;
+        for (Entry<Integer, ArrayList<BlockPos>> entry : this.blockBlockPosMap.entrySet()) {
+            nbt.putInt("BlockId" + blockCount, entry.getKey());
+            nbt.putInt("BlockListSize" + blockCount, entry.getValue().size());
+            for (int i = 0; i < entry.getValue().size(); i++) {
+                BlockPos pos = entry.getValue().get(i);
+                nbt.putInt("BlockPosX" + blockCount + "_" + i, pos.getX());
+                nbt.putInt("BlockPosY" + blockCount + "_" + i, pos.getY());
+                nbt.putInt("BlockPosZ" + blockCount + "_" + i, pos.getZ());
             }
+            blockCount++;
         }
 
-        nbt.putInt("BossPosX", this.bossBlockPos.getX());
-        nbt.putInt("BossPosY", this.bossBlockPos.getY());
-        nbt.putInt("BossPosZ", this.bossBlockPos.getZ());
+        int sizeAfterBlockMap = nbt.toString().length();
+        LOGGER.error("[PortalBE][NBT] After BLOCK MAP: +{} bytes (total {})",
+                sizeAfterBlockMap - lastSize, sizeAfterBlockMap);
+        lastSize = sizeAfterBlockMap;
 
-        nbt.putInt("BossLootPosX", this.bossLootBlockPos.getX());
-        nbt.putInt("BossLootPosY", this.bossLootBlockPos.getY());
-        nbt.putInt("BossLootPosZ", this.bossLootBlockPos.getZ());
-
-        nbt.putInt("ChestListSize", this.chestPosList.size());
-        if (!this.chestPosList.isEmpty()) {
-            for (int i = 0; i < this.chestPosList.size(); i++) {
-                nbt.putInt("ChestPosX" + i, this.chestPosList.get(i).getX());
-                nbt.putInt("ChestPosY" + i, this.chestPosList.get(i).getY());
-                nbt.putInt("ChestPosZ" + i, this.chestPosList.get(i).getZ());
-            }
-        }
-
-        nbt.putInt("ExitListSize", this.exitPosList.size());
-        if (!this.exitPosList.isEmpty()) {
-            for (int i = 0; i < this.exitPosList.size(); i++) {
-                nbt.putInt("ExitPosX" + i, this.exitPosList.get(i).getX());
-                nbt.putInt("ExitPosY" + i, this.exitPosList.get(i).getY());
-                nbt.putInt("ExitPosZ" + i, this.exitPosList.get(i).getZ());
-            }
-        }
+        // ---------------- SPAWNERS ----------------
+        LOGGER.error("[PortalBE][NBT] spawnerPosEntityIdMap size = {}",
+                this.spawnerPosEntityIdMap.size());
 
         nbt.putInt("SpawnerMapSize", this.spawnerPosEntityIdMap.size());
-        if (!this.spawnerPosEntityIdMap.isEmpty()) {
-            Iterator<Entry<BlockPos, Integer>> iterator = this.spawnerPosEntityIdMap.entrySet().iterator();
-            int count = 0;
-            while (iterator.hasNext()) {
-                Entry<BlockPos, Integer> entry = iterator.next();
-                nbt.putInt("SpawnerPosX" + count, entry.getKey().getX());
-                nbt.putInt("SpawnerPosY" + count, entry.getKey().getY());
-                nbt.putInt("SpawnerPosZ" + count, entry.getKey().getZ());
-                nbt.putInt("SpawnerEntityId" + count, entry.getValue());
-                count++;
-            }
+        int spawnerCount = 0;
+        for (Entry<BlockPos, Integer> entry : this.spawnerPosEntityIdMap.entrySet()) {
+            BlockPos pos = entry.getKey();
+            nbt.putInt("SpawnerPosX" + spawnerCount, pos.getX());
+            nbt.putInt("SpawnerPosY" + spawnerCount, pos.getY());
+            nbt.putInt("SpawnerPosZ" + spawnerCount, pos.getZ());
+            nbt.putInt("SpawnerEntityId" + spawnerCount, entry.getValue());
+            spawnerCount++;
         }
 
-        nbt.putInt("ReplacePosSize", this.replacePosBlockIdMap.size());
-        if (!this.replacePosBlockIdMap.isEmpty()) {
-            Iterator<Entry<BlockPos, Integer>> iterator = this.replacePosBlockIdMap.entrySet().iterator();
-            int count = 0;
-            while (iterator.hasNext()) {
-                Entry<BlockPos, Integer> entry = iterator.next();
-                nbt.putInt("ReplacePosX" + count, entry.getKey().getX());
-                nbt.putInt("ReplacePosY" + count, entry.getKey().getY());
-                nbt.putInt("ReplacePosZ" + count, entry.getKey().getZ());
-                nbt.putInt("ReplaceBlockId" + count, entry.getValue());
-                count++;
-            }
-        }
+        int sizeAfterSpawners = nbt.toString().length();
+        LOGGER.error("[PortalBE][NBT] After SPAWNERS: +{} bytes (total {})",
+                sizeAfterSpawners - lastSize, sizeAfterSpawners);
+        lastSize = sizeAfterSpawners;
+
+        // ---------------- MOVING BLOCKS ----------------
+        LOGGER.error("[PortalBE][NBT] movingBlockMap size = {}", this.movingBlockMap.size());
 
         nbt.putInt("MovingPosSize", this.movingBlockMap.size());
-        if (!this.movingBlockMap.isEmpty()) {
-            Iterator<Entry<BlockPos, Integer>> iterator = this.movingBlockMap.entrySet().iterator();
-            int count = 0;
-            while (iterator.hasNext()) {
-                Entry<BlockPos, Integer> entry = iterator.next();
-                nbt.putInt("MovingPosX" + count, entry.getKey().getX());
-                nbt.putInt("MovingPosY" + count, entry.getKey().getY());
-                nbt.putInt("MovingPosZ" + count, entry.getKey().getZ());
-                nbt.putInt("MovingBlockId" + count, entry.getValue());
-                count++;
-            }
+        int movingCount = 0;
+        for (Entry<BlockPos, Integer> entry : this.movingBlockMap.entrySet()) {
+            BlockPos pos = entry.getKey();
+            nbt.putInt("MovingPosX" + movingCount, pos.getX());
+            nbt.putInt("MovingPosY" + movingCount, pos.getY());
+            nbt.putInt("MovingPosZ" + movingCount, pos.getZ());
+            nbt.putInt("MovingBlockId" + movingCount, entry.getValue());
+            movingCount++;
         }
+
+        int sizeAfterMoving = nbt.toString().length();
+        LOGGER.error("[PortalBE][NBT] After MOVING BLOCKS: +{} bytes (total {})",
+                sizeAfterMoving - lastSize, sizeAfterMoving);
+        lastSize = sizeAfterMoving;
+
+        // ---------------- POWERED BLOCKS ----------------
+        LOGGER.error("[PortalBE][NBT] poweredBlockMap size = {}", this.poweredBlockMap.size());
 
         nbt.putInt("PoweredPosSize", this.poweredBlockMap.size());
-        if (!this.poweredBlockMap.isEmpty()) {
-            Iterator<Entry<BlockPos, Powered>> iterator = this.poweredBlockMap.entrySet().iterator();
-            int count = 0;
-            while (iterator.hasNext()) {
-                Entry<BlockPos, Powered> entry = iterator.next();
-                int isPowered = entry.getValue().getPowered() ? 1 : 0;
-                nbt.putIntArray("PoweredPos" + count, List.of(entry.getKey().getX(), entry.getKey().getY(), entry.getKey().getZ(), entry.getValue().getBlockId(), isPowered, entry.getValue().getFacing(), entry.getValue().getBlockFacing()));
-                count++;
-            }
+        int poweredCount = 0;
+        for (Entry<BlockPos, Powered> entry : this.poweredBlockMap.entrySet()) {
+            Powered p = entry.getValue();
+            BlockPos pos = entry.getKey();
+            nbt.putIntArray("PoweredPos" + poweredCount, new int[] {
+                    pos.getX(), pos.getY(), pos.getZ(),
+                    p.getBlockId(),
+                    p.getPowered() ? 1 : 0,
+                    p.getFacing(),
+                    p.getBlockFacing()
+            });
+            poweredCount++;
         }
 
-        nbt.putInt("DungeonEdgeSize", this.dungeonEdgeList.size());
-        if (!this.dungeonEdgeList.isEmpty()) {
-            for (int i = 0; i < this.dungeonEdgeList.size() / 3; i++) {
-                nbt.putInt("DungeonEdgeX" + i, this.dungeonEdgeList.get(3 * i));
-                nbt.putInt("DungeonEdgeY" + i, this.dungeonEdgeList.get(1 + 3 * i));
-                nbt.putInt("DungeonEdgeZ" + i, this.dungeonEdgeList.get(2 + 3 * i));
-            }
-        }
+        int sizeAfterPowered = nbt.toString().length();
+        LOGGER.error("[PortalBE][NBT] After POWERED BLOCKS: +{} bytes (total {})",
+                sizeAfterPowered - lastSize, sizeAfterPowered);
+        lastSize = sizeAfterPowered;
 
-        nbt.putInt("GateListSize", this.gatePosList.size());
-        if (!this.gatePosList.isEmpty()) {
-            for (int i = 0; i < this.gatePosList.size(); i++) {
-                nbt.putInt("GatePosX" + i, this.gatePosList.get(i).getX());
-                nbt.putInt("GatePosY" + i, this.gatePosList.get(i).getY());
-                nbt.putInt("GatePosZ" + i, this.gatePosList.get(i).getZ());
-            }
+        // ---------------- FINAL SIZE ----------------
+        int finalSize = nbt.toString().length();
+        LOGGER.error("[PortalBE][NBT] FINAL NBT SIZE = {} bytes", finalSize);
+
+        if (finalSize > 1_000_000) {
+            LOGGER.error("[PortalBE][NBT] WARNING: NBT SIZE IS DANGEROUS");
         }
     }
+
 
     public static void clientTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
     }
@@ -463,6 +465,13 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void finishDungeon(ServerWorld world, BlockPos pos) {
         List<PlayerEntity> players = world.getPlayers(TargetPredicate.createAttackable().setBaseMaxDistance(64.0), null, new Box(pos).expand(64.0, 64.0, 64.0));
+
+        // Get fame reward for current difficulty
+        int fameReward = 0;
+        if (this.getDungeon() != null) {
+            fameReward = this.getDungeon().getFameReward(this.getDifficulty());
+        }
+
         for (PlayerEntity player : players) {
             CriteriaInit.DUNGEON_COMPLETION.trigger((ServerPlayerEntity) player, this.getDungeonType(), this.getDifficulty());
             player.sendMessage(
@@ -479,6 +488,13 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                 ),
                 false
             );
+
+            // Grant fame power if available
+            if (fameReward > 0) {
+                boolean fameGranted = FameHelper.grantFamePower((ServerPlayerEntity) player, fameReward);
+                FameHelper.sendFameNotification((ServerPlayerEntity) player, fameReward, fameGranted);
+            }
+
             world.playSound(null, pos, SoundInit.DUNGEON_COMPLETION_EVENT, SoundCategory.BLOCKS, 1.0f, 0.9f + world.getRandom().nextFloat() * 0.2f);
         }
 

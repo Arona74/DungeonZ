@@ -116,6 +116,10 @@ public class DungeonHelper {
         return possibleLootItemStackMap;
     }
 
+    public static Map<String, Integer> getFameRewardMap(Dungeon dungeon) {
+        return new HashMap<>(dungeon.getDifficultyFameRewardMap());
+    }
+
     public static void teleportDungeon(ServerPlayerEntity player, BlockPos dungeonPortalPos, @Nullable UUID requiredMinGroupUuid) {
         if (player.getWorld().getBlockEntity(dungeonPortalPos) != null && player.getWorld().getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {
 

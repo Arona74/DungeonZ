@@ -25,6 +25,7 @@ public class DungeonPortalPacket {
     public final boolean allowEnderPearl, allowPositiveEffects, allowElytra, allowRespawn, keepInventory, privateGroup;
     public final Optional<Identifier> backgroundId;
     public final long timestamp;
+    public final Map<String, Integer> fameRewards;
 
     public DungeonPortalPacket(BlockPos blockPos,
                                //String dungeonType,
@@ -46,7 +47,8 @@ public class DungeonPortalPacket {
                                boolean allowRespawn,
                                boolean keepInventory,
                                boolean privateGroup,
-                               Optional<Identifier> backgroundId) {
+                               Optional<Identifier> backgroundId,
+                               Map<String, Integer> fameRewards) {
         this.blockPos = blockPos;
         //this.dungeonType = dungeonType;
         this.playerUuids = playerUuids;
@@ -68,6 +70,7 @@ public class DungeonPortalPacket {
         this.keepInventory = keepInventory;
         this.privateGroup = privateGroup;
         this.backgroundId = backgroundId;
+        this.fameRewards = fameRewards;
         this.timestamp = System.currentTimeMillis();
     }
 
@@ -119,6 +122,13 @@ public class DungeonPortalPacket {
         p.backgroundId.ifPresent(buf::writeIdentifier);
 
         buf.writeLong(p.timestamp);
+
+        // Fame rewards
+        buf.writeInt(p.fameRewards.size());
+        for (Entry<String, Integer> entry : p.fameRewards.entrySet()) {
+            buf.writeString(entry.getKey());
+            buf.writeInt(entry.getValue());
+        }
     }
 
     public static DungeonPortalPacket decode(PacketByteBuf buf) {
@@ -179,8 +189,15 @@ public class DungeonPortalPacket {
 
         long timestamp = buf.readLong();
 
+        // Fame rewards
+        int fameRewardCount = buf.readInt();
+        Map<String, Integer> fameRewards = new HashMap<>();
+        for (int i = 0; i < fameRewardCount; i++) {
+            fameRewards.put(buf.readString(32767), buf.readInt());
+        }
+
         return new DungeonPortalPacket(blockPos, playerUuids, dead, waiting, diffs, possibleLoot, reqStacks,
-                max, min, waitingCount, level, cooldown, difficulty, enderpearl, positive, elytra, respawn, keepinventory, priv, bg);
+                max, min, waitingCount, level, cooldown, difficulty, enderpearl, positive, elytra, respawn, keepinventory, priv, bg, fameRewards);
     }
 
     public static PacketByteBuf toBuf(DungeonPortalPacket p) {

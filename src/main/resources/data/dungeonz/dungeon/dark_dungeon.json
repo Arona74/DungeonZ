@@ -14,7 +14,8 @@
 			"boss_damage_modificator": 0.75,
 			"boss_protection_modificator": 1.0,
             "boss_speed_modificator": 1.0,
-            "boss_loot_table_id": "dungeonz:chests/dark_dungeon_easy_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/dark_dungeon_easy_boss_loot",
+            "fame_reward": 5
         },
         "normal": {
             "mob_health_modificator": 1.5,
@@ -30,7 +31,8 @@
 			"boss_damage_modificator": 1.0,
 			"boss_protection_modificator": 2.0,
             "boss_speed_modificator": 1.15,
-            "boss_loot_table_id": "dungeonz:chests/dark_dungeon_normal_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/dark_dungeon_normal_boss_loot",
+            "fame_reward": 10
         },
         "hard": {
             "mob_health_modificator": 3.0,
@@ -46,7 +48,8 @@
 			"boss_damage_modificator": 1.25,
 			"boss_protection_modificator": 4.0,
             "boss_speed_modificator": 1.30,
-            "boss_loot_table_id": "dungeonz:chests/dark_dungeon_hard_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/dark_dungeon_hard_boss_loot",
+            "fame_reward": 20
         }
     },
     "blocks": {
@@ -156,7 +159,7 @@
     "ender_pearl": false,
     "positive_effects": true,
     "max_group_size": 5,
-    "min_group_size": 2,
+    "min_group_size": 0,
     "required_level": 50,
     "cooldown": 72000,
     "time_limit": 3600,

@@ -36,6 +36,7 @@ public class Dungeon {
     private final HashMap<String, Float> difficultyBossProtectionModificator;
     private final HashMap<String, Float> difficultyBossSpeedModificator;
     private final HashMap<String, String> difficultyBossLootTable;
+    private final HashMap<String, Integer> difficultyFameReward;
 
     private final EntityType<?> bossEntityType;
     @Nullable
@@ -64,7 +65,7 @@ public class Dungeon {
                     HashMap<Integer, Integer> blockIdBlockReplacement, HashMap<Integer, Integer> spawnerEntityIdCountMap, HashMap<String, HashMap<Integer, Integer>> difficultyRequiredItemCountMap, List<Integer> breakableBlockIds,
                     List<Integer> placeableBlockIds, HashMap<String, Float> difficultyMobHealthModificator, HashMap<String, Float> difficultyMobDamageModificator, HashMap<String, Float> difficultyMobProtectionModificator, HashMap<String, Float> difficultyMobSpeedModificator,
                     HashMap<String, List<String>> difficultyLootTableIds, HashMap<String, Float> difficultyBossHealthModificator, HashMap<String, Float> difficultyBossDamageModificator, HashMap<String, Float> difficultyBossProtectionModificator, HashMap<String, Float> difficultyBossSpeedModificator,
-                    HashMap<String, String> difficultyBossLootTable, EntityType<?> bossEntityType, @Nullable NbtCompound bossNbtCompound, int bossBlockId, int bossLootBlockId, int exitBlockId, boolean allowRespawn,
+                    HashMap<String, String> difficultyBossLootTable, HashMap<String, Integer> difficultyFameReward, EntityType<?> bossEntityType, @Nullable NbtCompound bossNbtCompound, int bossBlockId, int bossLootBlockId, int exitBlockId, boolean allowRespawn,
                     boolean allowElytra, boolean keepInventory, boolean allowEnderPearl, boolean allowPositiveEffects, int maxGroupSize, int minGroupSize, int requiredLevel, int cooldown, int timeLimit, @Nullable Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId) {
         this.dungeonTypeId = dungeonTypeId;
         this.blockIdEntityMap = blockIdEntityMap;
@@ -84,6 +85,7 @@ public class Dungeon {
         this.difficultyBossProtectionModificator = difficultyBossProtectionModificator;
         this.difficultyBossSpeedModificator = difficultyBossSpeedModificator;
         this.difficultyBossLootTable = difficultyBossLootTable;
+        this.difficultyFameReward = difficultyFameReward;
         this.bossEntityType = bossEntityType;
         this.bossNbtCompound = bossNbtCompound;
         this.bossBlockId = bossBlockId;
@@ -170,6 +172,14 @@ public class Dungeon {
 
     public HashMap<String, String> getDifficultyBossLootTableMap() {
         return this.difficultyBossLootTable;
+    }
+
+    public HashMap<String, Integer> getDifficultyFameRewardMap() {
+        return this.difficultyFameReward;
+    }
+
+    public int getFameReward(String difficulty) {
+        return this.difficultyFameReward.getOrDefault(difficulty, 0);
     }
 
     public HashMap<Integer, Integer> getSpawnerEntityIdMap() {

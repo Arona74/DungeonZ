@@ -74,6 +74,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 HashMap<String, Float> difficultyBossProtectionModificator = new HashMap<String, Float>();
                 HashMap<String, Float> difficultyBossSpeedModificator = new HashMap<String, Float>();
                 HashMap<String, String> difficultyBossLootTable = new HashMap<String, String>();
+                HashMap<String, Integer> difficultyFameReward = new HashMap<String, Integer>();
 
                 while (difficultyIterator.hasNext()) {
                     String difficulty = difficultyIterator.next();
@@ -94,6 +95,13 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                     difficultyBossProtectionModificator.put(difficulty, specificDifficultyObject.get("boss_protection_modificator").getAsFloat());
                     difficultyBossSpeedModificator.put(difficulty, specificDifficultyObject.get("boss_speed_modificator").getAsFloat());
                     difficultyBossLootTable.put(difficulty, specificDifficultyObject.get("boss_loot_table_id").getAsString());
+
+                    // Parse fame_reward (optional field, defaults to 0)
+                    if (specificDifficultyObject.has("fame_reward")) {
+                        difficultyFameReward.put(difficulty, specificDifficultyObject.get("fame_reward").getAsInt());
+                    } else {
+                        difficultyFameReward.put(difficulty, 0);
+                    }
                 }
 
                 JsonObject blockObject = data.get("blocks").getAsJsonObject();
@@ -237,8 +245,8 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 }
 
                 Dungeon.addDungeon(new Dungeon(dungeonTypeId, blockIdEntityMap, blockIdEntitySpawnChance, blockIdBlockReplacement, spawnerEntityIdCountMap, difficultyRequiredItemCountMap, breakableBlockIds,
-                        placeableBlockIds, difficultyMobHealthModificator, difficultyMobDamageModificator, difficultyMobProtectionModificator, difficultyMobSpeedModificator, difficultyLootTableIds, difficultyBossHealthModificator, 
-                        difficultyBossDamageModificator, difficultyBossProtectionModificator, difficultyBossSpeedModificator, difficultyBossLootTable, bossEntityType, bossNbtCompound, bossBlockId,
+                        placeableBlockIds, difficultyMobHealthModificator, difficultyMobDamageModificator, difficultyMobProtectionModificator, difficultyMobSpeedModificator, difficultyLootTableIds, difficultyBossHealthModificator,
+                        difficultyBossDamageModificator, difficultyBossProtectionModificator, difficultyBossSpeedModificator, difficultyBossLootTable, difficultyFameReward, bossEntityType, bossNbtCompound, bossBlockId,
                         bossLootBlockId, exitBlockId, allowRespawn, allowElytra, keepInventory, allowEnderPearl, allowPositiveEffects, maxGroupSize, minGroupSize, requiredLevel, cooldown, timeLimit, dungeonBackgroundId, dungeonStructurePoolId));
             } catch (Exception e) {
                 DungeonzMain.LOGGER.error("Error occurred while loading resource {}. {}", id.toString(), e.toString());

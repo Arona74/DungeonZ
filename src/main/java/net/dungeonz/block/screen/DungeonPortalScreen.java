@@ -475,6 +475,14 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
             }
         }
 
+        // Fame Reward display (only if Factions mod is loaded)
+        if (DungeonzMain.isFactionsLoaded) {
+            int fameReward = this.handler.getFameRewardForDifficulty(this.handler.getDungeonPortalEntity().getDifficulty());
+            if (fameReward > 0) {
+                context.drawText(this.textRenderer, Text.translatable("text.dungeonz.fame_reward", fameReward), this.x + 139, this.y + 168, 0x3F3F3F, false);
+            }
+        }
+
         context.drawText(this.textRenderer, Text.translatable("dungeonz.difficulty"), this.x + 139, this.y + 24, 0x3F3F3F, false);
         context.drawText(this.textRenderer, Text.translatable("text.dungeonz.private"), this.x + 169, this.y + 65, 0x3F3F3F, false);
         // Min group size
@@ -482,7 +490,8 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         //     context.drawText(this.textRenderer, Text.translatable("text.dungeonz.waiting_player_list", this.handler.getWaitingGroupSize(), this.handler.getDungeonPortalEntity().getMinGroupSize()),
         //             this.x + 9, this.y + 187, 0x3F3F3F, false);
         // }
-        // LevelZ
+
+        // LevelZ Requirement display (only if LevelZ mod is loaded)
         if (DungeonzMain.isLevelZLoaded) {
             context.drawText(this.textRenderer, Text.translatable("text.dungeonz.required_level", this.handler.getRequiredLevel()), this.x + 139, this.y + 180, 0x3F3F3F, false);
         }

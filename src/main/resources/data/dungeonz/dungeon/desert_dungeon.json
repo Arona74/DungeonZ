@@ -14,7 +14,8 @@
 			"boss_damage_modificator": 1.0,
 			"boss_protection_modificator": 20.83,
             "boss_speed_modificator": 1.0,
-            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_easy_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_easy_boss_loot",
+            "fame_reward": 5
         },
         "normal": {
             "mob_health_modificator": 1.5,
@@ -30,7 +31,8 @@
 			"boss_damage_modificator": 1.0,
 			"boss_protection_modificator": 31.25,
             "boss_speed_modificator": 1.15,
-            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_normal_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_normal_boss_loot",
+            "fame_reward": 10
         },
         "hard": {
             "mob_health_modificator": 3.0,
@@ -46,7 +48,8 @@
 			"boss_damage_modificator": 1.0,
 			"boss_protection_modificator": 41.67,
             "boss_speed_modificator": 1.30,
-            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_hard_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/desert_dungeon_hard_boss_loot",
+            "fame_reward": 20
         }
     },
     "blocks": {

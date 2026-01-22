@@ -118,7 +118,7 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
             DungeonPortalPacket packet = new DungeonPortalPacket(
                 finalEntity.getPos(),
                 finalEntity.getDungeonPlayerUuids(),
-                finalEntity.getDeadDungeonPlayerUuids(), 
+                finalEntity.getDeadDungeonPlayerUuids(),
                 finalEntity.getWaitingUuids(),
                 finalEntity.getDungeon().getDifficultyList(),
                 DungeonHelper.getPossibleLootItemStackMap(finalEntity.getDungeon(), ((ServerWorld)world).getServer()),
@@ -135,7 +135,8 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
                 finalEntity.getDungeon().isRespawnAllowed(),
                 finalEntity.getDungeon().isKeepInventory(),
                 finalEntity.getPrivateGroup(),
-                Optional.ofNullable(finalEntity.getDungeon().getBackgroundId())
+                Optional.ofNullable(finalEntity.getDungeon().getBackgroundId()),
+                finalEntity.getDungeon().getDifficultyFameRewardMap()
             );
 
             // Send the packet to open the screen

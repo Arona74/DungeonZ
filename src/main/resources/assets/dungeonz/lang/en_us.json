@@ -71,6 +71,8 @@
     "text.dungeonz.required": "Required Items",
     "text.dungeonz.missing": "Missing items",
     "text.dungeonz.effects": "Disable Effects",
+    "text.dungeonz.fame_reward_gained": "Your faction gained %d Fame Power!",
+    "text.dungeonz.fame_reward": "Fame reward: %d",
     "text.dungeonz.private": "Private Group",
     "text.dungeonz.required_level": "Required Lv. %s",
     "text.dungeonz.nothing_required": "-",

@@ -13,7 +13,8 @@
 			"boss_damage_modificator": 1.5,
 			"boss_protection_modificator": 5.0,
             "boss_speed_modificator": 1.0,
-            "boss_loot_table_id": "dungeonz:chests/temple_dungeon_easy_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/temple_dungeon_easy_boss_loot",
+            "fame_reward": 5
         },
         "normal": {
             "mob_health_modificator": 2.0,
@@ -27,7 +28,8 @@
 			"boss_damage_modificator": 2.0,
 			"boss_protection_modificator": 7.5,
             "boss_speed_modificator": 1.15,
-            "boss_loot_table_id": "dungeonz:chests/temple_dungeon_normal_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/temple_dungeon_normal_boss_loot",
+            "fame_reward": 10
         },
         "hard": {
             "mob_health_modificator": 4.0,
@@ -41,7 +43,8 @@
 			"boss_damage_modificator": 3.0,
 			"boss_protection_modificator": 10.0,
             "boss_speed_modificator": 1.30,
-            "boss_loot_table_id": "dungeonz:chests/temple_dungeon_hard_boss_loot"
+            "boss_loot_table_id": "dungeonz:chests/temple_dungeon_hard_boss_loot",
+            "fame_reward": 20
         }
     },
     "blocks": {
