@@ -219,13 +219,9 @@ public class DungeonPlacementHandler {
                     }
                 }
             }
-            portalEntity.setChestPosList(chestPosList);
-            portalEntity.setExitPosList(exitPosList);
-            portalEntity.setMovingBlockMap(movingBlockMap);
-            portalEntity.setPoweredBlockMap(poweredBlockMap);
-            portalEntity.setBlockMap(blockIdPosMap);
-            portalEntity.setSpawnerPosEntityIdMap(spawnerPosEntityIdMap);
-            portalEntity.setGatePosList(gatePosList);
+            // Use batch update to avoid multiple async saves
+            portalEntity.updateAllRuntimeData(blockIdPosMap, chestPosList, exitPosList, gatePosList,
+                movingBlockMap, poweredBlockMap, spawnerPosEntityIdMap);
             portalEntity.markDirty();
             return true;
         }
