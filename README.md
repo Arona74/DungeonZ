@@ -3,9 +3,13 @@
 
 ### What are the differences with original DungeonZ (1.20.1)?
 - **Feature: Splitted Mob/Boss modifiers for Health, Damage, Protection and Mouvement Speed, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
-- **Feature**: Full dungeon structure regeneration, allowing proceduraly generated structure
+- **Feature**: Full dungeon structure regeneration, allowing proceduraly generated structure. (Config option to enabled/disabled)
 - **Feature**: Improved multiplayer support on Portal GUI (more settings displayed, waiting player list, you can leave the waiting list and been refunded)
 - **Feature**: Time limit to finish the dungeon (set in dungeon file)
+- **Feature**: Timers displayed on Portal GUI
+- **Feature**: Fame Reward for my forked Factions mod
+- **Feature**: Lootr compatibility (config option, default ON)
+
 - **Backport**: LevelZ requirement (originaly in DungeonZ 1.21.1)
 - **Backport**: Fix to multiple trigger cost when going through portal block (originaly in DungeonZ 1.21.1)
 - **Backport**: Fix to portal block getting broken to flowing water (originaly in DungeonZ 1.21.1)
@@ -13,6 +17,11 @@
 - **Backport**: keepInventory option (originaly in DungeonZ 1.21.1)
 - **Backport**: ender pearl option, info button and positive effect change (originaly in DungeonZ 1.21.1)
 - **Backport**: fixed hole by LeDok (originaly in DungeonZ 1.21.1)
+
+- **Change**: OP portal screen when manually creating dungeon portal will now scan the area for other portal to prevent placing them too close
+- **Change**: Portal block entity data now use an hybrid NBT+file system to avoid NBT oversize that could cause chunk poisoning
+- **Change**: Fixed Gates and Spawners blocks
+- **Change**: Easier parkour in Dark dungeon, gates in first corridor room as example usage of Gates blocks
 - **Change**: Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the "/dungeon leave" command.
 - **Change**: Few fixes on dark dungeon (easier parkour), missing vines in temple dungeon, etc
 - **Change**: Fix to avoid fire to break blocks (like vines)
@@ -23,26 +32,18 @@
 - **Change**: Prevent spectators to interact with dungeon blocks
 - **Content**: Temple dungeon made by xeven (originaly in DungeonZ 1.21.1)
 - **Content**: French translation made by hirtz-gregoire (originaly in DungeonZ 1.21.1)
-- **Content**: [Desert dungeon made by D1scoball](https://www.curseforge.com/minecraft/mc-mods/desert-dungeon-dungeonz-addon)
+- **Content**: [Desert dungeon made by D1scoball](https://modrinth.com/mod/desert-dungeon-dungeonz-addon)
 
 ### What next?
-I want to **backport features/fixes** made in last dungeonZ version **to 1.20.1**.
-
-Might **add new features and content in the process**, feel free to participate or just share ideas.
+**backport features/fixes** made in last dungeonZ version **to 1.20.1**.
+**add new features and content in the process**, feel free to participate or just share ideas.
 
 ### Support
 This fork is given as is, please **don't ask original DungeonZ devs** about issues regarding this fork, **please post in [Issues](https://github.com/Arona74/DungeonZ/issues)**.
 
 ### Installation
-If you know how to do it, compile yourself from the sources.
-
-Or **download the binaries from [Releases](https://github.com/Arona74/DungeonZ/releases)**.
-
-### Dependencies
-Same as DungeonZ:
-- Built for [Fabric Loader](https://fabricmc.net/).
-- Requires [Fabric API](https://www.curseforge.com/minecraft/mc-mods/fabric-api).
-- Requires [Cloth Config API](https://www.curseforge.com/minecraft/mc-mods/cloth-config).
+**download the binaries from [Releases](https://github.com/Arona74/DungeonZ/releases)**.
+**download the binaries from [Modrinth](https://modrinth.com/mod/dungeonz-blis)**.
 
 ### License
 DungeonZ - BLIS is licensed under MIT.
