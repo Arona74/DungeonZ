@@ -22,7 +22,7 @@ public class DungeonRuntimeData {
     private List<BlockPos> gatePosList = new ArrayList<>();
     private Map<BlockPos, Integer> movingBlockMap = new HashMap<>();
     private Map<BlockPos, DungeonPortalEntity.Powered> poweredBlockMap = new HashMap<>();
-    private HashMap<BlockPos, Integer> spawnerPosEntityIdMap = new HashMap<>();
+    private HashMap<BlockPos, String> spawnerPosEntityIdMap = new HashMap<>();
     private HashMap<BlockPos, Integer> replacePosBlockIdMap = new HashMap<>();
     private List<Integer> dungeonEdgeList = new ArrayList<>();
 
@@ -78,11 +78,11 @@ public class DungeonRuntimeData {
         this.poweredBlockMap = poweredBlockMap;
     }
 
-    public HashMap<BlockPos, Integer> getSpawnerPosEntityIdMap() {
+    public HashMap<BlockPos, String> getSpawnerPosEntityIdMap() {
         return spawnerPosEntityIdMap;
     }
 
-    public void setSpawnerPosEntityIdMap(HashMap<BlockPos, Integer> spawnerPosEntityIdMap) {
+    public void setSpawnerPosEntityIdMap(HashMap<BlockPos, String> spawnerPosEntityIdMap) {
         this.spawnerPosEntityIdMap = spawnerPosEntityIdMap;
     }
 
@@ -189,12 +189,12 @@ public class DungeonRuntimeData {
         // Spawner map
         nbt.putInt("SpawnerMapSize", this.spawnerPosEntityIdMap.size());
         int spawnerCount = 0;
-        for (Map.Entry<BlockPos, Integer> entry : this.spawnerPosEntityIdMap.entrySet()) {
+        for (Map.Entry<BlockPos, String> entry : this.spawnerPosEntityIdMap.entrySet()) {
             BlockPos pos = entry.getKey();
             nbt.putInt("SpawnerPosX" + spawnerCount, pos.getX());
             nbt.putInt("SpawnerPosY" + spawnerCount, pos.getY());
             nbt.putInt("SpawnerPosZ" + spawnerCount, pos.getZ());
-            nbt.putInt("SpawnerEntityId" + spawnerCount, entry.getValue());
+            nbt.putString("SpawnerEntityId" + spawnerCount, entry.getValue());
             spawnerCount++;
         }
 
@@ -309,7 +309,7 @@ public class DungeonRuntimeData {
                         nbt.getInt("SpawnerPosY" + i),
                         nbt.getInt("SpawnerPosZ" + i)
                     ),
-                    nbt.getInt("SpawnerEntityId" + i)
+                    nbt.getString("SpawnerEntityId" + i)
                 );
             }
         }

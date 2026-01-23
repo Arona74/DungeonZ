@@ -173,7 +173,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 JsonObject spawnerObject = data.get("spawner").getAsJsonObject();
                 Iterator<String> spawnerIterator = spawnerObject.keySet().iterator();
 
-                HashMap<Integer, Integer> spawnerEntityIdCountMap = new HashMap<Integer, Integer>();
+                HashMap<String, Integer> spawnerEntityIdCountMap = new HashMap<String, Integer>();
 
                 while (spawnerIterator.hasNext()) {
                     String entityString = spawnerIterator.next();
@@ -183,7 +183,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                         DungeonzMain.LOGGER.warn("{} is not a valid entity identifier", entityString);
                         continue;
                     }
-                    spawnerEntityIdCountMap.put(Registries.ENTITY_TYPE.getRawId(Registries.ENTITY_TYPE.get(entityIdentifier)), spawnerObject.get(entityString).getAsInt());
+                    spawnerEntityIdCountMap.put(entityIdentifier.toString(), spawnerObject.get(entityString).getAsInt());
                 }
                 List<Integer> breakableBlockIds = new ArrayList<Integer>();
                 if (data.has("breakable")) {

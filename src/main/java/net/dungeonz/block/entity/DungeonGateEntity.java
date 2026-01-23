@@ -69,26 +69,22 @@ public class DungeonGateEntity extends BlockEntity {
         nbt.putInt("DungeonEdgeSize", this.dungeonEdgeList.size());
         if (this.dungeonEdgeList.size() > 0) {
             for (int i = 0; i < this.dungeonEdgeList.size() / 3; i++) {
-                nbt.putInt("DungeonEdgeX" + i, this.dungeonEdgeList.get(i + 3 * i));
-                nbt.putInt("DungeonEdgeY" + i, this.dungeonEdgeList.get(i + 1 + 3 * i));
-                nbt.putInt("DungeonEdgeZ" + i, this.dungeonEdgeList.get(i + 2 + 3 * i));
+                nbt.putInt("DungeonEdgeX" + i, this.dungeonEdgeList.get(3 * i));
+                nbt.putInt("DungeonEdgeY" + i, this.dungeonEdgeList.get(3 * i + 1));
+                nbt.putInt("DungeonEdgeZ" + i, this.dungeonEdgeList.get(3 * i + 2));
             }
         }
     }
 
     public static void serverTick(World world, BlockPos pos, BlockState state, DungeonGateEntity blockEntity) {
-        if (world.getTime() % 20 == 0 && blockEntity.unlockItemId == null && blockEntity.getDungeonEdgeList().size() >= 6 && world.getRegistryKey() == DimensionInit.DUNGEON_WORLD
-                && !ConfigInit.CONFIG.devMode) {
-            if (!world.getBlockState(pos.down()).isOf(BlockInit.DUNGEON_GATE)) {
-                if (world.getBlockState(pos.north()).isOf(BlockInit.DUNGEON_GATE) && !world.getBlockState(pos.south()).isOf(BlockInit.DUNGEON_GATE)) {
-                    if (!blockEntity.areHostileEntitiesAlive()) {
-                        blockEntity.unlockGate(pos);
-                    }
-                } else if (world.getBlockState(pos.east()).isOf(BlockInit.DUNGEON_GATE) && !world.getBlockState(pos.west()).isOf(BlockInit.DUNGEON_GATE)) {
-                    if (blockEntity.areHostileEntitiesAlive()) {
-                        blockEntity.unlockGate(pos);
-                    }
-                }
+        if (world.getTime() % 20 == 0 && state.get(DungeonGateBlock.ENABLED) && (blockEntity.unlockItemId == null || blockEntity.unlockItemId.isEmpty())
+                && blockEntity.getDungeonEdgeList().size() >= 6 && world.getRegistryKey() == DimensionInit.DUNGEON_WORLD && !ConfigInit.CONFIG.devMode) {
+            // Only trigger from the "anchor" block (no gate to south, west, or below) to avoid multiple triggers
+            boolean isAnchor = !world.getBlockState(pos.down()).isOf(BlockInit.DUNGEON_GATE)
+                    && !world.getBlockState(pos.south()).isOf(BlockInit.DUNGEON_GATE)
+                    && !world.getBlockState(pos.west()).isOf(BlockInit.DUNGEON_GATE);
+            if (isAnchor && !blockEntity.areHostileEntitiesAlive()) {
+                blockEntity.unlockGate(pos);
             }
         }
     }

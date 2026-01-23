@@ -196,7 +196,7 @@
     "max_group_size": 5,
     "min_group_size": 0,
     "required_level": 50,
-    "cooldown": 72,
+    "cooldown": 108000,
     "time_limit": 5400,
     "background_texture": "",
     "dungeon_structure_pool_id": "dungeonz:temple_dungeon/temple_spawn"

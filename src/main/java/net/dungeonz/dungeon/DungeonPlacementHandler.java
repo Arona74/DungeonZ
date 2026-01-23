@@ -7,7 +7,9 @@ import net.dungeonz.block.DungeonGateBlock;
 import net.dungeonz.block.entity.DungeonGateEntity;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.block.entity.DungeonSpawnerEntity;
+import net.dungeonz.compat.LootrCompat;
 import net.dungeonz.init.BlockInit;
+import net.dungeonz.init.ConfigInit;
 import net.dungeonz.init.TagInit;
 import net.dungeonz.util.InventoryHelper;
 import net.dungeonz.util.PropertyUtil;
@@ -161,7 +163,7 @@ public class DungeonPlacementHandler {
             ArrayList<BlockPos> gatePosList = new ArrayList<BlockPos>();
             Map<BlockPos, Integer> movingBlockMap = new HashMap<>();
             Map<BlockPos, DungeonPortalEntity.Powered> poweredBlockMap = new HashMap<>();
-            HashMap<BlockPos, Integer> spawnerPosEntityIdMap = new HashMap<BlockPos, Integer>();
+            HashMap<BlockPos, String> spawnerPosEntityIdMap = new HashMap<BlockPos, String>();
             Block exitBlock = Registries.BLOCK.get(dungeon.getExitBlockId());
             Block bossLootBlock = Registries.BLOCK.get(dungeon.getBossLootBlockId());
 
@@ -172,8 +174,9 @@ public class DungeonPlacementHandler {
                 }
                 poolStructurePiece.generate(world, structureAccessor, chunkGenerator, random, BlockBox.infinite(), pos, keepJigsaws);
 
-                portalEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMinX(), poolStructurePiece.getBoundingBox().getMinY(), poolStructurePiece.getBoundingBox().getMinZ());
-                portalEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMaxX(), poolStructurePiece.getBoundingBox().getMaxY(), poolStructurePiece.getBoundingBox().getMaxZ());
+                // Add 1 block margin to ensure edge blocks at jigsaw connections are included
+                portalEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMinX() - 1, poolStructurePiece.getBoundingBox().getMinY() - 1, poolStructurePiece.getBoundingBox().getMinZ() - 1);
+                portalEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMaxX() + 1, poolStructurePiece.getBoundingBox().getMaxY() + 1, poolStructurePiece.getBoundingBox().getMaxZ() + 1);
                 for (int i = poolStructurePiece.getBoundingBox().getMinX(); i <= poolStructurePiece.getBoundingBox().getMaxX(); i++) {
                     for (int u = poolStructurePiece.getBoundingBox().getMinY(); u <= poolStructurePiece.getBoundingBox().getMaxY(); u++) {
                         for (int o = poolStructurePiece.getBoundingBox().getMinZ(); o <= poolStructurePiece.getBoundingBox().getMaxZ(); o++) {
@@ -201,13 +204,15 @@ public class DungeonPlacementHandler {
                                     spawnerPosEntityIdMap.put(checkPos, ((DungeonSpawnerEntity) world.getBlockEntity(checkPos)).getLogic().getEntityId());
                                 } else if (state.isOf(BlockInit.DUNGEON_GATE)) {
                                     gatePosList.add(checkPos);
-                                    if (world.getBlockEntity(checkPos) != null && ((DungeonGateEntity) world.getBlockEntity(checkPos)).getUnlockItem() == null) {
-                                        DungeonGateEntity dungeonGateEntity = (DungeonGateEntity) world.getBlockEntity(checkPos);
-                                        dungeonGateEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMinX(), poolStructurePiece.getBoundingBox().getMinY(),
-                                                poolStructurePiece.getBoundingBox().getMinZ());
-                                        dungeonGateEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMaxX(), poolStructurePiece.getBoundingBox().getMaxY(),
-                                                poolStructurePiece.getBoundingBox().getMaxZ());
+                                    if (world.getBlockEntity(checkPos) instanceof DungeonGateEntity dungeonGateEntity) {
+                                        if (dungeonGateEntity.getUnlockItem() == null) {
+                                            dungeonGateEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMinX(), poolStructurePiece.getBoundingBox().getMinY(),
+                                                    poolStructurePiece.getBoundingBox().getMinZ());
+                                            dungeonGateEntity.addDungeonEdge(poolStructurePiece.getBoundingBox().getMaxX(), poolStructurePiece.getBoundingBox().getMaxY(),
+                                                    poolStructurePiece.getBoundingBox().getMaxZ());
+                                        }
                                         dungeonGateEntity.markDirty();
+                                        world.updateListeners(checkPos, state, state, Block.NOTIFY_LISTENERS);
                                     }
                                 } else if (state.getBlock() instanceof LandingBlock) {
                                     movingBlockMap.put(checkPos, blockId);
@@ -285,6 +290,59 @@ public class DungeonPlacementHandler {
         // Schedule delayed entity clearing to catch any stragglers
         scheduleDelayedEntityClear(world, mergedBox, 1);   // Next tick
         scheduleDelayedEntityClear(world, mergedBox, 20);  // 1 second later
+    }
+
+    // Clear a 512x256x512 area centered on X/Z, from Y=0 to Y=256
+    public static void clearArea(ServerWorld world, BlockPos centerPos) {
+        int totalBlocks = 0;
+        int totalBlockEntities = 0;
+
+        int minX = centerPos.getX() - 256;
+        int maxX = centerPos.getX() + 256;
+        int minZ = centerPos.getZ() - 256;
+        int maxZ = centerPos.getZ() + 256;
+        int minY = 0;
+        int maxY = 256;
+
+        Box areaBox = new Box(minX, minY, minZ, maxX + 1, maxY + 1, maxZ + 1);
+
+        DungeonzMain.LOGGER.info("Clearing area: ({}, {}, {}) to ({}, {}, {})",
+            minX, minY, minZ, maxX, maxY, maxZ);
+
+        // Force chunk loading for the area
+        forceLoadChunks(world, areaBox);
+
+        // Clear entities before block removal
+        clearEntitiesInArea(world, areaBox);
+
+        // Remove blocks
+        BlockPos.Mutable mutable = new BlockPos.Mutable();
+        for (int y = maxY; y >= minY; y--) {
+            for (int x = minX; x <= maxX; x++) {
+                for (int z = minZ; z <= maxZ; z++) {
+                    mutable.set(x, y, z);
+                    BlockState state = world.getBlockState(mutable);
+                    if (!state.isAir()) {
+                        BlockEntity be = world.getBlockEntity(mutable);
+                        if (be != null) {
+                            world.removeBlockEntity(mutable);
+                            totalBlockEntities++;
+                        }
+                        world.setBlockState(mutable, Blocks.AIR.getDefaultState(), Block.FORCE_STATE | Block.SKIP_DROPS);
+                        totalBlocks++;
+                    }
+                }
+            }
+        }
+
+        // Clear entities again after block removal
+        clearEntitiesInArea(world, areaBox);
+
+        DungeonzMain.LOGGER.info("Area clear complete. Removed {} blocks, {} block entities.", totalBlocks, totalBlockEntities);
+
+        // Schedule delayed entity clearing to catch any stragglers
+        scheduleDelayedEntityClear(world, areaBox, 1);   // Next tick
+        scheduleDelayedEntityClear(world, areaBox, 20);  // 1 second later
     }
 
     private static Box calculateMergedBoundingBox(DungeonPortalEntity portalEntity, int margin) {
@@ -446,6 +504,31 @@ public class DungeonPlacementHandler {
         }
     }
 
+    public static void prepareDungeon(ServerWorld dungeonWorld, DungeonPortalEntity portalEntity) {
+        List<ChunkPos> chunkPosList = new ArrayList<>();
+        for (int i = 0; i < portalEntity.getDungeonEdgeList().size() / 6; i++) {
+            int x1 = portalEntity.getDungeonEdgeList().get(6 * i);
+            int z1 = portalEntity.getDungeonEdgeList().get(2 + 6 * i);
+
+            int x2 = portalEntity.getDungeonEdgeList().get(3 + 6 * i);
+            int z2 = portalEntity.getDungeonEdgeList().get(5 + 6 * i);
+
+            int xCount = Math.abs(x1 - x2) / 16 + ((x1 - x2) % 16 == 0 ? 0 : 1);
+            int zCount = Math.abs(z1 - z2) / 16 + ((z1 - z2) % 16 == 0 ? 0 : 1);
+            for (int u = 0; u < xCount; u++) {
+                for (int o = 0; o < zCount; o++) {
+                    ChunkPos chunkPos = new ChunkPos(ChunkSectionPos.getSectionCoord(x1 + 16 * u), ChunkSectionPos.getSectionCoord(z1 + 16 * o));
+                    if (!chunkPosList.contains(chunkPos)) {
+                        chunkPosList.add(chunkPos);
+                    }
+                }
+            }
+        }
+        for (ChunkPos chunkPos : chunkPosList) {
+            dungeonWorld.getChunkManager().addTicket(ChunkTicketType.PORTAL, chunkPos, 1, chunkPos.getStartPos());
+        }
+    }
+
     public static void refreshDungeon(MinecraftServer server, ServerWorld world, DungeonPortalEntity portalEntity, Dungeon dungeon, String difficulty) {
 
         // Could be tested with create = true
@@ -523,9 +606,14 @@ public class DungeonPlacementHandler {
         world.spawnEntity(bossEntity);
 
         // Refresh chests
+        boolean useLootr = ConfigInit.CONFIG.lootrIntegration && LootrCompat.isLootrAvailable();
         for (int i = 0; i < portalEntity.getChestPosList().size(); i++) {
             String lootTableString = dungeon.getDifficultyLootTableIdMap().get(difficulty).get(world.getRandom().nextInt(dungeon.getDifficultyLootTableIdMap().get(difficulty).size()));
-            InventoryHelper.fillInventoryWithLoot(server, world, portalEntity.getChestPosList().get(i), lootTableString);
+            if (useLootr) {
+                LootrCompat.convertToLootrChest(world, portalEntity.getChestPosList().get(i), lootTableString);
+            } else {
+                InventoryHelper.fillInventoryWithLoot(server, world, portalEntity.getChestPosList().get(i), lootTableString);
+            }
         }
         // Refresh exit
         for (int i = 0; i < portalEntity.getExitPosList().size(); i++) {
@@ -534,9 +622,10 @@ public class DungeonPlacementHandler {
                             ? Registries.BLOCK.get(dungeon.getBlockIdBlockReplacementMap().get(dungeon.getExitBlockId())).getDefaultState()
                             : Registries.BLOCK.get(dungeon.getExitBlockId()).getDefaultState(),
                     3);
-        } // Refresh gates
+        } 
+        // Refresh gates - set to locked state
         for (int i = 0; i < portalEntity.getGatePosList().size(); i++) {
-            world.setBlockState(portalEntity.getGatePosList().get(i), world.getBlockState(portalEntity.getGatePosList().get(i)).cycle(DungeonGateBlock.ENABLED));
+            world.setBlockState(portalEntity.getGatePosList().get(i), world.getBlockState(portalEntity.getGatePosList().get(i)).with(DungeonGateBlock.ENABLED, true), Block.NOTIFY_ALL);
         }
         // Refresh boss loot
         world.setBlockState(portalEntity.getBossLootBlockPos(),
@@ -545,10 +634,10 @@ public class DungeonPlacementHandler {
                         : Registries.BLOCK.get(dungeon.getBossLootBlockId()).getDefaultState(),
                 3);
         // Refresh spawner
-        for (Entry<BlockPos, Integer> entry : portalEntity.getSpawnerPosEntityIdMap().entrySet()) {
+        for (Entry<BlockPos, String> entry : portalEntity.getSpawnerPosEntityIdMap().entrySet()) {
             world.setBlockState(entry.getKey(), BlockInit.DUNGEON_SPAWNER.getDefaultState(), 3);
             ((DungeonSpawnerEntity) world.getBlockEntity(entry.getKey())).getLogic().setDungeonInfo(dungeon, difficulty,
-                    dungeon.getSpawnerEntityIdMap().containsKey(entry.getValue()) ? dungeon.getSpawnerEntityIdMap().get(entry.getValue()) : 0, Registries.ENTITY_TYPE.get(entry.getValue()));
+                    dungeon.getSpawnerEntityIdMap().containsKey(entry.getValue()) ? dungeon.getSpawnerEntityIdMap().get(entry.getValue()) : 0, Registries.ENTITY_TYPE.get(new Identifier(entry.getValue())));
         }
         // Refresh blocks
         for (Entry<BlockPos, Integer> entry : portalEntity.getReplaceBlockIdMap().entrySet()) {

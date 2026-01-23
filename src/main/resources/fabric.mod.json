@@ -13,8 +13,8 @@
   ],
   "contact": {
     "homepage": "https://www.curseforge.com/minecraft/mc-mods/dungeonz",
-    "sources": "https://github.com/Globox1997/Dungeonz",
-    "issues": "https://github.com/Globox1997/Dungeonz/issues"
+    "sources": "https://github.com/Arona74/Dungeonz",
+    "issues": "https://github.com/Arona74/Dungeonz/issues"
   },
   "license": "MIT",
   "icon": "assets/dungeonz/icon.png",
@@ -47,7 +47,8 @@
     "cloth-config2": ">=${cloth_config_version}"
   },
   "suggests": {
-    "factions": "*"
+    "factions": "*",
+    "lootr": "*"
   },
   "custom": {
     "mc-publish": {

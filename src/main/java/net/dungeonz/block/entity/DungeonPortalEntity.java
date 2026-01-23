@@ -1,6 +1,7 @@
 package net.dungeonz.block.entity;
 
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
+import net.dungeonz.compat.LootrCompat;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.dungeon.DungeonPlacementHandler;
 import net.dungeonz.init.*;
@@ -175,9 +176,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         // Migrate spawner map
         if (nbt.getInt("SpawnerMapSize") > 0) {
-            HashMap<BlockPos, Integer> tempSpawnerMap = new HashMap<>();
+            HashMap<BlockPos, String> tempSpawnerMap = new HashMap<>();
             for (int i = 0; i < nbt.getInt("SpawnerMapSize"); i++) {
-                tempSpawnerMap.put(new BlockPos(nbt.getInt("SpawnerPosX" + i), nbt.getInt("SpawnerPosY" + i), nbt.getInt("SpawnerPosZ" + i)), nbt.getInt("SpawnerEntityId" + i));
+                tempSpawnerMap.put(new BlockPos(nbt.getInt("SpawnerPosX" + i), nbt.getInt("SpawnerPosY" + i), nbt.getInt("SpawnerPosZ" + i)), nbt.getString("SpawnerEntityId" + i));
             }
             runtimeData.setSpawnerPosEntityIdMap(tempSpawnerMap);
         }
@@ -482,8 +483,14 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             world.setBlockState(this.getExitPosList().get(i), BlockInit.DUNGEON_PORTAL.getDefaultState(), 3);
         }
 
-        world.setBlockState(this.getBossLootBlockPos(), Blocks.CHEST.getDefaultState(), 3);
-        InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), this.getDungeon().getDifficultyBossLootTableMap().get(this.getDifficulty()));
+        String bossLootTableString = this.getDungeon().getDifficultyBossLootTableMap().get(this.getDifficulty());
+        if (ConfigInit.CONFIG.lootrIntegration && LootrCompat.isLootrAvailable()) {
+            world.setBlockState(this.getBossLootBlockPos(), Blocks.CHEST.getDefaultState(), 3);
+            LootrCompat.convertToLootrChest(world, this.getBossLootBlockPos(), bossLootTableString);
+        } else {
+            world.setBlockState(this.getBossLootBlockPos(), Blocks.CHEST.getDefaultState(), 3);
+            InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), bossLootTableString);
+        }
 
         this.stopDungeonTimer();
         this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
@@ -587,7 +594,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                                       List<BlockPos> gatePosList,
                                       Map<BlockPos, Integer> movingBlockMap,
                                       Map<BlockPos, Powered> poweredBlockMap,
-                                      HashMap<BlockPos, Integer> spawnerPosEntityIdMap) {
+                                      HashMap<BlockPos, String> spawnerPosEntityIdMap) {
         if (!this.world.isClient && this.world instanceof ServerWorld) {
             net.dungeonz.dungeon.DungeonRuntimeData data = net.dungeonz.dungeon.DungeonDataManager.getData((ServerWorld) this.world, this.pos);
             data.setBlockBlockPosMap(blockMap);
@@ -806,7 +813,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         return new ArrayList<>();
     }
 
-    public void setSpawnerPosEntityIdMap(HashMap<BlockPos, Integer> spawnerPosEntityIdMap) {
+    public void setSpawnerPosEntityIdMap(HashMap<BlockPos, String> spawnerPosEntityIdMap) {
         if (!this.world.isClient && this.world instanceof ServerWorld) {
             net.dungeonz.dungeon.DungeonRuntimeData data = net.dungeonz.dungeon.DungeonDataManager.getData((ServerWorld) this.world, this.pos);
             data.setSpawnerPosEntityIdMap(spawnerPosEntityIdMap);
@@ -814,7 +821,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
     }
 
-    public HashMap<BlockPos, Integer> getSpawnerPosEntityIdMap() {
+    public HashMap<BlockPos, String> getSpawnerPosEntityIdMap() {
         if (!this.world.isClient && this.world instanceof ServerWorld) {
             return net.dungeonz.dungeon.DungeonDataManager.getData((ServerWorld) this.world, this.pos).getSpawnerPosEntityIdMap();
         }
@@ -852,17 +859,22 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         if (!isDungeonStructureGenerated) {
             this.setDungeonStructureGenerated();
+            DungeonPlacementHandler.clearArea(dungeonWorld, origin);
             DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
         } else {
-            for (int i = 0; i < this.getDungeonPlayerUuids().size(); i++) {
-                ServerPlayerEntity player = (ServerPlayerEntity) dungeonWorld.getPlayerByUuid(this.getDungeonPlayerUuids().get(i));
-                if (player != null && DungeonHelper.getCurrentDungeon(player) != null) {
-                    DungeonHelper.teleportOutOfDungeon(player);
-                    player.sendMessage(Text.translatable("text.dungeonz.dungeon_safekick"));
+            if (ConfigInit.CONFIG.forcedRegeneration) {
+                for (int i = 0; i < this.getDungeonPlayerUuids().size(); i++) {
+                    ServerPlayerEntity player = (ServerPlayerEntity) dungeonWorld.getPlayerByUuid(this.getDungeonPlayerUuids().get(i));
+                    if (player != null && DungeonHelper.getCurrentDungeon(player) != null) {
+                        DungeonHelper.teleportOutOfDungeon(player);
+                        player.sendMessage(Text.translatable("text.dungeonz.dungeon_safekick"));
+                    }
                 }
+                DungeonPlacementHandler.clearDungeonAreaWithEntities(dungeonWorld, this);
+                DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
+            } else {
+                DungeonPlacementHandler.prepareDungeon(dungeonWorld, this);
             }
-            DungeonPlacementHandler.clearDungeonAreaWithEntities(dungeonWorld, this);
-            DungeonPlacementHandler.generateDungeonStructure(dungeonWorld, origin, this);
         }
 
         this.markDirty();

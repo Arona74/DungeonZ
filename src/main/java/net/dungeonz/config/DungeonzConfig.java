@@ -9,12 +9,19 @@ import me.shedaniel.cloth.clothconfig.shadowed.blue.endless.jankson.Comment;
 public class DungeonzConfig implements ConfigData {
 
     public boolean defaultDungeons = true;
+
     @Comment("In ticks, used for preloading")
     public int defaultDungeonTeleportCountdown = 200;
     public int countdownX = 0;
     public int countdownY = 0;
     public float countdownSize = 6.0f;
+
     @Comment("Among other things crops won't grow")
     public boolean devMode = false;
 
+    @Comment("When restarting a dungeon: if false it will only refresh, if true it will delete everything and fully regenerate the structure")
+    public boolean forcedRegeneration = false;
+    
+    @Comment("Enable Lootr mod integration for per-player dungeon chest loot (requires Lootr mod)")
+    public boolean lootrIntegration = true;
 }
