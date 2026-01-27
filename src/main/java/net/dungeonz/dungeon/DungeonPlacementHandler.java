@@ -186,13 +186,9 @@ public class DungeonPlacementHandler {
                     }
                 }
             }
-            portalEntity.setChestPosList(chestPosList);
-            portalEntity.setExitPosList(exitPosList);
-            portalEntity.setMovingBlockMap(movingBlockMap);
-            portalEntity.setPoweredBlockMap(poweredBlockMap);
-            portalEntity.setBlockMap(blockIdPosMap);
-            portalEntity.setSpawnerPosEntityIdMap(spawnerPosEntityIdMap);
-            portalEntity.setGatePosList(gatePosList);
+            // Use batch update to avoid multiple async saves
+            portalEntity.updateAllRuntimeData(blockIdPosMap, chestPosList, exitPosList, gatePosList,
+                movingBlockMap, poweredBlockMap, spawnerPosEntityIdMap);
             portalEntity.markDirty();
             return true;
         }
@@ -250,10 +246,13 @@ public class DungeonPlacementHandler {
         clearEntitiesInArea(world, mergedBox);
 
         DungeonzMain.LOGGER.info("Block removal complete. Removed {} blocks, {} block entities.", totalBlocks, totalBlockEntities);
-        
+
         // Schedule delayed entity clearing to catch any stragglers
         scheduleDelayedEntityClear(world, mergedBox, 1);   // Next tick
         scheduleDelayedEntityClear(world, mergedBox, 20);  // 1 second later
+
+        // Clean up runtime data file now that dungeon is cleared
+        DungeonDataManager.deleteData(world, portalEntity.getPos());
     }
 
     // Clear a 512x256x512 area centered on X/Z, from Y=0 to Y=256
