@@ -18,6 +18,7 @@ import net.dungeonz.init.BlockInit;
 import net.dungeonz.network.DungeonServerPacket;
 import net.dungeonz.network.packet.DungeonPortalPacket;
 import net.dungeonz.util.DungeonHelper;
+import net.dungeonz.dungeon.DungeonDataManager;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
 import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
@@ -232,6 +233,16 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
             return (DungeonPortalEntity) world.getBlockEntity(getMainDungeonPortalBlockPos(world, pos));
         }
         return null;
+    }
+
+    @Override
+    public void onStateReplaced(BlockState state, World world, BlockPos pos, BlockState newState, boolean moved) {
+        if (!state.isOf(newState.getBlock()) && !world.isClient && world instanceof ServerWorld serverWorld) {
+            if (world.getBlockEntity(pos) instanceof DungeonPortalEntity) {
+                DungeonDataManager.deleteData(serverWorld, pos);
+            }
+        }
+        super.onStateReplaced(state, world, pos, newState, moved);
     }
 
     @Override

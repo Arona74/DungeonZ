@@ -70,16 +70,6 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     }
 
     @Override
-    public void markRemoved() {
-        super.markRemoved();
-        // Clean up runtime data file when portal is removed
-        if (!this.world.isClient && this.world instanceof ServerWorld) {
-            net.dungeonz.dungeon.DungeonDataManager.deleteData((ServerWorld) this.world, this.pos);
-            LOGGER.info("Cleaned up runtime data for removed dungeon portal at {}", this.pos);
-        }
-    }
-
-    @Override
     public void readNbt(NbtCompound nbt) {
         super.readNbt(nbt);
         this.dungeonType = nbt.getString("DungeonType");
@@ -273,7 +263,18 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         // It's managed by DungeonDataManager in separate files
         // Migration logic in readNbt() handles old format
 
-        LOGGER.debug("Saved minimal NBT for dungeon portal at {} (new system)", this.pos);
+        // If migration from old format hasn't completed yet, preserve old data in NBT
+        // to prevent data loss if chunk is saved before first serverTick
+        if (this.needsMigration && this.pendingMigrationData != null) {
+            for (String key : this.pendingMigrationData.getKeys()) {
+                if (!nbt.contains(key)) {
+                    nbt.put(key, this.pendingMigrationData.get(key).copy());
+                }
+            }
+            LOGGER.debug("Preserved old NBT format for dungeon portal at {} (migration pending)", this.pos);
+        } else {
+            LOGGER.debug("Saved minimal NBT for dungeon portal at {} (new system)", this.pos);
+        }
     }
 
 

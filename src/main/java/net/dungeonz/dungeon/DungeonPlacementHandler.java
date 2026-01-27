@@ -290,6 +290,9 @@ public class DungeonPlacementHandler {
         // Schedule delayed entity clearing to catch any stragglers
         scheduleDelayedEntityClear(world, mergedBox, 1);   // Next tick
         scheduleDelayedEntityClear(world, mergedBox, 20);  // 1 second later
+
+        // Clean up runtime data file now that dungeon is cleared
+        DungeonDataManager.deleteData(world, portalEntity.getPos());
     }
 
     // Clear a 512x256x512 area centered on X/Z, from Y=0 to Y=256
