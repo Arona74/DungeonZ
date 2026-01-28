@@ -134,6 +134,8 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
                 finalEntity.getDungeon().isPositiveEffectsAllowed(),
                 finalEntity.getDungeon().isElytraAllowed(),
                 finalEntity.getDungeon().isRespawnAllowed(),
+                finalEntity.getDungeon().isMobsLootAllowed(),
+                finalEntity.getDungeon().isBossLootAllowed(),
                 finalEntity.getDungeon().isKeepInventory(),
                 finalEntity.getPrivateGroup(),
                 Optional.ofNullable(finalEntity.getDungeon().getBackgroundId()),

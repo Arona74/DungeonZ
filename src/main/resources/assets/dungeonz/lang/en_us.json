@@ -23,7 +23,7 @@
 
     "dungeon.task.join": "Join",
     "dungeon.task.leave": "Leave",
-    "dungeon.task.leave_waiting": "Leave",
+    "dungeon.task.leave_waiting": "Refund",
     "dungeon.dark_dungeon": "Dark Dungeon",
     "dungeon.desert_dungeon": "Desert Dungeon",
     "dungeon.temple_dungeon": "Temple Dungeon",
@@ -50,6 +50,10 @@
     "dungeonz.dungeon.info.elytra.disabled": "- Elytra §cDisabled",
     "dungeonz.dungeon.info.keep_inventory": "- Keep Inventory §aEnabled",
     "dungeonz.dungeon.info.keep_inventory.disabled": "- Keep Inventory §cDisabled",
+    "dungeonz.dungeon.info.mobs_loot": "- Mobs Loot §aEnabled",
+    "dungeonz.dungeon.info.mobs_loot.disabled": "- Mobs Loot §cDisabled",
+    "dungeonz.dungeon.info.boss_loot": "- Boss Loot §aEnabled",
+    "dungeonz.dungeon.info.boss_loot.disabled": "- Boss Loot §cDisabled",
 
     "dungeon.shadow_crypt": "Shadow Crypt",
     "dungeon.ancient_catacombs": "Ancient Catacombs",
@@ -82,8 +86,6 @@
     "text.dungeonz.waiting_player_list": "Min Players (%d/%d)",
     "text.dungeonz.left_waiting_list": "Left waiting list",
     "text.dungeonz.left_waiting_list_with_refund": "Left waiting list and received refund",
-    "text.dungeonz.elytra_allowed": "Elytra allowed",
-    "text.dungeonz.respawn_allowed": "Respawn allowed",
     "text.dungeonz.dungeon_full": "Dungeon is full",
     "text.dungeonz.dungeon_private": "Dungeon is on private mode",
     "text.dungeonz.dungeon_cooldown": "Dungeon is on cooldown",

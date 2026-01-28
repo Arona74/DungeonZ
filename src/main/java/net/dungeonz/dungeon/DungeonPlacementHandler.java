@@ -2,6 +2,7 @@ package net.dungeonz.dungeon;
 
 import net.dungeonz.DungeonzMain;
 import net.dungeonz.access.BossEntityAccess;
+import net.dungeonz.access.DungeonMobAccess;
 import net.dungeonz.access.ServerPlayerAccess;
 import net.dungeonz.block.DungeonGateBlock;
 import net.dungeonz.block.entity.DungeonGateEntity;
@@ -584,6 +585,9 @@ public class DungeonPlacementHandler {
                     mobEntity.initialize(world, world.getLocalDifficulty(entry.getValue().get(i)), SpawnReason.STRUCTURE, null, null);
                     mobEntity.setPersistent();
                     strengthenMob(mobEntity, dungeon, difficulty, false);
+                    if (!dungeon.isMobsLootAllowed()) {
+                        ((DungeonMobAccess) mobEntity).setDungeonNoLoot(true);
+                    }
                     dungeon.getBlockIdBlockReplacementMap().get(entry.getKey());
                     mobEntity.refreshPositionAndAngles(entry.getValue().get(i), 360f * world.getRandom().nextFloat(), 0.0f);
                     world.spawnEntity(mobEntity);
@@ -596,6 +600,9 @@ public class DungeonPlacementHandler {
         bossEntity.initialize(world, world.getLocalDifficulty(portalEntity.getBossBlockPos()), SpawnReason.STRUCTURE, null, null);
         bossEntity.setPersistent();
         ((BossEntityAccess) bossEntity).setBoss(portalEntity.getPos(), portalEntity.getWorld().getRegistryKey().getValue().toString());
+        if (!dungeon.isBossLootAllowed()) {
+            ((DungeonMobAccess) bossEntity).setDungeonNoLoot(true);
+        }
         strengthenMob(bossEntity, dungeon, difficulty, true);
 
         if (dungeon.getBlockIdBlockReplacementMap().get(dungeon.getBossBlockId()) != -1) {

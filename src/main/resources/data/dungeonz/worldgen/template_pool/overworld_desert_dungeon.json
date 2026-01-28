@@ -1,5 +1,5 @@
 {
-    "name": "dungeonz:desert_dungeon_overworld",
+    "name": "dungeonz:overworld_desert_dungeon",
     "fallback": "minecraft:empty",
     "elements": [
         {

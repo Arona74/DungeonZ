@@ -10,6 +10,7 @@ import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 import org.spongepowered.asm.mixin.injection.callback.LocalCapture;
 import org.spongepowered.asm.mixin.injection.At;
 
+import net.dungeonz.access.ServerPlayerAccess;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.init.DimensionInit;
@@ -34,6 +35,26 @@ public class PlayerManagerMixin {
                 DungeonServerPacket.writeS2CDungeonInfoPacket(player, dungeon.getBreakableBlockIdList(), dungeon.getplaceableBlockIdList(), dungeon.isElytraAllowed());
             } else {
                 DungeonHelper.teleportOutOfDungeon(player);
+            }
+        }
+    }
+
+    @Inject(method = "remove", at = @At("HEAD"))
+    private void removeMixin(ServerPlayerEntity player, CallbackInfo info) {
+        if (player.getWorld().getRegistryKey() == DimensionInit.DUNGEON_WORLD && DungeonHelper.getCurrentDungeon(player) != null) {
+            DungeonPortalEntity dungeonPortalEntity = DungeonHelper.getDungeonPortalEntity(player);
+            if (dungeonPortalEntity != null) {
+                dungeonPortalEntity.getDungeonPlayerUuids().remove(player.getUuid());
+                if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
+                    dungeonPortalEntity.setCooldownTime(dungeonPortalEntity.getDungeon().getCooldown() + (int) player.getWorld().getTime());
+                }
+                dungeonPortalEntity.markDirty();
+            }
+            ServerWorld oldWorld = ((ServerPlayerAccess) player).getOldServerWorld();
+            if (oldWorld != null) {
+                BlockPos spawnPos = ((ServerPlayerAccess) player).getDungeonSpawnBlockPos();
+                player.setPosition(spawnPos.getX() + 0.5, spawnPos.getY(), spawnPos.getZ() + 0.5);
+                player.setServerWorld(oldWorld);
             }
         }
     }

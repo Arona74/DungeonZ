@@ -3,6 +3,7 @@ package net.dungeonz.structure;
 import com.mojang.serialization.Codec;
 import com.mojang.serialization.codecs.RecordCodecBuilder;
 
+import net.dungeonz.DungeonzMain;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.init.BlockInit;
 import net.dungeonz.init.WorldInit;
@@ -130,11 +131,17 @@ public class DimensionStructure extends Structure {
         if (!list.isEmpty()) {
             for (int i = 0; i < list.size(); i++) {
                 DungeonPortalEntity dungeonPortalEntity = (DungeonPortalEntity) world.getBlockEntity(list.get(i));
-                dungeonPortalEntity.setDungeonType(dungeonType);
-                dungeonPortalEntity.setDifficulty(dungeonPortalEntity.getDungeon().getDifficultyList().get(0));
-                dungeonPortalEntity.setMaxGroupSize(dungeonPortalEntity.getDungeon().getMaxGroupSize());
-                dungeonPortalEntity.setMinGroupSize(dungeonPortalEntity.getDungeon().getMinGroupSize());
-                dungeonPortalEntity.markDirty();
+                if (dungeonPortalEntity != null) {
+                    dungeonPortalEntity.setDungeonType(dungeonType);
+                    if (dungeonPortalEntity.getDungeon() == null) {
+                        DungeonzMain.LOGGER.warn("Unknown dungeon type '{}', skipping portal setup", dungeonType);
+                        continue;
+                    }
+                    dungeonPortalEntity.setDifficulty(dungeonPortalEntity.getDungeon().getDifficultyList().get(0));
+                    dungeonPortalEntity.setMaxGroupSize(dungeonPortalEntity.getDungeon().getMaxGroupSize());
+                    dungeonPortalEntity.setMinGroupSize(dungeonPortalEntity.getDungeon().getMinGroupSize());
+                    dungeonPortalEntity.markDirty();
+                }
             }
         }
     }

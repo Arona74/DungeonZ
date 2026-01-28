@@ -22,7 +22,7 @@ public class DungeonPortalPacket {
     public final Map<String, List<ItemStack>> requiredItemStacks;
     public final int maxGroupSize, minGroupSize, waitingPlayerCount, requiredLevel, cooldownTime;
     public final String difficulty;
-    public final boolean allowEnderPearl, allowPositiveEffects, allowElytra, allowRespawn, keepInventory, privateGroup;
+    public final boolean allowEnderPearl, allowPositiveEffects, allowElytra, allowRespawn, allowMobsLoot, allowBossLoot, keepInventory, privateGroup;
     public final Optional<Identifier> backgroundId;
     public final long timestamp;
     public final Map<String, Integer> fameRewards;
@@ -45,6 +45,8 @@ public class DungeonPortalPacket {
                                boolean allowPositiveEffects,
                                boolean allowElytra,
                                boolean allowRespawn,
+                               boolean allowMobsLoot,
+                               boolean allowBossLoot,
                                boolean keepInventory,
                                boolean privateGroup,
                                Optional<Identifier> backgroundId,
@@ -67,6 +69,8 @@ public class DungeonPortalPacket {
         this.allowPositiveEffects = allowPositiveEffects;
         this.allowElytra = allowElytra;
         this.allowRespawn = allowRespawn;
+        this.allowMobsLoot = allowMobsLoot;
+        this.allowBossLoot = allowBossLoot;
         this.keepInventory = keepInventory;
         this.privateGroup = privateGroup;
         this.backgroundId = backgroundId;
@@ -115,6 +119,8 @@ public class DungeonPortalPacket {
         buf.writeBoolean(p.allowPositiveEffects);
         buf.writeBoolean(p.allowElytra);
         buf.writeBoolean(p.allowRespawn);
+        buf.writeBoolean(p.allowMobsLoot);
+        buf.writeBoolean(p.allowBossLoot);
         buf.writeBoolean(p.keepInventory);
         buf.writeBoolean(p.privateGroup);
 
@@ -182,6 +188,8 @@ public class DungeonPortalPacket {
         boolean positive = buf.readBoolean();
         boolean elytra = buf.readBoolean();
         boolean respawn = buf.readBoolean();
+        boolean mobsLoot = buf.readBoolean();
+        boolean bossLoot = buf.readBoolean();
         boolean keepinventory = buf.readBoolean();
         boolean priv = buf.readBoolean();
 
@@ -197,7 +205,7 @@ public class DungeonPortalPacket {
         }
 
         return new DungeonPortalPacket(blockPos, playerUuids, dead, waiting, diffs, possibleLoot, reqStacks,
-                max, min, waitingCount, level, cooldown, difficulty, enderpearl, positive, elytra, respawn, keepinventory, priv, bg, fameRewards);
+                max, min, waitingCount, level, cooldown, difficulty, enderpearl, positive, elytra, respawn, mobsLoot, bossLoot, keepinventory, priv, bg, fameRewards);
     }
 
     public static PacketByteBuf toBuf(DungeonPortalPacket p) {

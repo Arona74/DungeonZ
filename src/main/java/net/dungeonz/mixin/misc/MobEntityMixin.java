@@ -7,6 +7,7 @@ import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 
 import net.dungeonz.access.BossEntityAccess;
+import net.dungeonz.access.DungeonMobAccess;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.init.BlockInit;
 import net.minecraft.entity.EntityType;
@@ -22,10 +23,12 @@ import net.minecraft.util.math.BlockPos;
 import net.minecraft.world.World;
 
 @Mixin(MobEntity.class)
-public abstract class MobEntityMixin extends LivingEntity implements BossEntityAccess {
+public abstract class MobEntityMixin extends LivingEntity implements BossEntityAccess, DungeonMobAccess {
 
     @Unique
     private boolean isDungeonBossEntity = false;
+    @Unique
+    private boolean dungeonNoLoot = false;
     @Unique
     private BlockPos portalPos = new BlockPos(0, 0, 0);
     @Unique
@@ -44,6 +47,9 @@ public abstract class MobEntityMixin extends LivingEntity implements BossEntityA
             nbt.putInt("PortalPosY", this.portalPos.getY());
             nbt.putInt("PortalPosZ", this.portalPos.getZ());
         }
+        if (this.dungeonNoLoot) {
+            nbt.putBoolean("DungeonNoLoot", true);
+        }
     }
 
     @Inject(method = "readCustomDataFromNbt", at = @At("TAIL"))
@@ -52,6 +58,16 @@ public abstract class MobEntityMixin extends LivingEntity implements BossEntityA
             this.isDungeonBossEntity = nbt.getBoolean("IsDungeonBossEntity");
             this.worldRegistryKey = nbt.getString("WorldRegistryKey");
             this.portalPos = new BlockPos(nbt.getInt("PortalPosX"), nbt.getInt("PortalPosY"), nbt.getInt("PortalPosZ"));
+        }
+        if (nbt.contains("DungeonNoLoot")) {
+            this.dungeonNoLoot = nbt.getBoolean("DungeonNoLoot");
+        }
+    }
+
+    @Inject(method = "dropLoot", at = @At("HEAD"), cancellable = true)
+    private void dropLootMixin(DamageSource damageSource, boolean causedByPlayer, CallbackInfo info) {
+        if (this.dungeonNoLoot) {
+            info.cancel();
         }
     }
 
@@ -76,6 +92,16 @@ public abstract class MobEntityMixin extends LivingEntity implements BossEntityA
         this.isDungeonBossEntity = true;
         this.portalPos = portalPos;
         this.worldRegistryKey = worldRegistryKey;
+    }
+
+    @Override
+    public void setDungeonNoLoot(boolean noLoot) {
+        this.dungeonNoLoot = noLoot;
+    }
+
+    @Override
+    public boolean hasDungeonNoLoot() {
+        return this.dungeonNoLoot;
     }
 
 }

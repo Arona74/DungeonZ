@@ -39,6 +39,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
     private boolean allowPositiveEffects = false;
     private boolean allowEnderPearl = false;
     private boolean allowElytra = false;
+    private boolean allowMobsLoot = true;
+    private boolean allowBossLoot = true;
 
     @Nullable
     private Identifier backgroundId = null;
@@ -69,6 +71,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
             this.allowPositiveEffects = false;
             this.allowEnderPearl = false;
             this.allowElytra = false;
+            this.allowMobsLoot = true;
+            this.allowBossLoot = true;
             this.backgroundId = null;
             this.dungeonTimerActive = false;
             this.dungeonTimeRemaining = 0;
@@ -157,6 +161,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         boolean allowPositiveEffects = buf.readBoolean();
         boolean allowElytra = buf.readBoolean();
         boolean allowRespawn = buf.readBoolean();
+        boolean allowMobsLoot = buf.readBoolean();
+        boolean allowBossLoot = buf.readBoolean();
         boolean keepInventory = buf.readBoolean();
         boolean privateGroup = buf.readBoolean();
         
@@ -183,7 +189,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.setWaitingGroupSize(waitingGroupSize);
         this.setDungeonTimerActive(false);
         this.setDungeonTimeRemaining(0);
-        
+
         this.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadDungeonPlayerUUIDs);
         this.getDungeonPortalEntity().setMaxGroupSize(maxGroupSize);
@@ -192,13 +198,15 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.getDungeonPortalEntity().setCooldownTime(cooldownTime);
         this.getDungeonPortalEntity().setDifficulty(difficulty);
         this.getDungeonPortalEntity().setPrivateGroup(privateGroup);
-        
+
         this.requiredLevel = requiredLevel;
         this.allowRespawn = allowRespawn;
         this.keepInventory = keepInventory;
         this.allowPositiveEffects = allowPositiveEffects;
         this.allowEnderPearl = allowEnderPearl;
         this.allowElytra = allowElytra;
+        this.allowMobsLoot = allowMobsLoot;
+        this.allowBossLoot = allowBossLoot;
         this.backgroundId = backgroundId;
         this.fameRewards = fameRewardsMap;
     }
@@ -308,7 +316,15 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     public boolean isAllowElytra() {
         return allowElytra;
-    } 
+    }
+
+    public boolean isAllowMobsLoot() {
+        return allowMobsLoot;
+    }
+
+    public boolean isAllowBossLoot() {
+        return allowBossLoot;
+    }
 
     public boolean isDungeonTimerActive() {
         return dungeonTimerActive;

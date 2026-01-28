@@ -51,6 +51,8 @@ public class Dungeon {
     private final boolean keepInventory;
     private final boolean allowEnderPearl;
     private final boolean allowPositiveEffects;
+    private final boolean allowMobsLoot;
+    private final boolean allowBossLoot;
 
     private final int maxGroupSize;
     private final int minGroupSize;
@@ -66,7 +68,7 @@ public class Dungeon {
                     List<Integer> placeableBlockIds, HashMap<String, Float> difficultyMobHealthModificator, HashMap<String, Float> difficultyMobDamageModificator, HashMap<String, Float> difficultyMobProtectionModificator, HashMap<String, Float> difficultyMobSpeedModificator,
                     HashMap<String, List<String>> difficultyLootTableIds, HashMap<String, Float> difficultyBossHealthModificator, HashMap<String, Float> difficultyBossDamageModificator, HashMap<String, Float> difficultyBossProtectionModificator, HashMap<String, Float> difficultyBossSpeedModificator,
                     HashMap<String, String> difficultyBossLootTable, HashMap<String, Integer> difficultyFameReward, EntityType<?> bossEntityType, @Nullable NbtCompound bossNbtCompound, int bossBlockId, int bossLootBlockId, int exitBlockId, boolean allowRespawn,
-                    boolean allowElytra, boolean keepInventory, boolean allowEnderPearl, boolean allowPositiveEffects, int maxGroupSize, int minGroupSize, int requiredLevel, int cooldown, int timeLimit, @Nullable Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId) {
+                    boolean allowElytra, boolean keepInventory, boolean allowEnderPearl, boolean allowPositiveEffects, boolean allowMobsLoot, boolean allowBossLoot, int maxGroupSize, int minGroupSize, int requiredLevel, int cooldown, int timeLimit, @Nullable Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId) {
         this.dungeonTypeId = dungeonTypeId;
         this.blockIdEntityMap = blockIdEntityMap;
         this.blockIdEntitySpawnChance = blockIdEntitySpawnChance;
@@ -96,6 +98,8 @@ public class Dungeon {
         this.keepInventory = keepInventory;
         this.allowEnderPearl = allowEnderPearl;
         this.allowPositiveEffects = allowPositiveEffects;
+        this.allowMobsLoot = allowMobsLoot;
+        this.allowBossLoot = allowBossLoot;
         this.maxGroupSize = maxGroupSize;
         this.minGroupSize = minGroupSize;
         this.requiredLevel = requiredLevel;
@@ -257,6 +261,14 @@ public class Dungeon {
 
     public boolean isPositiveEffectsAllowed() {
         return allowPositiveEffects;
+    }
+
+    public boolean isMobsLootAllowed() {
+        return allowMobsLoot;
+    }
+
+    public boolean isBossLootAllowed() {
+        return allowBossLoot;
     }
 
     public boolean hasTimeLimit() {

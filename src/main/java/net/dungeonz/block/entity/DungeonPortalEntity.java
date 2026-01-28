@@ -64,6 +64,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private int dungeonTeleportCountdown = 0;
     private boolean needsMigration = false; // Flag for deferred migration from old NBT format
     private NbtCompound pendingMigrationData = null; // Stores old NBT data for deferred migration
+    private boolean validationChecked = false;
 
     public DungeonPortalEntity(BlockPos pos, BlockState state) {
         super(BlockInit.DUNGEON_PORTAL_ENTITY, pos, state);
@@ -289,6 +290,31 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             blockEntity.pendingMigrationData = null;
         }
 
+        // Validate and repair portal data once after load
+        if (!blockEntity.validationChecked && !blockEntity.dungeonType.isEmpty()) {
+            blockEntity.validationChecked = true;
+            Dungeon dungeon = blockEntity.getDungeon();
+            if (dungeon != null) {
+                boolean repaired = false;
+                if (blockEntity.difficulty.isEmpty() || !dungeon.getDifficultyList().contains(blockEntity.difficulty)) {
+                    blockEntity.setDifficulty(dungeon.getDifficultyList().get(0));
+                    repaired = true;
+                }
+                if (blockEntity.maxGroupSize != dungeon.getMaxGroupSize()) {
+                    blockEntity.setMaxGroupSize(dungeon.getMaxGroupSize());
+                    repaired = true;
+                }
+                if (blockEntity.minGroupSize != dungeon.getMinGroupSize()) {
+                    blockEntity.setMinGroupSize(dungeon.getMinGroupSize());
+                    repaired = true;
+                }
+                if (repaired) {
+                    LOGGER.info("Repaired dungeon portal '{}' at {}", blockEntity.dungeonType, pos);
+                    blockEntity.markDirty();
+                }
+            }
+        }
+
         if (blockEntity.getDungeonPlayerCount() > 0) {
             if (blockEntity.autoKickTime == 0) {
                 blockEntity.autoKickTime = (int) world.getTime() + 144000;
@@ -441,6 +467,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isElytraAllowed() : false);
         buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isRespawnAllowed() : false);
+        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isMobsLootAllowed() : true);
+        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isBossLootAllowed() : true);
         buf.writeBoolean(this.isDungeonTimerActive());
         buf.writeInt(this.getDungeonTimeRemaining());
     }

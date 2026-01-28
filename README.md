@@ -6,6 +6,8 @@
 - **Feature**: Full dungeon structure regeneration, allowing proceduraly generated structure. (Config option to enabled/disabled)
 - **Feature**: Improved multiplayer support on Portal GUI (more settings displayed, waiting player list, you can leave the waiting list and been refunded)
 - **Feature**: Time limit to finish the dungeon (set in dungeon file)
+- **Feature**: Control Mobs loot when killed (set in dungeon file)
+- **Feature**: Control Boss loot when killed (set in dungeon file)
 - **Feature**: Timers displayed on Portal GUI
 - **Feature**: Fame Reward for my forked Factions mod
 - **Feature**: Lootr compatibility (config option, default ON)
@@ -20,6 +22,10 @@
 
 - **Change**: OP portal screen when manually creating dungeon portal will now scan the area for other portal to prevent placing them too close
 - **Change**: Portal block entity data now use an hybrid NBT+file system to avoid NBT oversize that could cause chunk poisoning
+- **Change**: Fixed player showed in the dungeon while being outside of it
+- **Change**: Avoid crash when dungeonPortalEntity is null due to potential incorrect dungeon file
+- **Change**: Add other crash protections and a method for faulty portal to be repeared when opening the portal screen if correct dungeon file is accessible
+- **Change**: If a player disconnect or quit, it will have similar behavior as "/dungeon leave" command
 - **Change**: Fixed Gates and Spawners blocks
 - **Change**: Easier parkour in Dark dungeon, gates in first corridor room as example usage of Gates blocks
 - **Change**: Congratulations message when finishing dungeon with a leave link for easy leaving, you can also leave with a right-click on dungeon portal blocks or use the "/dungeon leave" command.
@@ -146,7 +152,9 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "elytra": false, // Is Elytra usage allowed? false by default
     "keep_inventory": false, // OPTIONAL, false by default, if true: keepInventory will be on when dying in the dungeon
     "ender_pearl": false, // Is Ender pearl usage allowed? false by default
-    "positive_effects": false, // Are positive effects enabled? true by default
+    "positive_effects": false, // Optional, false by default
+    "mobs_loot": true, // Optional, true by default
+    "boss_loot": true, // Optional, true by default
     "max_group_size": 5, // Maximum number of player in the dungeon
     "min_group_size": 0, // OPTIONAL, minimum number of player to start the dungeon
     "required_level": 0, // OPTIONAL, levelZ compat

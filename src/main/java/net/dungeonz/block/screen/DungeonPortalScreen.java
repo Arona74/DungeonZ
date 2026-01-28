@@ -434,10 +434,10 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         }
         // Required items
         context.drawText(this.textRenderer, Text.translatable("text.dungeonz.required"), this.x + 139, this.y + 81, 0x3F3F3F, false);
-        context.drawTexture(ICONS, this.x + 142 + this.textRenderer.getWidth(Text.translatable("text.dungeonz.required")), this.y + 78,
-                52 + (InventoryHelper.hasRequiredItemStacks(this.playerEntity.getInventory(), this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty())) ? 0 : 14), 0, 14, 14);
-
         List<ItemStack> requiredItems = this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty());
+        context.drawTexture(ICONS, this.x + 142 + this.textRenderer.getWidth(Text.translatable("text.dungeonz.required")), this.y + 78,
+                52 + (requiredItems != null && InventoryHelper.hasRequiredItemStacks(this.playerEntity.getInventory(), requiredItems) ? 0 : 14), 0, 14, 14);
+
         if (requiredItems != null && !requiredItems.isEmpty()) {
             int l = 0;
             for (ItemStack stack : requiredItems) {
@@ -517,6 +517,8 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
             dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.positive_effects" + (this.handler.isAllowPositiveEffects() ? "" : ".disabled")));
             dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.ender_pearl" + (this.handler.isAllowEnderPearl() ? "" : ".disabled")));
             dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.elytra" + (this.handler.isAllowElytra() ? "" : ".disabled")));
+            dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.mobs_loot" + (this.handler.isAllowMobsLoot() ? "" : ".disabled")));
+            dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.boss_loot" + (this.handler.isAllowBossLoot() ? "" : ".disabled")));
 
             context.drawTooltip(this.textRenderer, dungeonInfo, mouseX, mouseY);
         } else {
