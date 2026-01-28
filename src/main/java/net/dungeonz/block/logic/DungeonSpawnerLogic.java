@@ -4,6 +4,7 @@ import com.mojang.logging.LogUtils;
 import java.util.Optional;
 import java.util.function.Function;
 
+import net.dungeonz.access.DungeonMobAccess;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.dungeon.DungeonPlacementHandler;
 import net.minecraft.block.spawner.MobSpawnerEntry;
@@ -148,6 +149,9 @@ public abstract class DungeonSpawnerLogic {
                 }
                 if (dungeon != null) {
                     DungeonPlacementHandler.strengthenMob(mobEntity, dungeon, difficulty, false);
+                    if (!dungeon.isMobsLootAllowed()) {
+                        ((DungeonMobAccess) mobEntity).setDungeonNoLoot(true);
+                    }
                 }
             }
             if (!world.spawnNewEntityAndPassengers(entity2)) {

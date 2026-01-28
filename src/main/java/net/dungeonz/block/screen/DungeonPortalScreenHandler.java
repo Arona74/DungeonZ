@@ -37,7 +37,10 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
     private boolean keepInventory = false;
     private boolean allowPositiveEffects = false;
     private boolean allowEnderPearl = false;
+    private boolean allowWindCharge = false;
     private boolean allowElytra = false;
+    private boolean allowMobsLoot = true;
+    private boolean allowBossLoot = true;
 
     @Nullable
     private Identifier backgroundId = null;
@@ -62,10 +65,13 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.getDungeonPortalEntity().setDifficulty(packet.difficulty());
         
         this.allowEnderPearl = packet.allowEnderPearl();
+        this.allowWindCharge = packet.allowWindCharge();
         this.allowPositiveEffects = packet.allowPositiveEffects();
         this.allowElytra = packet.allowElytra();
         this.allowRespawn = packet.allowRespawn();
         this.keepInventory = packet.keepInventory();
+        this.allowMobsLoot = packet.allowMobsLoot();
+        this.allowBossLoot = packet.allowBossLoot();
         this.getDungeonPortalEntity().setPrivateGroup(packet.privateGroup());
         this.backgroundId = packet.backgroundId().orElse(null);
     }
@@ -166,5 +172,17 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     public boolean isAllowElytra() {
         return allowElytra;
+    }
+
+    public boolean isAllowWindCharge() {
+        return allowWindCharge;
+    }
+
+    public boolean isAllowMobsLoot() {
+        return allowMobsLoot;
+    }
+
+    public boolean isAllowBossLoot() {
+        return allowBossLoot;
     }
 }

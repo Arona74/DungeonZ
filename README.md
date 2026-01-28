@@ -105,7 +105,10 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "elytra": false, // Optional, false by default
     "keep_inventory": false, // Optional, false by default
     "ender_pearl": false, // Optional, false by default
+    "wind_charge": false, // Optional, false by default
     "positive_effects": false, // Optional, false by default
+    "mobs_loot": true, // Optional, true by default
+    "boss_loot": true, // Optional, true by default
     "max_group_size": 5,
     "min_group_size": 0, // Optional, 0 by default
     "required_level": 0, // Optional, LevelZ compat, 0 by default

@@ -214,10 +214,13 @@
     "elytra": false,
     "keep_inventory": false,
     "ender_pearl": false,
+    "wind_charge": false,
     "positive_effects": true,
+    "mobs_loot": false,
+    "boss_loot": false,
     "max_group_size": 5,
     "min_group_size": 0,
-    "cooldown": 200,
+    "cooldown": 72000,
     "background_texture": "",
     "dungeon_structure_pool_id": "dungeonz:temple_dungeon/temple_spawn"
 }

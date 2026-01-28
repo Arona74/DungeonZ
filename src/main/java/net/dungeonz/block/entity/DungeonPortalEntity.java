@@ -67,6 +67,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private int dungeonTeleportCountdown = 0;
     private boolean needsMigration = false;
     private NbtCompound pendingMigrationData = null;
+    private boolean validationChecked = false;
 
     public DungeonPortalEntity(BlockPos pos, BlockState state) {
         super(BlockInit.DUNGEON_PORTAL_ENTITY, pos, state);
@@ -284,6 +285,31 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             blockEntity.pendingMigrationData = null;
         }
 
+        // Validate and repair portal data once after load
+        if (!blockEntity.validationChecked && !blockEntity.dungeonType.isEmpty()) {
+            blockEntity.validationChecked = true;
+            Dungeon dungeon = blockEntity.getDungeon();
+            if (dungeon != null) {
+                boolean repaired = false;
+                if (blockEntity.difficulty.isEmpty() || !dungeon.getDifficultyList().contains(blockEntity.difficulty)) {
+                    blockEntity.setDifficulty(dungeon.getDifficultyList().get(0));
+                    repaired = true;
+                }
+                if (blockEntity.maxGroupSize != dungeon.getMaxGroupSize()) {
+                    blockEntity.setMaxGroupSize(dungeon.getMaxGroupSize());
+                    repaired = true;
+                }
+                if (blockEntity.minGroupSize != dungeon.getMinGroupSize()) {
+                    blockEntity.setMinGroupSize(dungeon.getMinGroupSize());
+                    repaired = true;
+                }
+                if (repaired) {
+                    LOGGER.info("Repaired dungeon portal '{}' at {}", blockEntity.dungeonType, pos);
+                    blockEntity.markDirty();
+                }
+            }
+        }
+
         if (blockEntity.getDungeonPlayerCount() > 0) {
             if (blockEntity.autoKickTime == 0) {
                 blockEntity.autoKickTime = (int) world.getTime() + 432000;
@@ -369,7 +395,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         boolean keepInventory = false;
         boolean allowPositiveEffects = false;
         boolean allowEnderPearl = false;
+        boolean allowWindCharge = false;
         boolean allowElytra = false;
+        boolean allowMobsLoot = true;
+        boolean allowBossLoot = true;
         if (this.getDungeon() instanceof Dungeon dungeon) {
             difficulties = dungeon.getDifficultyList();
             possibleLoot = DungeonHelper.getPossibleLootItemStackMap(dungeon, player.getServer());
@@ -377,14 +406,18 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             backgroundId = Optional.ofNullable(dungeon.getBackgroundId());
             requiredLevel = dungeon.getRequiredLevel();
             allowEnderPearl = dungeon.isEnderPearlAllowed();
+            allowWindCharge = dungeon.isWindChargeAllowed();
             allowPositiveEffects = dungeon.isPositiveEffectsAllowed();
             allowRespawn = dungeon.isRespawnAllowed();
             keepInventory = dungeon.isKeepInventory();
             allowElytra = dungeon.isElytraAllowed();
+            allowMobsLoot = dungeon.isMobsLootAllowed();
+            allowBossLoot = dungeon.isBossLootAllowed();
         }
 
         return new DungeonPortalPacket(this.getDungeonType(), this.pos, this.getDungeonPlayerUuids(), this.getDeadDungeonPlayerUUIDs(), difficulties, possibleLoot, requiredItemStacks, this.getMaxGroupSize(),
-                this.getMinGroupSize(), this.getWaitingUuids().size(), requiredLevel, this.getCooldownTime(), this.getDifficulty(), allowEnderPearl, allowPositiveEffects, allowElytra, allowRespawn, keepInventory, this.getPrivateGroup(), backgroundId);
+                this.getMinGroupSize(), this.getWaitingUuids().size(), requiredLevel, this.getCooldownTime(), this.getDifficulty(), allowEnderPearl, allowWindCharge, allowPositiveEffects, allowElytra, allowRespawn, keepInventory,
+                allowMobsLoot, allowBossLoot, this.getPrivateGroup(), backgroundId);
     }
 
     public void finishDungeon(ServerWorld world, BlockPos pos) {
@@ -462,6 +495,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void leaveDungeon(UUID playerUuid) {
         this.dungeonPlayerUuids.remove(playerUuid);
+        this.markDirty();
     }
 
     public int getDungeonPlayerCount() {

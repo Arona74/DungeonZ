@@ -48,6 +48,12 @@
     "dungeonz.dungeon.info.elytra.disabled": "- Elytra §cDisabled",
     "dungeonz.dungeon.info.keep_inventory": "- Keep Inventory §aEnabled",
     "dungeonz.dungeon.info.keep_inventory.disabled": "- Keep Inventory §cDisabled",
+    "dungeonz.dungeon.info.wind_charge": "- Wind Charge §aEnabled",
+    "dungeonz.dungeon.info.wind_charge.disabled": "- Wind Charge §cDisabled",
+    "dungeonz.dungeon.info.mobs_loot": "- Mobs Loot §aEnabled",
+    "dungeonz.dungeon.info.mobs_loot.disabled": "- Mobs Loot §cDisabled",
+    "dungeonz.dungeon.info.boss_loot": "- Boss Loot §aEnabled",
+    "dungeonz.dungeon.info.boss_loot.disabled": "- Boss Loot §cDisabled",
 
     "dungeon.shadow_crypt": "Shadow Crypt",
     "dungeon.ancient_catacombs": "Ancient Catacombs",

@@ -12,6 +12,7 @@
     "misc.MobEntityMixin",
     "misc.ExplosionMixin",
     "misc.EnderPearlEntityMixin",
+    "misc.WindChargeEntityMixin",
     "misc.WardenEntityMixin",
     "misc.FallingBlockEntityMixin",
     "block.VineBlockMixin",

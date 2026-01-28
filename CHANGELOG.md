@@ -4,13 +4,21 @@
 - Add Full dungeon regeneration (IT CLEARS EVERYTHING, config file entry, default to false)
 - Add an area clear before first dungeon generation and wider dungeon clear when regenerating
 - Add a check nearby dungeonPortal on OP screen to avoid closeby dungeon structure to be cleared/overwritten
+- Add wind_charge Option (allow wind charge usage, default to false)
+- Add mobs_loot Option (allow mobs to loot when dying, default to true)
+- Add boss_loot Option (allow boss to loot when dying, default to true)
 ### Fixed:
+- Hybrid NBT + File Data Management for Portal block entity
+- Fixed player showed in the dungeon while being outside of it
+- Avoid crash when dungeonPortalEntity is null due to potential incorrect dungeon file
+- Add other crash protections and a method for faulty portal to be repeared when opening the portal screen if correct dungeon file is accessible
 - Temple nbt files: leaves now have persistent state to avoid them decaying
 - FireBlockMixin: prevent fire to be placed, to avoid it burning blocks like vines
 - Dungeon Spawner: use Identifier instead of ID to avoid corruption causing spawners showing wrong entities and being useless most of the time
 - Dungeon Spawner: fix spawn counting so they properly breaks when reaching maxSpawnCount
 - Dungeon Gate: multiple fixes (nbt, detection, refresh, sync)
 ### Changed:
+- If a player disconnect or quit it will have similar behavior as "/dungeon leave" command
 - Dark dungeon connector room use gates now as example
 - Updated en-us and fr_fr lang files
 - Updated readme about gate and spawner blocks

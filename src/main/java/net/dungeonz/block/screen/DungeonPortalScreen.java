@@ -98,8 +98,9 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                 this.difficultyButton.active = true;
                 this.privateButton.active = true;
             }
+            List<ItemStack> tickRequiredItems = this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty());
             if ((this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().size()) < this.handler
-                    .getDungeonPortalEntity().getMaxGroupSize() && InventoryHelper.hasRequiredItemStacks(this.playerEntity.getInventory(), this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty()))
+                    .getDungeonPortalEntity().getMaxGroupSize() && (tickRequiredItems == null || InventoryHelper.hasRequiredItemStacks(this.playerEntity.getInventory(), tickRequiredItems))
                     && !this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().contains(this.playerEntity.getUuid())) {
                 this.dungeonButton.active = true;
             } else {
@@ -179,13 +180,14 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         }
         // Required items
         context.drawText(this.textRenderer, Text.translatable("text.dungeonz.required"), this.x + 139, this.y + 81, 0x3F3F3F, false);
+        List<ItemStack> requiredItems = this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty());
         context.drawTexture(ICONS, this.x + 142 + this.textRenderer.getWidth(Text.translatable("text.dungeonz.required")), this.y + 78,
-                52 + (InventoryHelper.hasRequiredItemStacks(this.playerEntity.getInventory(), this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty())) ? 0 : 14), 0, 14, 14);
+                52 + (requiredItems != null && InventoryHelper.hasRequiredItemStacks(this.playerEntity.getInventory(), requiredItems) ? 0 : 14), 0, 14, 14);
 
-        if (!this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty()).isEmpty()) {
+        if (requiredItems != null && !requiredItems.isEmpty()) {
             int l = 0;
 
-            for (ItemStack stack : this.handler.getRequiredItemStacks().get(this.handler.getDungeonPortalEntity().getDifficulty())) {
+            for (ItemStack stack : requiredItems) {
                 context.drawItem(stack, this.x + 144 + l, this.y + 93);
                 context.drawItemInSlot(this.textRenderer, stack, this.x + 144 + l, this.y + 93);
                 if (this.isPointWithinBounds(144 + l, 93, 16, 16, mouseX, mouseY)) {
@@ -251,7 +253,10 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
             dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.keep_inventory" + (this.handler.isKeepInventory() ? "" : ".disabled")));
             dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.positive_effects" + (this.handler.isAllowPositiveEffects() ? "" : ".disabled")));
             dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.ender_pearl" + (this.handler.isAllowEnderPearl() ? "" : ".disabled")));
+            dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.wind_charge" + (this.handler.isAllowWindCharge() ? "" : ".disabled")));
             dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.elytra" + (this.handler.isAllowElytra() ? "" : ".disabled")));
+            dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.mobs_loot" + (this.handler.isAllowMobsLoot() ? "" : ".disabled")));
+            dungeonInfo.add(Text.translatable("dungeonz.dungeon.info.boss_loot" + (this.handler.isAllowBossLoot() ? "" : ".disabled")));
 
 
             context.drawTooltip(this.textRenderer, dungeonInfo, mouseX, mouseY);
