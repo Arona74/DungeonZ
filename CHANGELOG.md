@@ -8,6 +8,7 @@
 - Add mobs_loot Option (allow mobs to loot when dying, default to true)
 - Add boss_loot Option (allow boss to loot when dying, default to true)
 ### Fixed:
+- Fixed Dungeon Compass out of bound crash with fancymenu (Thanks listnt)
 - Hybrid NBT + File Data Management for Portal block entity
 - Fixed player showed in the dungeon while being outside of it
 - Avoid crash when dungeonPortalEntity is null due to potential incorrect dungeon file
@@ -18,6 +19,8 @@
 - Dungeon Spawner: fix spawn counting so they properly breaks when reaching maxSpawnCount
 - Dungeon Gate: multiple fixes (nbt, detection, refresh, sync)
 ### Changed:
+- Balanced temple dungeon structure spawn rate (more closer to spawn, around 4-5k blocks from each other)
+- Wider Dungeon Compass screen to avoid truncated dungeon names
 - If a player disconnect or quit it will have similar behavior as "/dungeon leave" command
 - Dark dungeon connector room use gates now as example
 - Updated en-us and fr_fr lang files
