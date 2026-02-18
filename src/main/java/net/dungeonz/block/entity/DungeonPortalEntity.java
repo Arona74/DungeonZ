@@ -1,5 +1,6 @@
 package net.dungeonz.block.entity;
 
+import net.dungeonz.block.DungeonPortalBlock;
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
 import net.dungeonz.compat.LootrCompat;
 import net.dungeonz.dungeon.Dungeon;
@@ -21,6 +22,9 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.minecraft.particle.DustParticleEffect;
+import org.joml.Vector3f;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryWrapper;
 import net.minecraft.registry.RegistryWrapper.WrapperLookup;
@@ -275,6 +279,47 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     }
 
     public static void clientTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
+        // For multi-block portals, secondary blocks carry no data — always read from the main entity
+        DungeonPortalEntity source = blockEntity;
+        if (DungeonPortalBlock.isOtherDungeonPortalBlockNearby(world, pos)) {
+            DungeonPortalEntity main = DungeonPortalBlock.getMainDungeonPortalEntity(world, pos);
+            if (main != null) {
+                source = main;
+            }
+        }
+
+        if (source.dungeonType.isEmpty()) {
+            return;
+        }
+
+        // Spawn ~1 particle every 3 ticks
+        if (world.getRandom().nextInt(2) != 0) {
+            return;
+        }
+
+        Vector3f color;
+        if (source.getDungeonPlayerCount() > 0) {
+            color = new Vector3f(0.2f, 0.4f, 1.0f);   // blue  — active
+        } else if (source.isOnCooldown((int) world.getTime())) {
+            color = new Vector3f(1.0f, 0.2f, 0.2f);   // red   — on cooldown
+        } else {
+            color = new Vector3f(0.2f, 1.0f, 0.3f);   // green — ready
+        }
+
+        for (int i = 0; i < 1; i++) {
+            double bx = pos.getX(), by = pos.getY(), bz = pos.getZ();
+            double x, y, z, vx = 0, vy = 0, vz = 0;
+            // Spawn on a random face surface so particles aren't hidden inside the block
+            switch (world.getRandom().nextInt(6)) {
+                case 0 -> { x = bx + world.getRandom().nextDouble(); y = by + 1.01; z = bz + world.getRandom().nextDouble(); vy =  0.04; } // top
+                case 1 -> { x = bx + world.getRandom().nextDouble(); y = by - 0.01; z = bz + world.getRandom().nextDouble(); vy = -0.04; } // bottom
+                case 2 -> { x = bx + 1.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx =  0.04; } // east
+                case 3 -> { x = bx - 0.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx = -0.04; } // west
+                case 4 -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz + 1.01; vz =  0.04; } // south
+                default -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz - 0.01; vz = -0.04; } // north
+            }
+            world.addParticle(new DustParticleEffect(color, 1.2f), x, y, z, vx, vy, vz);
+        }
     }
 
     public static void serverTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
@@ -327,6 +372,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                 blockEntity.getDungeonPlayerUuids().clear();
                 blockEntity.getDeadDungeonPlayerUUIDs().clear();
                 blockEntity.autoKickTime = 0;
+                world.updateListeners(pos, state, state, Block.NOTIFY_ALL);
             }
         } else if (blockEntity.autoKickTime != 0) {
             blockEntity.autoKickTime = 0;
@@ -371,6 +417,11 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     @Override
     public NbtCompound toInitialChunkDataNbt(WrapperLookup registryLookup) {
         return this.createNbt(registryLookup);
+    }
+
+    @Override
+    public BlockEntityUpdateS2CPacket toUpdatePacket() {
+        return BlockEntityUpdateS2CPacket.create(this);
     }
 
     @Override
@@ -465,6 +516,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setDungeonType(String dungeonType) {
         this.dungeonType = dungeonType;
+        this.markDirty();
+        if (this.world != null && !this.world.isClient()) {
+            this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_ALL);
+        }
     }
 
     public String getDungeonType() {
@@ -490,12 +545,19 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     public void joinDungeon(UUID playerUuid) {
         if (!this.dungeonPlayerUuids.contains(playerUuid)) {
             this.dungeonPlayerUuids.add(playerUuid);
+            this.markDirty();
+            if (this.world != null && !this.world.isClient()) {
+                this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_ALL);
+            }
         }
     }
 
     public void leaveDungeon(UUID playerUuid) {
         this.dungeonPlayerUuids.remove(playerUuid);
         this.markDirty();
+        if (this.world != null && !this.world.isClient()) {
+            this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_ALL);
+        }
     }
 
     public int getDungeonPlayerCount() {
@@ -566,6 +628,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public void setCooldownTime(int cooldownTime) {
         this.cooldownTime = cooldownTime;
+        this.markDirty();
+        if (this.world != null && !this.world.isClient()) {
+            this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_ALL);
+        }
     }
 
     public int getCooldownTime() {

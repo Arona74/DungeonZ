@@ -19,6 +19,7 @@
 - Dungeon Spawner: fix spawn counting so they properly breaks when reaching maxSpawnCount
 - Dungeon Gate: multiple fixes (nbt, detection, refresh, sync)
 ### Changed:
+- Dungeon portal particle color is based on dungeon status (red = on cooldown, green = ready, blue = someone inside)
 - Balanced temple dungeon structure spawn rate (more closer to spawn, around 4-5k blocks from each other)
 - Wider Dungeon Compass screen to avoid truncated dungeon names
 - If a player disconnect or quit it will have similar behavior as "/dungeon leave" command
