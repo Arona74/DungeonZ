@@ -16,6 +16,7 @@ import net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory;
 import net.minecraft.block.Block;
 import net.minecraft.block.BlockState;
 import net.minecraft.block.Blocks;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.block.entity.EndPortalBlockEntity;
 import net.minecraft.entity.ai.TargetPredicate;
 import net.minecraft.entity.player.PlayerEntity;
@@ -75,6 +76,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public DungeonPortalEntity(BlockPos pos, BlockState state) {
         super(BlockInit.DUNGEON_PORTAL_ENTITY, pos, state);
+    }
+
+    protected DungeonPortalEntity(BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
     }
 
     @Override
@@ -281,8 +286,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     public static void clientTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
         // For multi-block portals, secondary blocks carry no data — always read from the main entity
         DungeonPortalEntity source = blockEntity;
-        if (DungeonPortalBlock.isOtherDungeonPortalBlockNearby(world, pos)) {
-            DungeonPortalEntity main = DungeonPortalBlock.getMainDungeonPortalEntity(world, pos);
+        if (DungeonPortalBlock.isOtherPortalBlockNearby(world, pos, state.getBlock())) {
+            DungeonPortalEntity main = DungeonPortalBlock.getMainPortalEntity(world, pos, state.getBlock());
             if (main != null) {
                 source = main;
             }

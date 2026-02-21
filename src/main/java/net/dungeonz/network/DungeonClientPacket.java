@@ -16,6 +16,9 @@ import net.dungeonz.block.screen.DungeonGateOpScreen;
 import net.dungeonz.block.screen.DungeonPortalOpScreen;
 import net.dungeonz.block.screen.DungeonPortalScreen;
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
+import net.dungeonz.block.screen.DungeonSuperPortalScreen;
+import net.dungeonz.block.screen.DungeonSuperPortalScreenHandler;
+import net.dungeonz.block.screen.DungeonSuperPortalSelectionScreen;
 import net.dungeonz.init.SoundInit;
 import net.dungeonz.item.screen.DungeonCompassScreen;
 import net.fabricmc.api.EnvType;
@@ -50,8 +53,14 @@ public class DungeonClientPacket {
                     if (context.client().currentScreen instanceof DungeonPortalScreen dungeonPortalScreen) {
                         dungeonPortalScreen.difficultyButton.setText(Text.translatable("dungeonz.difficulty." + difficulty));
                     }
+                    if (context.client().currentScreen instanceof DungeonSuperPortalScreen superPortalScreen) {
+                        superPortalScreen.difficultyButton.setText(Text.translatable("dungeonz.difficulty." + difficulty));
+                    }
                     if (context.client().player.currentScreenHandler instanceof DungeonPortalScreenHandler dungeonPortalScreenHandler) {
                         dungeonPortalScreenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
+                    }
+                    if (context.client().player.currentScreenHandler instanceof DungeonSuperPortalScreenHandler superPortalScreenHandler) {
+                        superPortalScreenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
                     }
                 }
             });
@@ -82,6 +91,13 @@ public class DungeonClientPacket {
             List<String> dungeonIds = payload.dungeonIdList();
             context.client().execute(() -> {
                 context.client().setScreen(new DungeonCompassScreen(dungeonType, dungeonIds));
+            });
+        });
+        ClientPlayNetworking.registerGlobalReceiver(DungeonSuperPortalSelectionPacket.PACKET_ID, (payload, context) -> {
+            BlockPos portalPos = payload.portalPos();
+            List<String> dungeonIds = payload.dungeonIdList();
+            context.client().execute(() -> {
+                context.client().setScreen(new DungeonSuperPortalSelectionScreen(portalPos, dungeonIds));
             });
         });
         ClientPlayNetworking.registerGlobalReceiver(DungeonSyncGatePacket.PACKET_ID, (payload, context) -> {
@@ -134,5 +150,9 @@ public class DungeonClientPacket {
 
     public static void writeC2SSetDungeonCompassPacket(MinecraftClient client, String dungeonType) {
         ClientPlayNetworking.send(new DungeonCompassPacket(dungeonType));
+    }
+
+    public static void writeC2SSetSuperPortalDungeonTypePacket(BlockPos portalPos, String dungeonType) {
+        ClientPlayNetworking.send(new DungeonSuperPortalDungeonTypePacket(portalPos, dungeonType));
     }
 }

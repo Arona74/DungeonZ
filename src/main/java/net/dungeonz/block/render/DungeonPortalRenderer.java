@@ -17,7 +17,7 @@ public class DungeonPortalRenderer extends EndPortalBlockEntityRenderer<DungeonP
 
     @Override
     public void render(DungeonPortalEntity endPortalBlockEntity, float f, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, int j) {
-        super.render(endPortalBlockEntity, f, matrixStack, vertexConsumerProvider, i, j);
+        // Block model handles rendering; renderer is kept only for block entity structure
     }
 
     @Override

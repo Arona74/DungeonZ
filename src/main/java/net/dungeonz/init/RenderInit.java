@@ -4,6 +4,7 @@ import net.dungeonz.block.render.DungeonGateRenderer;
 import net.dungeonz.block.render.DungeonPortalRenderer;
 import net.dungeonz.block.render.DungeonSpawnerRenderer;
 import net.dungeonz.block.screen.DungeonPortalScreen;
+import net.dungeonz.block.screen.DungeonSuperPortalScreen;
 import net.dungeonz.item.DungeonCompassItem;
 import net.dungeonz.util.RenderHelper;
 import net.fabricmc.api.EnvType;
@@ -23,12 +24,16 @@ public class RenderInit {
     public static void init() {
         BlockRenderLayerMap.INSTANCE.putBlock(BlockInit.DUNGEON_SPAWNER, RenderLayer.getCutout());
         BlockRenderLayerMap.INSTANCE.putBlock(BlockInit.DUNGEON_GATE, RenderLayer.getCutout());
+        BlockRenderLayerMap.INSTANCE.putBlock(BlockInit.DUNGEON_PORTAL, RenderLayer.getTranslucent());
+        BlockRenderLayerMap.INSTANCE.putBlock(BlockInit.DUNGEON_SUPER_PORTAL, RenderLayer.getTranslucent());
 
         BlockEntityRendererFactories.register(BlockInit.DUNGEON_PORTAL_ENTITY, DungeonPortalRenderer::new);
         BlockEntityRendererFactories.register(BlockInit.DUNGEON_SPAWNER_ENTITY, DungeonSpawnerRenderer::new);
         BlockEntityRendererFactories.register(BlockInit.DUNGEON_GATE_ENTITY, DungeonGateRenderer::new);
+        BlockEntityRendererFactories.register(BlockInit.DUNGEON_SUPER_PORTAL_ENTITY, DungeonPortalRenderer::new);
 
         HandledScreens.register(BlockInit.PORTAL, DungeonPortalScreen::new);
+        HandledScreens.register(BlockInit.SUPER_PORTAL, DungeonSuperPortalScreen::new);
 
         ModelPredicateProviderRegistry.register(ItemInit.DUNGEON_COMPASS, Identifier.of("angle"), new CompassAnglePredicateProvider((world, stack, entity) -> {
             return DungeonCompassItem.createGlobalDungeonStructurePos(world, stack);

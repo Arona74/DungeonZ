@@ -6,11 +6,13 @@ import java.util.List;
 import java.util.UUID;
 
 import net.dungeonz.block.DungeonPortalBlock;
+import net.dungeonz.block.DungeonSuperPortalBlock;
 import org.jetbrains.annotations.Nullable;
 
 import net.dungeonz.DungeonzMain;
 import net.dungeonz.block.entity.DungeonGateEntity;
 import net.dungeonz.block.entity.DungeonPortalEntity;
+import net.dungeonz.block.entity.DungeonSuperPortalEntity;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.init.ItemInit;
 import net.dungeonz.item.DungeonCompassItem;
@@ -36,6 +38,8 @@ public class DungeonServerPacket {
         PayloadTypeRegistry.playS2C().register(DungeonOpScreenPacket.PACKET_ID, DungeonOpScreenPacket.PACKET_CODEC);
         PayloadTypeRegistry.playS2C().register(DungeonCompassScreenPacket.PACKET_ID, DungeonCompassScreenPacket.PACKET_CODEC);
         PayloadTypeRegistry.playS2C().register(DungeonPortalPacket.PACKET_ID, DungeonPortalPacket.PACKET_CODEC);
+        PayloadTypeRegistry.playS2C().register(DungeonSuperPortalSelectionPacket.PACKET_ID, DungeonSuperPortalSelectionPacket.PACKET_CODEC);
+        PayloadTypeRegistry.playS2C().register(DungeonSuperPortalPacket.PACKET_ID, DungeonSuperPortalPacket.PACKET_CODEC);
 
         PayloadTypeRegistry.playC2S().register(DungeonDifficultyPacket.PACKET_ID, DungeonDifficultyPacket.PACKET_CODEC);
         PayloadTypeRegistry.playC2S().register(DungeonGroupPacket.PACKET_ID, DungeonGroupPacket.PACKET_CODEC);
@@ -43,6 +47,7 @@ public class DungeonServerPacket {
         PayloadTypeRegistry.playC2S().register(DungeonTypePacket.PACKET_ID, DungeonTypePacket.PACKET_CODEC);
         PayloadTypeRegistry.playC2S().register(DungeonCompassPacket.PACKET_ID, DungeonCompassPacket.PACKET_CODEC);
         PayloadTypeRegistry.playC2S().register(DungeonGatePacket.PACKET_ID, DungeonGatePacket.PACKET_CODEC);
+        PayloadTypeRegistry.playC2S().register(DungeonSuperPortalDungeonTypePacket.PACKET_ID, DungeonSuperPortalDungeonTypePacket.PACKET_CODEC);
 
         ServerPlayNetworking.registerGlobalReceiver(DungeonDifficultyPacket.PACKET_ID, (payload, context) -> {
             BlockPos dungeonPortalPos = payload.portalBlockPos();
@@ -153,6 +158,30 @@ public class DungeonServerPacket {
                 }
             });
         });
+        ServerPlayNetworking.registerGlobalReceiver(DungeonSuperPortalDungeonTypePacket.PACKET_ID, (payload, context) -> {
+            BlockPos portalPos = payload.portalPos();
+            String dungeonType = payload.dungeonType();
+            context.server().execute(() -> {
+                BlockPos mainPos = portalPos;
+                if (DungeonSuperPortalBlock.isOtherSuperPortalBlockNearby(context.player().getWorld(), portalPos)) {
+                    BlockPos mp = DungeonSuperPortalBlock.getMainSuperPortalBlockPos(context.player().getWorld(), portalPos);
+                    if (mp != null) mainPos = mp;
+                }
+                if (context.player().getWorld().getBlockEntity(mainPos) instanceof DungeonSuperPortalEntity superEntity) {
+                    Dungeon dungeon = Dungeon.getDungeon(dungeonType);
+                    if (dungeon != null && superEntity.getDungeonPlayerCount() == 0) {
+                        superEntity.setDungeonType(dungeonType);
+                        superEntity.setDifficulty(dungeon.getDifficultyList().get(0));
+                        superEntity.setMaxGroupSize(dungeon.getMaxGroupSize());
+                        superEntity.setMinGroupSize(dungeon.getMinGroupSize());
+                        superEntity.markDirty();
+                        BlockPos finalPos = mainPos;
+                        ((ServerPlayerEntity) context.player()).openHandledScreen(
+                                DungeonSuperPortalEntity.createScreenFactory(superEntity, context.player().getWorld(), finalPos));
+                    }
+                }
+            });
+        });
     }
 
     public static void writeS2CDungeonInfoPacket(ServerPlayerEntity serverPlayerEntity, List<Integer> breakableBlockIdList, List<Integer> placeableBlockIdList, boolean allowElytra) {
@@ -189,6 +218,14 @@ public class DungeonServerPacket {
             dungeonIdList.add(DungeonzMain.DUNGEONS.get(i).getDungeonTypeId());
         }
         ServerPlayNetworking.send(serverPlayerEntity, new DungeonCompassScreenPacket(dungeonType, dungeonIdList));
+    }
+
+    public static void writeS2CSuperPortalSelectionPacket(ServerPlayerEntity serverPlayerEntity, DungeonSuperPortalEntity entity) {
+        List<String> dungeonIdList = new ArrayList<>();
+        for (int i = 0; i < DungeonzMain.DUNGEONS.size(); i++) {
+            dungeonIdList.add(DungeonzMain.DUNGEONS.get(i).getDungeonTypeId());
+        }
+        ServerPlayNetworking.send(serverPlayerEntity, new DungeonSuperPortalSelectionPacket(entity.getPos(), dungeonIdList));
     }
 
     public static void writeS2CSyncGatePacket(ServerPlayerEntity serverPlayerEntity, DungeonGateEntity dungeonGateEntity, List<BlockPos> dungeonGatesPosList) {

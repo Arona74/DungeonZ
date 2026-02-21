@@ -7,6 +7,7 @@
 - Add wind_charge Option (allow wind charge usage, default to false)
 - Add mobs_loot Option (allow mobs to loot when dying, default to true)
 - Add boss_loot Option (allow boss to loot when dying, default to true)
+- Add dungeon super portal block, allowing survival players to select the dungeon they want to do
 ### Fixed:
 - Fixed Dungeon Compass out of bound crash with fancymenu (Thanks listnt)
 - Hybrid NBT + File Data Management for Portal block entity
@@ -19,6 +20,7 @@
 - Dungeon Spawner: fix spawn counting so they properly breaks when reaching maxSpawnCount
 - Dungeon Gate: multiple fixes (nbt, detection, refresh, sync)
 ### Changed:
+- Dungeon portal and Dungeon super portal now use their own textures instead of the end portal look
 - Dungeon portal particle color is based on dungeon status (red = on cooldown, green = ready, blue = someone inside)
 - Balanced temple dungeon structure spawn rate (more closer to spawn, around 4-5k blocks from each other)
 - Wider Dungeon Compass screen to avoid truncated dungeon names

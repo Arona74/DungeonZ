@@ -2,6 +2,11 @@
     "block.dungeonz.dungeon_portal": "Dungeon Portal",
     "block.dungeonz.dungeon_spawner": "Dungeon Spawner",
     "block.dungeonz.dungeon_gate": "Dungeon Gate",
+    "block.dungeonz.dungeon_super_portal": "Super Dungeon Portal",
+
+    "text.dungeonz.super_portal.change_dungeon": "Change Dungeon",
+    "text.dungeonz.super_portal.select_dungeon": "Select Dungeon",
+    "text.dungeonz.super_portal.select": "Select",
 
     "item.dungeonz.item_group": "DungeonZ",
 
