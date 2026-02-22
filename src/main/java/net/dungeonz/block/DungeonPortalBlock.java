@@ -248,22 +248,6 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
     }
 
     @Override
-    @Environment(EnvType.CLIENT)
-    public void randomDisplayTick(BlockState state, World world, BlockPos pos, Random random) {
-        double x = pos.getX() + 0.5 + (random.nextDouble() - 0.5);
-        double y = pos.getY() + 1.0;
-        double z = pos.getZ() + 0.5 + (random.nextDouble() - 0.5);
-
-        world.addParticle(
-            ParticleTypes.PORTAL,
-            x, y, z,
-            (random.nextDouble() - 0.5) * 2.0,
-            (random.nextDouble() - 0.5) * 2.0,
-            (random.nextDouble() - 0.5) * 2.0
-        );
-    }
-
-    @Override
     public boolean canFillWithFluid(BlockView world, BlockPos pos, BlockState state, Fluid fluid) {
         return false;
     }

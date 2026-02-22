@@ -1,5 +1,6 @@
 package net.dungeonz.block.entity;
 
+import net.dungeonz.block.DungeonPortalBlock;
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
 import net.dungeonz.compat.LootrCompat;
 import net.dungeonz.dungeon.Dungeon;
@@ -20,6 +21,8 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.particle.DustParticleEffect;
+import org.joml.Vector3f;
 import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenHandler;
 import net.minecraft.screen.ScreenHandlerContext;
@@ -280,6 +283,47 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
 
     public static void clientTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
+        // For multi-block portals, secondary blocks carry no data — always read from the main entity
+        DungeonPortalEntity source = blockEntity;
+        if (DungeonPortalBlock.isOtherDungeonPortalBlockNearby(world, pos)) {
+            DungeonPortalEntity main = DungeonPortalBlock.getMainDungeonPortalEntity(world, pos);
+            if (main != null) {
+                source = main;
+            }
+        }
+
+        if (source.dungeonType.isEmpty()) {
+            return;
+        }
+
+        // Spawn ~1 particle every 3 ticks
+        if (world.getRandom().nextInt(2) != 0) {
+            return;
+        }
+
+        Vector3f color;
+        if (source.getDungeonPlayerCount() > 0) {
+            color = new Vector3f(0.2f, 0.4f, 1.0f);   // blue  — active
+        } else if (source.isOnCooldown((int) world.getTime())) {
+            color = new Vector3f(1.0f, 0.2f, 0.2f);   // red   — on cooldown
+        } else {
+            color = new Vector3f(0.2f, 1.0f, 0.3f);   // green — ready
+        }
+
+        for (int i = 0; i < 1; i++) {
+            double bx = pos.getX(), by = pos.getY(), bz = pos.getZ();
+            double x, y, z, vx = 0, vy = 0, vz = 0;
+            // Spawn on a random face surface so particles aren't hidden inside the block
+            switch (world.getRandom().nextInt(6)) {
+                case 0 -> { x = bx + world.getRandom().nextDouble(); y = by + 1.01; z = bz + world.getRandom().nextDouble(); vy =  0.04; } // top
+                case 1 -> { x = bx + world.getRandom().nextDouble(); y = by - 0.01; z = bz + world.getRandom().nextDouble(); vy = -0.04; } // bottom
+                case 2 -> { x = bx + 1.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx =  0.04; } // east
+                case 3 -> { x = bx - 0.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx = -0.04; } // west
+                case 4 -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz + 1.01; vz =  0.04; } // south
+                default -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz - 0.01; vz = -0.04; } // north
+            }
+            world.addParticle(new DustParticleEffect(color, 1.2f), x, y, z, vx, vy, vz);
+        }
     }
 
     public static void serverTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
@@ -332,11 +376,11 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                 blockEntity.getDungeonPlayerUuids().clear();
                 blockEntity.getDeadDungeonPlayerUuids().clear();
                 blockEntity.autoKickTime = 0;
+                blockEntity.syncGuiToAllViewers();
             }
         } else if (blockEntity.autoKickTime != 0) {
             blockEntity.autoKickTime = 0;
         }
-        
         if (blockEntity.dungeonTeleportCountdown >= 1) {
             if (blockEntity.dungeonTeleportCountdown % 20 == 0) {
                 for (int i = 0; i < blockEntity.getWaitingUuids().size(); i++) {
@@ -345,11 +389,12 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                         DungeonServerPacket.writeS2CDungeonTeleportCountdown(serverPlayerEntity, blockEntity.dungeonTeleportCountdown);
                     }
                 }
+
             }
             blockEntity.dungeonTeleportCountdown--;
 
             if (blockEntity.dungeonTeleportCountdown == (ConfigInit.CONFIG.defaultDungeonTeleportCountdown / 2)) {
-               DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
+                DungeonPlacementHandler.refreshDungeon(((ServerWorld) blockEntity.getWorld()).getServer(), blockEntity.getWorld().getServer().getWorld(DimensionInit.DUNGEON_WORLD), blockEntity,
                         blockEntity.getDungeon(), blockEntity.getDifficulty());
             }
 
