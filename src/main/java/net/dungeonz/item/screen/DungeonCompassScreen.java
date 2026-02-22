@@ -12,7 +12,6 @@ import net.dungeonz.network.DungeonClientPacket;
 import net.dungeonz.util.InventoryHelper;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
-import net.levelz.screen.SkillScreen.WidgetButtonPage;
 import net.minecraft.client.gui.DrawContext;
 import net.minecraft.client.gui.screen.Screen;
 import net.minecraft.client.gui.widget.ButtonWidget;
@@ -39,7 +38,7 @@ public class DungeonCompassScreen extends Screen {
     private int selectedIndex;
     private int indexStartOffset;
     private boolean scrolling;
-    private int backgroundWidth = 105;
+    private int backgroundWidth = 155;
     private int backgroundHeight = 185;
     private int x;
     private int y;
@@ -72,7 +71,7 @@ public class DungeonCompassScreen extends Screen {
 
         this.doneButton = this.addDrawableChild(ButtonWidget.builder(Text.translatable("compass.compass_screen.calibrate"), button -> {
             this.onDone();
-        }).dimensions(this.x + this.backgroundWidth / 2 - 48, this.y + this.backgroundHeight - 25, 97, 20).build());
+        }).dimensions(this.x + 4, this.y + this.backgroundHeight - 25, 147, 20).build());
         this.doneButton.active = false;
     }
 
@@ -100,7 +99,7 @@ public class DungeonCompassScreen extends Screen {
                 }
 
                 int n = k + 7;
-                context.drawText(this.textRenderer, getDungeonName(dungeon, 78, 9), l, n, 0xE5E5E5, false);
+                context.drawText(this.textRenderer, getDungeonName(dungeon, 128, 9), l, n, 0xE5E5E5, false);
                 k += 20;
                 ++m;
             }
@@ -128,9 +127,9 @@ public class DungeonCompassScreen extends Screen {
             if (this.indexStartOffset == i - 1) {
                 m = 113;
             }
-            context.drawTexture(TEXTURE, x + 94, y + 18 + m, 105.0f, 0.0f, 6, 27, 256, 256);
+            context.drawTexture(TEXTURE, x + 144, y + 18 + m, 155.0f, 0.0f, 6, 27, 256, 256);
         } else {
-            context.drawTexture(TEXTURE, x + 94, y + 18, 111.0f, 0.0f, 6, 27, 256, 256);
+            context.drawTexture(TEXTURE, x + 144, y + 18, 161.0f, 0.0f, 6, 27, 256, 256);
         }
     }
 
@@ -180,7 +179,7 @@ public class DungeonCompassScreen extends Screen {
         this.scrolling = false;
         int i = (this.width - this.backgroundWidth) / 2;
         int j = (this.height - this.backgroundHeight) / 2;
-        if (this.canScroll(this.dungeonIds.size()) && mouseX > (double) (i + 94) && mouseX < (double) (i + 94 + 6) && mouseY > (double) (j + 18) && mouseY <= (double) (j + 18 + 139 + 1)) {
+        if (this.canScroll(this.dungeonIds.size()) && mouseX > (double) (i + 144) && mouseX < (double) (i + 144 + 6) && mouseY > (double) (j + 18) && mouseY <= (double) (j + 18 + 139 + 1)) {
             this.scrolling = true;
         }
         return super.mouseClicked(mouseX, mouseY, button);
@@ -201,7 +200,7 @@ public class DungeonCompassScreen extends Screen {
         final int index;
 
         public WidgetButtonPage(int x, int y, int index, ButtonWidget.PressAction onPress) {
-            super(x, y, 89, 20, ScreenTexts.EMPTY, onPress, DEFAULT_NARRATION_SUPPLIER);
+            super(x, y, 139, 20, ScreenTexts.EMPTY, onPress, DEFAULT_NARRATION_SUPPLIER);
             this.index = index;
             this.visible = false;
         }
@@ -213,7 +212,7 @@ public class DungeonCompassScreen extends Screen {
         public void renderTooltip(DrawContext context, int mouseX, int mouseY) {
             if (this.hovered && this.index + DungeonCompassScreen.this.indexStartOffset < DungeonCompassScreen.this.dungeonIds.size()) {
                 Text text = Text.translatable("dungeon." + DungeonCompassScreen.this.dungeonIds.get(this.index + DungeonCompassScreen.this.indexStartOffset));
-                if (client.textRenderer.getWidth(text) > 78) {
+                if (client.textRenderer.getWidth(text) > 128) {
                     context.drawTooltip(textRenderer, text, mouseX, mouseY);
                 }
             }
