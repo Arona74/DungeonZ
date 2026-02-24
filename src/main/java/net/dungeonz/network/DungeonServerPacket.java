@@ -13,8 +13,10 @@ import io.netty.buffer.Unpooled;
 import it.unimi.dsi.fastutil.ints.IntArrayList;
 import net.dungeonz.DungeonzMain;
 import net.dungeonz.block.DungeonPortalBlock;
+import net.dungeonz.block.DungeonSuperPortalBlock;
 import net.dungeonz.block.entity.DungeonGateEntity;
 import net.dungeonz.block.entity.DungeonPortalEntity;
+import net.dungeonz.block.entity.DungeonSuperPortalEntity;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.init.ItemInit;
 import net.dungeonz.item.DungeonCompassItem;
@@ -52,7 +54,10 @@ public class DungeonServerPacket {
     public static final Identifier DUNGEON_PORTAL_PACKET = new Identifier("dungeonz", "dungeon_portal_packet");
 
     public static final Identifier LEAVE_WAITING_PACKET = new Identifier("dungeonz", "leave_waiting");
-    
+
+    public static final Identifier SUPER_PORTAL_SELECTION_PACKET = new Identifier("dungeonz", "super_portal_selection");
+    public static final Identifier SET_SUPER_PORTAL_DUNGEON_TYPE_PACKET = new Identifier("dungeonz", "set_super_portal_dungeon_type");
+
     // New packets for tracking GUI state
     public static final Identifier GUI_OPENED_PACKET = new Identifier("dungeonz", "gui_opened");
     public static final Identifier GUI_CLOSED_PACKET = new Identifier("dungeonz", "gui_closed");
@@ -241,6 +246,41 @@ public class DungeonServerPacket {
                 }
             });
         });
+
+        ServerPlayNetworking.registerGlobalReceiver(SET_SUPER_PORTAL_DUNGEON_TYPE_PACKET, (server, player, handler, buffer, sender) -> {
+            BlockPos superPortalPos = buffer.readBlockPos();
+            String dungeonType = buffer.readString();
+            server.execute(() -> {
+                BlockPos pos = superPortalPos;
+                if (DungeonSuperPortalBlock.isOtherSuperPortalBlockNearby(player.getWorld(), pos)) {
+                    BlockPos main = DungeonSuperPortalBlock.getMainSuperPortalBlockPos(player.getWorld(), pos);
+                    if (main != null) pos = main;
+                }
+                if (!(player.getWorld().getBlockEntity(pos) instanceof DungeonSuperPortalEntity superEntity)) {
+                    return;
+                }
+                if (superEntity.getDungeonPlayerCount() != 0
+                        || superEntity.isOnCooldown((int) player.getWorld().getTime())) {
+                    return;
+                }
+                if (Dungeon.getDungeon(dungeonType) == null) {
+                    player.sendMessage(net.minecraft.text.Text.of(
+                            "Failed to set dungeon type: " + dungeonType + " does not exist!"), false);
+                    return;
+                }
+                Dungeon dungeon = Dungeon.getDungeon(dungeonType);
+                superEntity.setDungeonType(dungeonType);
+                superEntity.setDifficulty(dungeon.getDifficultyList().get(0));
+                superEntity.setMaxGroupSize(dungeon.getMaxGroupSize());
+                superEntity.setMinGroupSize(dungeon.getMinGroupSize());
+                superEntity.markDirty();
+
+                // Re-open the screen with the newly set dungeon
+                net.fabricmc.fabric.api.screenhandler.v1.ExtendedScreenHandlerFactory factory =
+                        DungeonSuperPortalEntity.createScreenFactory(superEntity, player.getWorld(), pos);
+                ((net.minecraft.server.network.ServerPlayerEntity) player).openHandledScreen(factory);
+            });
+        });
     }
 
     // Helper method to clean up disconnected players
@@ -376,6 +416,21 @@ public class DungeonServerPacket {
         PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
         buf.writeInt(countdownTicks);
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(DUNGEON_TELEPORT_COUNTDOWN_PACKET, buf);
+        serverPlayerEntity.networkHandler.sendPacket(packet);
+    }
+
+    public static void writeS2CSuperPortalSelectionPacket(ServerPlayerEntity serverPlayerEntity, DungeonSuperPortalEntity entity) {
+        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        buf.writeBlockPos(entity.getPos());
+        List<String> dungeonIdList = new ArrayList<>();
+        for (int i = 0; i < DungeonzMain.DUNGEONS.size(); i++) {
+            dungeonIdList.add(DungeonzMain.DUNGEONS.get(i).getDungeonTypeId());
+        }
+        buf.writeInt(dungeonIdList.size());
+        for (String id : dungeonIdList) {
+            buf.writeString(id);
+        }
+        CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SUPER_PORTAL_SELECTION_PACKET, buf);
         serverPlayerEntity.networkHandler.sendPacket(packet);
     }
 }

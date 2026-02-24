@@ -17,7 +17,7 @@ public class DungeonPortalRenderer extends EndPortalBlockEntityRenderer<DungeonP
 
     @Override
     public void render(DungeonPortalEntity endPortalBlockEntity, float f, MatrixStack matrixStack, VertexConsumerProvider vertexConsumerProvider, int i, int j) {
-        super.render(endPortalBlockEntity, f, matrixStack, vertexConsumerProvider, i, j);
+        // Block texture is rendered via BlockRenderType.MODEL — do not call super to avoid the end portal swirl effect
     }
 
     @Override

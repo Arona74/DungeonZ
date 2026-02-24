@@ -2,6 +2,11 @@
     "block.dungeonz.dungeon_portal": "Portail du Donjon",
     "block.dungeonz.dungeon_spawner": "Générateur de Donjon",
     "block.dungeonz.dungeon_gate": "Porte du Donjon",
+    "block.dungeonz.dungeon_super_portal": "Super Portail du Donjon",
+
+    "text.dungeonz.super_portal.change_dungeon": "Changer de Donjon",
+    "text.dungeonz.super_portal.select_dungeon": "Sélect. de Donjon",
+    "text.dungeonz.super_portal.select": "Sélectionner",
 
     "item.dungeonz.item_group": "DungeonZ",
 

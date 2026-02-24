@@ -73,6 +73,10 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         super(BlockInit.DUNGEON_PORTAL_ENTITY, pos, state);
     }
 
+    protected DungeonPortalEntity(net.minecraft.block.entity.BlockEntityType<?> type, BlockPos pos, BlockState state) {
+        super(type, pos, state);
+    }
+
     @Override
     public void readNbt(NbtCompound nbt) {
         super.readNbt(nbt);

@@ -1,9 +1,12 @@
 package net.dungeonz.block;
 
+import net.minecraft.block.Block;
 import net.minecraft.block.FluidFillable;
+import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldAccess;
 
@@ -59,7 +62,12 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
 
     @Override
     public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.ENTITYBLOCK_ANIMATED;
+        return BlockRenderType.MODEL;
+    }
+
+    @Override
+    public boolean isSideInvisible(BlockState state, BlockState stateFrom, Direction direction) {
+        return stateFrom.isOf(this) || super.isSideInvisible(state, stateFrom, direction);
     }
 
     @Override
@@ -190,12 +198,13 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
         return DungeonGateBlock.checkType(type, BlockInit.DUNGEON_PORTAL_ENTITY, world.isClient() ? DungeonPortalEntity::clientTick : DungeonPortalEntity::serverTick);
     }
 
-    public static boolean isOtherDungeonPortalBlockNearby(World world, BlockPos pos) {
+    // Generic helpers — used by both DUNGEON_PORTAL and DUNGEON_SUPER_PORTAL
+    public static boolean isOtherPortalBlockNearby(World world, BlockPos pos, Block blockType) {
         for (BlockPos checkPos : BlockPos.iterateOutwards(pos, 1, 1, 1)) {
             if (checkPos.equals(pos)) {
                 continue;
             }
-            if (world.getBlockState(checkPos).isOf(BlockInit.DUNGEON_PORTAL)) {
+            if (world.getBlockState(checkPos).isOf(blockType)) {
                 return true;
             }
         }
@@ -203,38 +212,51 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
     }
 
     @Nullable
-    public static BlockPos getMainDungeonPortalBlockPos(World world, BlockPos pos) {
+    public static BlockPos getMainPortalBlockPos(World world, BlockPos pos, Block blockType) {
         BlockPos checkPos = new BlockPos(pos);
         for (int i = 1; i < 30; i++) {
-            if (world.getBlockState(checkPos.east(1)).isOf(BlockInit.DUNGEON_PORTAL)) {
+            if (world.getBlockState(checkPos.east(1)).isOf(blockType)) {
                 checkPos = checkPos.east(1);
             } else {
                 break;
             }
         }
         for (int i = 1; i < 30; i++) {
-            if (world.getBlockState(checkPos.south(1)).isOf(BlockInit.DUNGEON_PORTAL)) {
+            if (world.getBlockState(checkPos.south(1)).isOf(blockType)) {
                 checkPos = checkPos.south(1);
             } else {
                 break;
             }
         }
         for (int i = 1; i < 30; i++) {
-            if (world.getBlockState(checkPos.down(1)).isOf(BlockInit.DUNGEON_PORTAL)) {
+            if (world.getBlockState(checkPos.down(1)).isOf(blockType)) {
                 checkPos = checkPos.down(1);
             } else {
                 break;
             }
         }
-        return world.getBlockEntity(checkPos) instanceof DungeonPortalEntity dungeonPortalEntity ? dungeonPortalEntity.getPos() : null;
+        return world.getBlockEntity(checkPos) instanceof DungeonPortalEntity ? checkPos : null;
+    }
+
+    @Nullable
+    public static DungeonPortalEntity getMainPortalEntity(World world, BlockPos pos, Block blockType) {
+        BlockPos mainPos = getMainPortalBlockPos(world, pos, blockType);
+        return mainPos != null ? (DungeonPortalEntity) world.getBlockEntity(mainPos) : null;
+    }
+
+    // Convenience delegates for the regular DUNGEON_PORTAL block
+    public static boolean isOtherDungeonPortalBlockNearby(World world, BlockPos pos) {
+        return isOtherPortalBlockNearby(world, pos, BlockInit.DUNGEON_PORTAL);
+    }
+
+    @Nullable
+    public static BlockPos getMainDungeonPortalBlockPos(World world, BlockPos pos) {
+        return getMainPortalBlockPos(world, pos, BlockInit.DUNGEON_PORTAL);
     }
 
     @Nullable
     public static DungeonPortalEntity getMainDungeonPortalEntity(World world, BlockPos pos) {
-        if (getMainDungeonPortalBlockPos(world, pos) != null) {
-            return (DungeonPortalEntity) world.getBlockEntity(getMainDungeonPortalBlockPos(world, pos));
-        }
-        return null;
+        return getMainPortalEntity(world, pos, BlockInit.DUNGEON_PORTAL);
     }
 
     @Override

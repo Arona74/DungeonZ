@@ -15,6 +15,9 @@ import net.dungeonz.block.screen.DungeonGateOpScreen;
 import net.dungeonz.block.screen.DungeonPortalOpScreen;
 import net.dungeonz.block.screen.DungeonPortalScreen;
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
+import net.dungeonz.block.screen.DungeonSuperPortalScreen;
+import net.dungeonz.block.screen.DungeonSuperPortalScreenHandler;
+import net.dungeonz.block.screen.DungeonSuperPortalSelectionScreen;
 import net.dungeonz.init.SoundInit;
 import net.dungeonz.item.screen.DungeonCompassScreen;
 import net.fabricmc.api.EnvType;
@@ -91,6 +94,19 @@ public class DungeonClientPacket {
                             portalScreen.refresh();
                         }
                     }
+                } else if (client.player != null && client.player.currentScreenHandler instanceof DungeonSuperPortalScreenHandler superHandler) {
+                    if (superHandler.getPos().equals(pos)) {
+                        superHandler.getDungeonPortalEntity().setDifficulty(difficulty);
+                        superHandler.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
+                        superHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
+                        superHandler.getDungeonPortalEntity().setPrivateGroup(privateGroup);
+                        superHandler.setDungeonTimerActive(dungeonTimerActive);
+                        superHandler.setDungeonTimeRemaining(dungeonTimeRemaining);
+                        superHandler.getRequiredItemStacks().put(difficulty, requiredItems);
+                        if (client.currentScreen instanceof DungeonSuperPortalScreen superScreen) {
+                            superScreen.refresh();
+                        }
+                    }
                 }
             });
         });
@@ -154,6 +170,17 @@ public class DungeonClientPacket {
                 client.player.playSound(SoundInit.DUNGEON_COUNTDOWN_EVENT, 1.0f, 1.0f);
             });
         });
+        ClientPlayNetworking.registerGlobalReceiver(DungeonServerPacket.SUPER_PORTAL_SELECTION_PACKET, (client, handler, buf, sender) -> {
+            BlockPos portalPos = buf.readBlockPos();
+            int dungeonCount = buf.readInt();
+            List<String> dungeonIds = new ArrayList<>();
+            for (int i = 0; i < dungeonCount; i++) {
+                dungeonIds.add(buf.readString(32767));
+            }
+            client.execute(() -> {
+                client.setScreen(new DungeonSuperPortalSelectionScreen(portalPos, dungeonIds));
+            });
+        });
     }
 
     public static void writeC2SLeaveWaitingPacket(MinecraftClient client, BlockPos portalBlockPos) {
@@ -213,5 +240,13 @@ public class DungeonClientPacket {
         buf.writeString(dungeonType);
         CustomPayloadC2SPacket packet = new CustomPayloadC2SPacket(DungeonServerPacket.SET_DUNGEON_COMPASS_PACKET, buf);
         client.getNetworkHandler().sendPacket(packet);
+    }
+
+    public static void writeC2SSetSuperPortalDungeonTypePacket(BlockPos portalPos, String dungeonType) {
+        PacketByteBuf buf = new PacketByteBuf(Unpooled.buffer());
+        buf.writeBlockPos(portalPos);
+        buf.writeString(dungeonType);
+        CustomPayloadC2SPacket packet = new CustomPayloadC2SPacket(DungeonServerPacket.SET_SUPER_PORTAL_DUNGEON_TYPE_PACKET, buf);
+        MinecraftClient.getInstance().getNetworkHandler().sendPacket(packet);
     }
 }
