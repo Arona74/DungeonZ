@@ -2,11 +2,16 @@ package net.dungeonz.block;
 
 import net.minecraft.block.Block;
 import net.minecraft.block.FluidFillable;
+import net.minecraft.block.ShapeContext;
 import net.minecraft.block.entity.BlockEntityType;
 import net.minecraft.fluid.Fluid;
 import net.minecraft.fluid.FluidState;
+import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.network.PacketByteBuf;
+import net.minecraft.state.StateManager;
+import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.math.Direction;
+import net.minecraft.util.shape.VoxelShape;
 import net.minecraft.world.BlockView;
 import net.minecraft.world.WorldAccess;
 
@@ -51,8 +56,57 @@ import net.partyaddon.network.PartyAddonServerPacket;
 @SuppressWarnings("deprecation")
 public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable {
 
+    public static final EnumProperty<Direction.Axis> AXIS =
+            EnumProperty.of("axis", Direction.Axis.class, Direction.Axis.X, Direction.Axis.Z);
+
+    private static final VoxelShape X_SHAPE = Block.createCuboidShape(0, 0, 6, 16, 16, 10);
+    private static final VoxelShape Z_SHAPE = Block.createCuboidShape(6, 0, 0, 10, 16, 16);
+
     public DungeonPortalBlock(Settings settings) {
         super(settings);
+        this.setDefaultState(this.stateManager.getDefaultState().with(AXIS, Direction.Axis.X));
+    }
+
+    @Override
+    protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
+        builder.add(AXIS);
+    }
+
+    @Override
+    public BlockState getPlacementState(ItemPlacementContext ctx) {
+        World world = ctx.getWorld();
+        BlockPos pos = ctx.getBlockPos();
+        for (Direction dir : Direction.Type.HORIZONTAL) {
+            if (world.getBlockState(pos.offset(dir)).getBlock() instanceof DungeonPortalBlock) {
+                return this.getDefaultState().with(AXIS, dir.getAxis());
+            }
+        }
+        Direction facing = ctx.getPlayer() != null ? ctx.getPlayer().getHorizontalFacing() : Direction.NORTH;
+        Direction.Axis axis = facing.getAxis() == Direction.Axis.Z ? Direction.Axis.X : Direction.Axis.Z;
+        return this.getDefaultState().with(AXIS, axis);
+    }
+
+    @Override
+    public BlockState getStateForNeighborUpdate(BlockState state, Direction direction,
+            BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
+        if (direction.getAxis().isHorizontal()) {
+            if (neighborState.getBlock() instanceof DungeonPortalBlock) {
+                return state.with(AXIS, direction.getAxis());
+            }
+            // Neighbor may have been removed — re-scan remaining horizontal neighbors
+            for (Direction dir : Direction.Type.HORIZONTAL) {
+                if (dir == direction) continue;
+                if (world.getBlockState(pos.offset(dir)).getBlock() instanceof DungeonPortalBlock) {
+                    return state.with(AXIS, dir.getAxis());
+                }
+            }
+        }
+        return super.getStateForNeighborUpdate(state, direction, neighborState, world, pos, neighborPos);
+    }
+
+    @Override
+    public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext ctx) {
+        return state.get(AXIS) == Direction.Axis.X ? X_SHAPE : Z_SHAPE;
     }
 
     @Override

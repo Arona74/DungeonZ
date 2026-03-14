@@ -83,7 +83,7 @@ public class DungeonSuperPortalScreen extends HandledScreen<DungeonSuperPortalSc
         Text buttonText = playerIsInDungeonWorld ? LEAVE : JOIN;
 
         this.dungeonButton = this.addDrawableChild(new DungeonButton(
-                this.x + this.backgroundWidth / 2 - 26, this.y + this.backgroundHeight - 28,
+                this.x + this.backgroundWidth - 130, this.y + this.backgroundHeight - 28,
                 buttonText, (button) -> {
                     if (button.active) {
                         DungeonClientPacket.writeC2SDungeonTeleportPacket(
@@ -499,7 +499,7 @@ public class DungeonSuperPortalScreen extends HandledScreen<DungeonSuperPortalSc
 
         public DungeonDifficultyButton(int x, int y, Text text,
                                        ButtonWidget.PressAction onPress) {
-            super(x, y, 60, 20, text, onPress, DEFAULT_NARRATION_SUPPLIER);
+            super(x, y, 52, 20, text, onPress, DEFAULT_NARRATION_SUPPLIER);
             this.text = text;
         }
 
