@@ -6,6 +6,7 @@ import java.util.List;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
+import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.init.BlockInit;
 import net.dungeonz.init.CommandInit;
@@ -20,7 +21,14 @@ import net.dungeonz.init.TagInit;
 import net.dungeonz.init.WorldInit;
 import net.dungeonz.network.DungeonServerPacket;
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.event.lifecycle.v1.ServerTickEvents;
 import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.server.network.ServerPlayerEntity;
+import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
+import net.minecraft.util.Formatting;
+
+import java.util.UUID;
 
 public class DungeonzMain implements ModInitializer {
 
@@ -48,6 +56,37 @@ public class DungeonzMain implements ModInitializer {
         EventInit.init();
         TagInit.init();
         CommandInit.init();
+
+        ServerTickEvents.END_SERVER_TICK.register(server -> {
+            long time = server.getOverworld().getTime();
+            for (DungeonPortalEntity portal : DungeonPortalEntity.ACTIVE_TIMER_PORTALS) {
+                if (!portal.isDungeonTimerActive()) {
+                    DungeonPortalEntity.ACTIVE_TIMER_PORTALS.remove(portal);
+                    continue;
+                }
+                if (portal.isDungeonTimerExpired()) {
+                    portal.handleDungeonTimerExpired();
+                    continue;
+                }
+                if (time % 20 == 0) {
+                    portal.syncGuiToAllViewers();
+                    int timeRemaining = portal.getDungeonTimeRemaining();
+                    int minutes = timeRemaining / 60;
+                    int seconds = timeRemaining % 60;
+                    Text timerText = Text.literal(String.format("%d:%02d", minutes, seconds))
+                            .formatted(timeRemaining <= 30 ? Formatting.RED : Formatting.YELLOW);
+                    ServerWorld dungeonWorld = server.getWorld(DimensionInit.DUNGEON_WORLD);
+                    if (dungeonWorld != null) {
+                        for (UUID playerUuid : portal.getDungeonPlayerUuids()) {
+                            ServerPlayerEntity player = (ServerPlayerEntity) dungeonWorld.getPlayerByUuid(playerUuid);
+                            if (player != null) {
+                                player.sendMessage(timerText, true);
+                            }
+                        }
+                    }
+                }
+            }
+        });
     }
 
 }

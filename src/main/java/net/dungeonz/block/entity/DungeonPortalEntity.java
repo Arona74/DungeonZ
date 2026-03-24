@@ -46,6 +46,8 @@ import java.util.Map.Entry;
 
 public class DungeonPortalEntity extends EndPortalBlockEntity implements ExtendedScreenHandlerFactory {
 
+    public static final java.util.concurrent.CopyOnWriteArraySet<DungeonPortalEntity> ACTIVE_TIMER_PORTALS = new java.util.concurrent.CopyOnWriteArraySet<>();
+
     private Text title = Text.translatable("container.dungeon_portal");
     private String dungeonType = "";
     private String difficulty = "";
@@ -419,15 +421,6 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             blockEntity.stopDungeonTimer();
         }
         
-        // Sync timer every second for real-time GUI updates
-        if (blockEntity.isDungeonTimerActive() && world.getTime() % 20 == 0) {
-            blockEntity.syncGuiToAllViewers();
-        }
-        
-        // Check if timer expired
-        if (blockEntity.isDungeonTimerExpired()) {
-            blockEntity.handleDungeonTimerExpired();
-        }
     }
 
     @Override
@@ -575,7 +568,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         markDirty();
     }
 
-    private void syncGuiToAllViewers() {
+    public void syncGuiToAllViewers() {
         if (this.world != null && !this.world.isClient && this.world.getServer() != null) {
             DungeonServerPacket.writeS2CSyncScreenPacketToAllViewing(this.world.getServer(), this);
         }
@@ -1002,6 +995,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             this.dungeonTimerActive = true;
             this.markDirty();
             this.syncGuiToAllViewers();
+            ACTIVE_TIMER_PORTALS.add(this);
         }
     }
 
@@ -1009,6 +1003,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         this.dungeonTimerActive = false;
         this.markDirty();
         this.syncGuiToAllViewers();
+        ACTIVE_TIMER_PORTALS.remove(this);
     }
 
     public boolean isDungeonTimerActive() {
@@ -1030,7 +1025,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         return this.dungeonTimerActive && this.getDungeonTimeRemaining() <= 0;
     }
 
-    private void handleDungeonTimerExpired() {
+    public void handleDungeonTimerExpired() {
         if (!this.world.isClient() && this.isDungeonTimerActive()) {
             // Create a copy of the player list to avoid ConcurrentModificationException
             List<UUID> playersToTeleport = new ArrayList<>(this.getDungeonPlayerUuids());
