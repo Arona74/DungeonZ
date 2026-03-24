@@ -62,13 +62,14 @@ public class Dungeon {
 
     private final Identifier dungeonBackgroundId;
     private final Identifier dungeonStructurePoolId;
+    private final boolean randomRotation;
 
     public Dungeon(String dungeonTypeId, HashMap<Integer, List<EntityType<?>>> blockIdEntityMap, HashMap<Integer, HashMap<String, Float>> blockIdEntitySpawnChance,
                     HashMap<Integer, Integer> blockIdBlockReplacement, HashMap<String, Integer> spawnerEntityIdCountMap, HashMap<String, HashMap<Integer, Integer>> difficultyRequiredItemCountMap, List<Integer> breakableBlockIds,
                     List<Integer> placeableBlockIds, HashMap<String, Float> difficultyMobHealthModificator, HashMap<String, Float> difficultyMobDamageModificator, HashMap<String, Float> difficultyMobProtectionModificator, HashMap<String, Float> difficultyMobSpeedModificator,
                     HashMap<String, List<String>> difficultyLootTableIds, HashMap<String, Float> difficultyBossHealthModificator, HashMap<String, Float> difficultyBossDamageModificator, HashMap<String, Float> difficultyBossProtectionModificator, HashMap<String, Float> difficultyBossSpeedModificator,
                     HashMap<String, String> difficultyBossLootTable, HashMap<String, Integer> difficultyFameReward, EntityType<?> bossEntityType, @Nullable NbtCompound bossNbtCompound, int bossBlockId, int bossLootBlockId, int exitBlockId, boolean allowRespawn,
-                    boolean allowElytra, boolean keepInventory, boolean allowEnderPearl, boolean allowPositiveEffects, boolean allowMobsLoot, boolean allowBossLoot, int maxGroupSize, int minGroupSize, int requiredLevel, int cooldown, int timeLimit, @Nullable Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId) {
+                    boolean allowElytra, boolean keepInventory, boolean allowEnderPearl, boolean allowPositiveEffects, boolean allowMobsLoot, boolean allowBossLoot, int maxGroupSize, int minGroupSize, int requiredLevel, int cooldown, int timeLimit, @Nullable Identifier dungeonBackgroundId, Identifier dungeonStructurePoolId, boolean randomRotation) {
         this.dungeonTypeId = dungeonTypeId;
         this.blockIdEntityMap = blockIdEntityMap;
         this.blockIdEntitySpawnChance = blockIdEntitySpawnChance;
@@ -107,6 +108,7 @@ public class Dungeon {
         this.timeLimit = timeLimit;
         this.dungeonBackgroundId = dungeonBackgroundId;
         this.dungeonStructurePoolId = dungeonStructurePoolId;
+        this.randomRotation = randomRotation;
     }
 
     public String getDungeonTypeId() {
@@ -273,6 +275,10 @@ public class Dungeon {
 
     public boolean hasTimeLimit() {
         return this.timeLimit > 0;
+    }
+
+    public boolean isRandomRotation() {
+        return this.randomRotation;
     }
 
     public boolean containsBlockId(int blockId) {

@@ -153,8 +153,9 @@ public class DungeonPlacementHandler {
         StructureTemplateManager structureTemplateManager = world.getStructureTemplateManager();
         StructureAccessor structureAccessor = world.getStructureAccessor();
         Random random = world.getRandom();
+        long seed = (dungeon.isRandomRotation() && ConfigInit.CONFIG.forcedRegeneration) ? world.getRandom().nextLong() : world.getSeed();
         Structure.Context context = new Structure.Context(world.getRegistryManager(), chunkGenerator, chunkGenerator.getBiomeSource(), world.getChunkManager().getNoiseConfig(),
-                structureTemplateManager, world.getSeed(), new ChunkPos(pos), world, registryEntry -> true);
+                structureTemplateManager, seed, new ChunkPos(pos), world, registryEntry -> true);
 
         Optional<Structure.StructurePosition> optional = StructurePoolBasedGenerator.generate(context, structurePool, Optional.of(id), size, pos, false, Optional.empty(), 512);
         if (optional.isPresent()) {

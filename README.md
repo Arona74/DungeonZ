@@ -5,7 +5,8 @@
 - **Feature: Splitted Mob/Boss modifiers for Health, Damage, Protection and Mouvement Speed, allowing better balancing. DUNGEONS FILES HAVE TO BE EDITED! See example below.**
 - **Feature**: Full dungeon structure regeneration, allowing proceduraly generated structure. (Config option to enabled/disabled)
 - **Feature**: Improved multiplayer support on Portal GUI (more settings displayed, waiting player list, you can leave the waiting list and been refunded)
-- **Feature**: Time limit to finish the dungeon (set in dungeon file)
+- **Feature**: Time limit to finish the dungeon with actionbar countdown (set in dungeon file)
+- **Feature**: Random rotation on dungeon regeneration (set in dungeon file, requires Force Full Dungeon Regeneration config option)
 - **Feature**: Control Mobs loot when killed (set in dungeon file)
 - **Feature**: Control Boss loot when killed (set in dungeon file)
 - **Feature**: Timers displayed on Portal GUI
@@ -159,7 +160,8 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "min_group_size": 0, // OPTIONAL, minimum number of player to start the dungeon
     "required_level": 0, // OPTIONAL, levelZ compat
     "cooldown": 108000, // Cooldown after the dungeon is completed or failed in ticks
-    "time_limit": 1800, // OPTIONAL, Time to complete the dungeon in seconds, if dungeon isn't completed and players are still inside, they will be teleported out and dungeon will start cooldown
+    "time_limit": 1800, // OPTIONAL, Time to complete the dungeon in seconds, if dungeon isn't completed and players are still inside, they will be teleported out and dungeon will start cooldown. A countdown is displayed above the hotbar for all players in the dungeon.
+    "random_rotation": false, // OPTIONAL, false by default. When true and the "Force Full Dungeon Regeneration" config option is enabled, the dungeon structure is regenerated with a random rotation (0°, 90°, 180° or 270°) on each visit
     "background_texture": "", // For custom dungeon portal backgrounds, set your texture path here using proper identifier like this "dungeonz:textures/gui/dark_dungeon_portal.png"
     "dungeon_structure_pool_id": "dungeonz:dark_dungeon/dungeon_spawn" // Structure part which the dungeon generates start of
 }
