@@ -162,6 +162,7 @@ If you know how to create one, the folder path has to be ```data\dungeonz\dungeo
     "cooldown": 108000, // Cooldown after the dungeon is completed or failed in ticks
     "time_limit": 1800, // OPTIONAL, Time to complete the dungeon in seconds, if dungeon isn't completed and players are still inside, they will be teleported out and dungeon will start cooldown. A countdown is displayed above the hotbar for all players in the dungeon.
     "random_rotation": false, // OPTIONAL, false by default. When true and the "Force Full Dungeon Regeneration" config option is enabled, the dungeon structure is regenerated with a random rotation (0°, 90°, 180° or 270°) on each visit
+    "hide_possible_loot": false, // OPTIONAL, false by default. When true, the possible loot list is hidden on the dungeon portal screen
     "background_texture": "", // For custom dungeon portal backgrounds, set your texture path here using proper identifier like this "dungeonz:textures/gui/dark_dungeon_portal.png"
     "dungeon_structure_pool_id": "dungeonz:dark_dungeon/dungeon_spawn" // Structure part which the dungeon generates start of
 }

@@ -62,6 +62,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                     : null;
                 Identifier dungeonStructurePoolId = new Identifier(data.get("dungeon_structure_pool_id").getAsString());
                 boolean randomRotation = data.has("random_rotation") ? data.get("random_rotation").getAsBoolean() : false;
+                boolean hidePossibleLoot = data.has("hide_possible_loot") ? data.get("hide_possible_loot").getAsBoolean() : false;
 
                 List<String> difficulties = new ArrayList<String>();
                 JsonObject difficultyObject = data.get("difficulty").getAsJsonObject();
@@ -250,7 +251,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 Dungeon.addDungeon(new Dungeon(dungeonTypeId, blockIdEntityMap, blockIdEntitySpawnChance, blockIdBlockReplacement, spawnerEntityIdCountMap, difficultyRequiredItemCountMap, breakableBlockIds,
                         placeableBlockIds, difficultyMobHealthModificator, difficultyMobDamageModificator, difficultyMobProtectionModificator, difficultyMobSpeedModificator, difficultyLootTableIds, difficultyBossHealthModificator,
                         difficultyBossDamageModificator, difficultyBossProtectionModificator, difficultyBossSpeedModificator, difficultyBossLootTable, difficultyFameReward, bossEntityType, bossNbtCompound, bossBlockId,
-                        bossLootBlockId, exitBlockId, allowRespawn, allowElytra, keepInventory, allowEnderPearl, allowPositiveEffects, allowMobsLoot, allowBossLoot, maxGroupSize, minGroupSize, requiredLevel, cooldown, timeLimit, dungeonBackgroundId, dungeonStructurePoolId, randomRotation));
+                        bossLootBlockId, exitBlockId, allowRespawn, allowElytra, keepInventory, allowEnderPearl, allowPositiveEffects, allowMobsLoot, allowBossLoot, maxGroupSize, minGroupSize, requiredLevel, cooldown, timeLimit, dungeonBackgroundId, dungeonStructurePoolId, randomRotation, hidePossibleLoot));
             } catch (Exception e) {
                 DungeonzMain.LOGGER.error("Error occurred while loading resource {}. {}", id.toString(), e.toString());
             }

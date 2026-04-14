@@ -16,6 +16,7 @@ import net.dungeonz.init.DimensionInit;
 import net.dungeonz.init.EventInit;
 import net.dungeonz.init.ItemInit;
 import net.dungeonz.init.LoaderInit;
+import net.dungeonz.init.ParticleInit;
 import net.dungeonz.init.SoundInit;
 import net.dungeonz.init.TagInit;
 import net.dungeonz.init.WorldInit;
@@ -45,6 +46,7 @@ public class DungeonzMain implements ModInitializer {
     @Override
     public void onInitialize() {
         BlockInit.init();
+        ParticleInit.init();
         DimensionInit.init();
         DungeonServerPacket.init();
         WorldInit.init();

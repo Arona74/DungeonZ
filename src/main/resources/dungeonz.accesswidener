@@ -1,0 +1,7 @@
+accessWidener v2 named
+
+# RenderPhase.ShaderProgram constructor is protected (same-package only in vanilla).
+# PortalLayerHelper (a RenderLayer subclass) can reference the type but cannot instantiate it
+# without this widening. Everything else in RenderPhase/RenderLayer is accessible via
+# the subclass inheritance chain in PortalLayerHelper.
+accessible method net/minecraft/client/render/RenderPhase$ShaderProgram <init> (Ljava/util/function/Supplier;)V

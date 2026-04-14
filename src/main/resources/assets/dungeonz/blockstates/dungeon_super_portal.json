@@ -1,6 +1,8 @@
 {
   "variants": {
-    "axis=x": { "model": "dungeonz:block/dungeon_super_portal_x" },
-    "axis=z": { "model": "dungeonz:block/dungeon_super_portal_z" }
+    "axis=x,solo=false": { "model": "dungeonz:block/dungeon_super_portal_x" },
+    "axis=x,solo=true":  { "model": "dungeonz:block/dungeon_super_portal_solo" },
+    "axis=z,solo=false": { "model": "dungeonz:block/dungeon_super_portal_z" },
+    "axis=z,solo=true":  { "model": "dungeonz:block/dungeon_super_portal_solo" }
   }
 }

@@ -21,7 +21,10 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.particle.DustParticleEffect;
+import net.minecraft.network.listener.ClientPlayPacketListener;
+import net.minecraft.network.packet.Packet;
+import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
+import net.dungeonz.particle.DungeonPortalParticleEffect;
 import org.joml.Vector3f;
 import net.minecraft.registry.Registries;
 import net.minecraft.screen.ScreenHandler;
@@ -29,6 +32,7 @@ import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.text.ClickEvent;
 import net.minecraft.text.Text;
 import net.minecraft.util.Formatting;
@@ -70,6 +74,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private boolean needsMigration = false; // Flag for deferred migration from old NBT format
     private NbtCompound pendingMigrationData = null; // Stores old NBT data for deferred migration
     private boolean validationChecked = false;
+    // Transient: not saved to NBT, resets on every load so the SOLO state is re-derived from actual neighbors
+    private boolean soloStateChecked = false;
 
     public DungeonPortalEntity(BlockPos pos, BlockState state) {
         super(BlockInit.DUNGEON_PORTAL_ENTITY, pos, state);
@@ -302,8 +308,15 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             return;
         }
 
-        // Spawn ~1 particle every 3 ticks
-        if (world.getRandom().nextInt(2) != 0) {
+        // Ambient portal sound — only from the main block so multiblock portals don't stack the sound
+        if (source == blockEntity && world.getRandom().nextInt(40) == 0) {
+            world.playSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                    SoundEvents.BLOCK_PORTAL_AMBIENT, SoundCategory.BLOCKS,
+                    0.5f, world.getRandom().nextFloat() * 0.2f + 0.3f, false);
+        }
+
+        // Spawn ~1 particle every 4 ticks
+        if (world.getRandom().nextInt(4) != 0) {
             return;
         }
 
@@ -316,23 +329,46 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             color = new Vector3f(0.2f, 1.0f, 0.3f);   // green — ready
         }
 
-        for (int i = 0; i < 1; i++) {
-            double bx = pos.getX(), by = pos.getY(), bz = pos.getZ();
-            double x, y, z, vx = 0, vy = 0, vz = 0;
-            // Spawn on a random face surface so particles aren't hidden inside the block
-            switch (world.getRandom().nextInt(6)) {
-                case 0 -> { x = bx + world.getRandom().nextDouble(); y = by + 1.01; z = bz + world.getRandom().nextDouble(); vy =  0.04; } // top
-                case 1 -> { x = bx + world.getRandom().nextDouble(); y = by - 0.01; z = bz + world.getRandom().nextDouble(); vy = -0.04; } // bottom
-                case 2 -> { x = bx + 1.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx =  0.04; } // east
-                case 3 -> { x = bx - 0.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx = -0.04; } // west
-                case 4 -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz + 1.01; vz =  0.04; } // south
-                default -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz - 0.01; vz = -0.04; } // north
-            }
-            world.addParticle(new DustParticleEffect(color, 1.2f), x, y, z, vx, vy, vz);
+        // Vanilla NetherPortalBlock.randomDisplayTick spawn logic:
+        // Pick random pos within block; snap the axis-perpendicular coordinate to the portal face
+        // and give it a large velocity so particles shoot in from outside and converge inward.
+        boolean axisX = state.contains(DungeonPortalBlock.AXIS)
+                && state.get(DungeonPortalBlock.AXIS) == Direction.Axis.X;
+        double x = pos.getX() + world.getRandom().nextDouble();
+        double y = pos.getY() + world.getRandom().nextDouble();
+        double z = pos.getZ() + world.getRandom().nextDouble();
+        double vx = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        double vy = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        double vz = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        int d = world.getRandom().nextInt(2) * 2 - 1; // ±1
+        if (axisX) {
+            z = pos.getZ() + 0.5 + 0.25 * d;
+            vz = world.getRandom().nextFloat() * 2.0f * d;
+        } else {
+            x = pos.getX() + 0.5 + 0.25 * d;
+            vx = world.getRandom().nextFloat() * 2.0f * d;
         }
+        world.addParticle(new DungeonPortalParticleEffect(color), x, y, z, vx, vy, vz);
     }
 
     public static void serverTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {
+        // Correct SOLO blockstate on first tick — fixes worlds saved before the SOLO property existed
+        if (!blockEntity.soloStateChecked) {
+            blockEntity.soloStateChecked = true;
+            Block thisBlock = state.getBlock();
+            boolean hasSameNeighbor = false;
+            for (Direction dir : Direction.Type.HORIZONTAL) {
+                if (world.getBlockState(pos.offset(dir)).isOf(thisBlock)) {
+                    hasSameNeighbor = true;
+                    break;
+                }
+            }
+            boolean correctSolo = !hasSameNeighbor;
+            if (state.get(DungeonPortalBlock.SOLO) != correctSolo) {
+                world.setBlockState(pos, state.with(DungeonPortalBlock.SOLO, correctSolo), Block.NOTIFY_LISTENERS);
+            }
+        }
+
         // MIGRATION: Perform deferred migration from old NBT format on first tick
         if (blockEntity.needsMigration && blockEntity.pendingMigrationData != null && world instanceof ServerWorld) {
             blockEntity.performMigration((ServerWorld) world);
@@ -437,6 +473,11 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     }
 
     @Override
+    public Packet<ClientPlayPacketListener> toUpdatePacket() {
+        return BlockEntityUpdateS2CPacket.create(this);
+    }
+
+    @Override
     public ScreenHandler createMenu(int syncId, PlayerInventory playerInventory, PlayerEntity playerEntity) {
         return new DungeonPortalScreenHandler(syncId, playerInventory, this, ScreenHandlerContext.create(world, pos));
     }
@@ -468,7 +509,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                 buf.writeString(this.getDungeon().getDifficultyList().get(i));
             }
             // Possible Loot Items
-            Map<String, List<ItemStack>> possibleLoot = DungeonHelper.getPossibleLootItemStackMap(this.getDungeon(), player.getServer());
+            Map<String, List<ItemStack>> possibleLoot = this.getDungeon().isHidePossibleLoot() ? new java.util.HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(this.getDungeon(), player.getServer());
             buf.writeInt(possibleLoot.size());
             Iterator<Entry<String, List<ItemStack>>> possibleLootIterator = possibleLoot.entrySet().iterator();
             while (possibleLootIterator.hasNext()) {
@@ -583,6 +624,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         this.dungeonType = dungeonType;
         this.markDirty();
         this.syncGuiToAllViewers();
+        if (this.world != null && !this.world.isClient) {
+            this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_LISTENERS);
+        }
     }
 
     public String getDungeonType() {

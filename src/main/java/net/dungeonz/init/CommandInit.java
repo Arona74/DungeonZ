@@ -24,11 +24,10 @@ public class CommandInit {
             if (DungeonHelper.getCurrentDungeon(source.getPlayer()) != null) {
                 if (DungeonHelper.getDungeonPortalEntity(source.getPlayer()) != null) {
                     DungeonPortalEntity dungeonPortalEntity = DungeonHelper.getDungeonPortalEntity(source.getPlayer());
-                    dungeonPortalEntity.getDungeonPlayerUuids().remove(source.getPlayer().getUuid());
+                    dungeonPortalEntity.leaveDungeon(source.getPlayer().getUuid());
                     if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                         dungeonPortalEntity.setCooldownTime(dungeonPortalEntity.getDungeon().getCooldown() + (int) source.getPlayer().getServerWorld().getTime());
                     }
-                    dungeonPortalEntity.markDirty();
                 }
                 DungeonHelper.teleportOutOfDungeon(source.getPlayer());
             } else {

@@ -221,7 +221,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         if (!this.world.isClient()) {
             setDifficulties(this.dungeonPortalEntity.getDungeon().getDifficultyList());
             setRequiredItemStacks(DungeonHelper.getRequiredItemStackList(this.dungeonPortalEntity.getDungeon()));
-            setPossibleLootItemStacks(DungeonHelper.getPossibleLootItemStackMap(this.dungeonPortalEntity.getDungeon(), this.world.getServer()));
+            setPossibleLootItemStacks(this.dungeonPortalEntity.getDungeon().isHidePossibleLoot() ? new java.util.HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(this.dungeonPortalEntity.getDungeon(), this.world.getServer()));
 
             if (this.dungeonPortalEntity.isDungeonTimerActive()) {
                 setDungeonTimerActive(true);

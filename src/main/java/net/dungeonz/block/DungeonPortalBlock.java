@@ -9,6 +9,7 @@ import net.minecraft.fluid.FluidState;
 import net.minecraft.item.ItemPlacementContext;
 import net.minecraft.network.PacketByteBuf;
 import net.minecraft.state.StateManager;
+import net.minecraft.state.property.BooleanProperty;
 import net.minecraft.state.property.EnumProperty;
 import net.minecraft.util.math.Direction;
 import net.minecraft.util.shape.VoxelShape;
@@ -23,6 +24,7 @@ import net.dungeonz.DungeonzMain;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
 import net.dungeonz.init.BlockInit;
+import net.dungeonz.init.ConfigInit;
 import net.dungeonz.network.DungeonServerPacket;
 import net.dungeonz.network.packet.DungeonPortalPacket;
 import net.dungeonz.util.DungeonHelper;
@@ -58,54 +60,69 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
 
     public static final EnumProperty<Direction.Axis> AXIS =
             EnumProperty.of("axis", Direction.Axis.class, Direction.Axis.X, Direction.Axis.Z);
+    /** True when this block has no adjacent block of the same type (i.e. it stands alone). */
+    public static final BooleanProperty SOLO = BooleanProperty.of("solo");
 
     private static final VoxelShape X_SHAPE = Block.createCuboidShape(0, 0, 6, 16, 16, 10);
     private static final VoxelShape Z_SHAPE = Block.createCuboidShape(6, 0, 0, 10, 16, 16);
+    private static final VoxelShape FULL_CUBE_SHAPE = Block.createCuboidShape(0, 0, 0, 16, 16, 16);
 
     public DungeonPortalBlock(Settings settings) {
         super(settings);
-        this.setDefaultState(this.stateManager.getDefaultState().with(AXIS, Direction.Axis.X));
+        this.setDefaultState(this.stateManager.getDefaultState().with(AXIS, Direction.Axis.X).with(SOLO, true));
     }
 
     @Override
     protected void appendProperties(StateManager.Builder<Block, BlockState> builder) {
-        builder.add(AXIS);
+        builder.add(AXIS, SOLO);
     }
 
     @Override
     public BlockState getPlacementState(ItemPlacementContext ctx) {
         World world = ctx.getWorld();
         BlockPos pos = ctx.getBlockPos();
+        boolean hasSameNeighbor = false;
+        Direction axisDir = null;
         for (Direction dir : Direction.Type.HORIZONTAL) {
-            if (world.getBlockState(pos.offset(dir)).getBlock() instanceof DungeonPortalBlock) {
-                return this.getDefaultState().with(AXIS, dir.getAxis());
-            }
+            Block neighbor = world.getBlockState(pos.offset(dir)).getBlock();
+            if (neighbor == this) hasSameNeighbor = true;
+            if (neighbor instanceof DungeonPortalBlock && axisDir == null) axisDir = dir;
+        }
+        if (axisDir != null) {
+            return this.getDefaultState().with(AXIS, axisDir.getAxis()).with(SOLO, !hasSameNeighbor);
         }
         Direction facing = ctx.getPlayer() != null ? ctx.getPlayer().getHorizontalFacing() : Direction.NORTH;
         Direction.Axis axis = facing.getAxis() == Direction.Axis.Z ? Direction.Axis.X : Direction.Axis.Z;
-        return this.getDefaultState().with(AXIS, axis);
+        return this.getDefaultState().with(AXIS, axis).with(SOLO, !hasSameNeighbor);
     }
 
     @Override
     public BlockState getStateForNeighborUpdate(BlockState state, Direction direction,
             BlockState neighborState, WorldAccess world, BlockPos pos, BlockPos neighborPos) {
         if (direction.getAxis().isHorizontal()) {
-            if (neighborState.getBlock() instanceof DungeonPortalBlock) {
-                return state.with(AXIS, direction.getAxis());
-            }
-            // Neighbor may have been removed — re-scan remaining horizontal neighbors
+            Block thisBlock = state.getBlock();
+            boolean hasSameNeighbor = false;
+            Direction axisDir = null;
+            // Check the changed neighbor
+            Block changed = neighborState.getBlock();
+            if (changed == thisBlock) hasSameNeighbor = true;
+            if (changed instanceof DungeonPortalBlock) axisDir = direction;
+            // Check remaining horizontal neighbors
             for (Direction dir : Direction.Type.HORIZONTAL) {
                 if (dir == direction) continue;
-                if (world.getBlockState(pos.offset(dir)).getBlock() instanceof DungeonPortalBlock) {
-                    return state.with(AXIS, dir.getAxis());
-                }
+                Block at = world.getBlockState(pos.offset(dir)).getBlock();
+                if (at == thisBlock) hasSameNeighbor = true;
+                if (at instanceof DungeonPortalBlock && axisDir == null) axisDir = dir;
             }
+            BlockState newState = state.with(SOLO, !hasSameNeighbor);
+            return axisDir != null ? newState.with(AXIS, axisDir.getAxis()) : newState;
         }
         return super.getStateForNeighborUpdate(state, direction, neighborState, world, pos, neighborPos);
     }
 
     @Override
     public VoxelShape getOutlineShape(BlockState state, BlockView world, BlockPos pos, ShapeContext ctx) {
+        if (state.get(SOLO)) return FULL_CUBE_SHAPE;
         return state.get(AXIS) == Direction.Axis.X ? X_SHAPE : Z_SHAPE;
     }
 
@@ -116,7 +133,7 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
 
     @Override
     public BlockRenderType getRenderType(BlockState state) {
-        return BlockRenderType.MODEL;
+        return ConfigInit.CONFIG.customPortalRendering ? BlockRenderType.INVISIBLE : BlockRenderType.MODEL;
     }
 
     @Override
@@ -184,7 +201,7 @@ public class DungeonPortalBlock extends BlockWithEntity implements FluidFillable
                 finalEntity.getDeadDungeonPlayerUuids(),
                 finalEntity.getWaitingUuids(),
                 finalEntity.getDungeon().getDifficultyList(),
-                DungeonHelper.getPossibleLootItemStackMap(finalEntity.getDungeon(), ((ServerWorld)world).getServer()),
+                finalEntity.getDungeon().isHidePossibleLoot() ? new java.util.HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(finalEntity.getDungeon(), ((ServerWorld)world).getServer()),
                 DungeonHelper.getRequiredItemStackList(finalEntity.getDungeon()),
                 finalEntity.getMaxGroupSize(),
                 finalEntity.getMinGroupSize(),

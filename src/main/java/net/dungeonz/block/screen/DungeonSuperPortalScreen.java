@@ -275,12 +275,12 @@ public class DungeonSuperPortalScreen extends HandledScreen<DungeonSuperPortalSc
         }
 
         // Possible loot
-        context.drawText(this.textRenderer, Text.translatable("text.dungeonz.possible"),
-                this.x + 139, this.y + 115, 0x3F3F3F, false);
         String currentDifficulty = this.handler.getDungeonPortalEntity().getDifficulty();
         if (this.handler.getPossibleLootDifficultyItemStackMap().size() > 0
                 && this.handler.getPossibleLootDifficultyItemStackMap().containsKey(currentDifficulty)
                 && this.handler.getPossibleLootDifficultyItemStackMap().get(currentDifficulty).size() > 0) {
+            context.drawText(this.textRenderer, Text.translatable("text.dungeonz.possible"),
+                    this.x + 139, this.y + 115, 0x3F3F3F, false);
             int l = 0;
             int o = 0;
             List<ItemStack> lootList = this.handler.getPossibleLootDifficultyItemStackMap()

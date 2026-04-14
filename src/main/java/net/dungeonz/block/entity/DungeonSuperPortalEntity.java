@@ -13,13 +13,15 @@ import net.minecraft.entity.player.PlayerEntity;
 import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.network.PacketByteBuf;
-import net.minecraft.particle.DustParticleEffect;
+import net.dungeonz.particle.DungeonPortalParticleEffect;
+import net.minecraft.sound.SoundCategory;
+import net.minecraft.sound.SoundEvents;
 import net.minecraft.screen.ScreenHandler;
-import net.minecraft.screen.ScreenHandlerContext;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.text.Text;
 import net.minecraft.util.Identifier;
 import net.minecraft.util.math.BlockPos;
+import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.joml.Vector3f;
 
@@ -44,7 +46,13 @@ public class DungeonSuperPortalEntity extends DungeonPortalEntity {
             return;
         }
 
-        if (world.getRandom().nextInt(2) != 0) {
+        if (source == blockEntity && world.getRandom().nextInt(40) == 0) {
+            world.playSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                    SoundEvents.BLOCK_PORTAL_AMBIENT, SoundCategory.BLOCKS,
+                    0.5f, world.getRandom().nextFloat() * 0.2f + 0.3f, false);
+        }
+
+        if (world.getRandom().nextInt(4) != 0) {
             return;
         }
 
@@ -57,17 +65,23 @@ public class DungeonSuperPortalEntity extends DungeonPortalEntity {
             color = new Vector3f(0.2f, 1.0f, 0.3f);
         }
 
-        double bx = pos.getX(), by = pos.getY(), bz = pos.getZ();
-        double x, y, z, vx = 0, vy = 0, vz = 0;
-        switch (world.getRandom().nextInt(6)) {
-            case 0 -> { x = bx + world.getRandom().nextDouble(); y = by + 1.01; z = bz + world.getRandom().nextDouble(); vy =  0.04; }
-            case 1 -> { x = bx + world.getRandom().nextDouble(); y = by - 0.01; z = bz + world.getRandom().nextDouble(); vy = -0.04; }
-            case 2 -> { x = bx + 1.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx =  0.04; }
-            case 3 -> { x = bx - 0.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx = -0.04; }
-            case 4 -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz + 1.01; vz =  0.04; }
-            default -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz - 0.01; vz = -0.04; }
+        boolean axisX = state.contains(DungeonSuperPortalBlock.AXIS)
+                && state.get(DungeonSuperPortalBlock.AXIS) == Direction.Axis.X;
+        double x = pos.getX() + world.getRandom().nextDouble();
+        double y = pos.getY() + world.getRandom().nextDouble();
+        double z = pos.getZ() + world.getRandom().nextDouble();
+        double vx = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        double vy = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        double vz = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        int d = world.getRandom().nextInt(2) * 2 - 1;
+        if (axisX) {
+            z = pos.getZ() + 0.5 + 0.25 * d;
+            vz = world.getRandom().nextFloat() * 2.0f * d;
+        } else {
+            x = pos.getX() + 0.5 + 0.25 * d;
+            vx = world.getRandom().nextFloat() * 2.0f * d;
         }
-        world.addParticle(new DustParticleEffect(color, 1.2f), x, y, z, vx, vy, vz);
+        world.addParticle(new DungeonPortalParticleEffect(color), x, y, z, vx, vy, vz);
     }
 
     public DungeonSuperPortalPacket getSuperPortalScreenData(ServerPlayerEntity player) {
@@ -87,7 +101,7 @@ public class DungeonSuperPortalEntity extends DungeonPortalEntity {
         Dungeon dungeon = this.getDungeon();
         if (dungeon != null) {
             difficulties = dungeon.getDifficultyList();
-            possibleLoot = DungeonHelper.getPossibleLootItemStackMap(dungeon, player.getServer());
+            possibleLoot = dungeon.isHidePossibleLoot() ? new java.util.HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(dungeon, player.getServer());
             requiredItemStacks = DungeonHelper.getRequiredItemStackList(dungeon);
             backgroundId = Optional.ofNullable(dungeon.getBackgroundId());
             requiredLevel = dungeon.getRequiredLevel();

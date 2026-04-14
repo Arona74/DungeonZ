@@ -24,4 +24,7 @@ public class DungeonzConfig implements ConfigData {
     
     @Comment("Enable Lootr mod integration for per-player dungeon chest loot (requires Lootr mod)")
     public boolean lootrIntegration = true;
+
+    @Comment("Use custom animated rendering for dungeon portal and super portal blocks. Disable to use the plain block texture instead.")
+    public boolean customPortalRendering = false;
 }
