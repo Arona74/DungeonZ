@@ -5,6 +5,8 @@ import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.init.ConfigInit;
 import net.fabricmc.api.EnvType;
 import net.fabricmc.api.Environment;
+import net.fabricmc.loader.api.FabricLoader;
+import net.minecraft.block.BlockState;
 import net.minecraft.client.render.LightmapTextureManager;
 import net.minecraft.client.render.OverlayTexture;
 import net.minecraft.client.render.RenderLayer;
@@ -18,143 +20,144 @@ import net.minecraft.util.math.Direction;
 import net.minecraft.world.World;
 import org.joml.Matrix4f;
 
+/**
+ * Renders dungeon portal blocks with the vanilla end-portal visual.
+ *
+ * Two render paths:
+ *  - No shaders: RenderLayer.getEndPortal() — position-only vertices, full end-portal shader.
+ *  - Shaders active (Iris/OptiFine): PortalLayerHelper fallback layer using
+ *    rendertype_entity_translucent, which shader packs handle correctly.
+ *    Emits position + color + texture + overlay + light + normal vertices.
+ *
+ * Vertex winding for each face mirrors vanilla EndPortalBlockEntityRenderer.renderSide()
+ * so the shader receives a consistent surface orientation.
+ */
 @Environment(EnvType.CLIENT)
 public class DungeonPortalRenderer extends EndPortalBlockEntityRenderer<DungeonPortalEntity> {
 
-    private static final Identifier TEXTURE = new Identifier("minecraft", "textures/entity/end_portal.png");
+    private static final Identifier PORTAL_TEXTURE =
+            new Identifier("minecraft", "textures/entity/end_portal.png");
 
-    // No depth write + backface culling disabled so every layer is visible from both sides.
-    // Built via PortalLayerHelper (a RenderLayer subclass) to access protected RenderPhase members.
-    private static final RenderLayer PORTAL_LAYER = PortalLayerHelper.createPortalLayer(TEXTURE);
+    // Fallback layer used when a shader pack is active.
+    // Uses rendertype_entity_translucent, which all shader packs support.
+    private static final RenderLayer FALLBACK_LAYER =
+            PortalLayerHelper.createPortalLayer(PORTAL_TEXTURE);
 
-    // UV scale per layer: inner layers are very zoomed-in, outer layers show the full texture.
-    // This wide range is what creates the "infinite depth" parallax illusion.
-    private static final float[] LAYER_UV_SCALES = {
-        0.05f, 0.10f, 0.16f, 0.24f, 0.33f, 0.43f, 0.54f, 0.65f, 0.75f, 0.84f, 0.92f, 1.00f,
-    };
-
-    // Scroll speed per layer (UV units per tick). Reduced ~10x from the original values for
-    // a slow, subtle drift rather than a fast spin.
-    private static final float[] LAYER_SPEEDS = {
-        0.00080f, 0.00065f, 0.00052f, 0.00041f,
-        0.00032f, 0.00025f, 0.00020f, 0.00024f,
-        0.00030f, 0.00037f, 0.00045f, 0.00054f,
-    };
-
-    // Dungeon portal: void black → deep crimson → bright orange glow [r, g, b, a]
-    public static final float[][] COLORS_DUNGEON_PORTAL = {
-        {0.00f, 0.00f, 0.00f, 1.00f},  // solid void (opaque base)
-        {0.15f, 0.00f, 0.12f, 0.90f},  // dark purple
-        {0.30f, 0.00f, 0.10f, 0.80f},  // purple-red
-        {0.50f, 0.02f, 0.05f, 0.70f},  // dark crimson
-        {0.70f, 0.05f, 0.02f, 0.60f},  // crimson
-        {0.85f, 0.10f, 0.00f, 0.50f},  // bright red
-        {0.95f, 0.20f, 0.00f, 0.42f},  // red-orange
-        {1.00f, 0.35f, 0.00f, 0.35f},  // orange-red
-        {1.00f, 0.55f, 0.05f, 0.25f},  // orange
-        {1.00f, 0.70f, 0.15f, 0.18f},  // bright orange
-        {1.00f, 0.85f, 0.40f, 0.12f},  // yellow-orange glow
-        {1.00f, 0.95f, 0.75f, 0.08f},  // near-white outer glow
-    };
-
-    // Super portal: void black → deep blue → teal → bright gold glow [r, g, b, a]
-    public static final float[][] COLORS_SUPER_PORTAL = {
-        {0.00f, 0.00f, 0.00f, 1.00f},  // solid void (opaque base)
-        {0.00f, 0.05f, 0.20f, 0.90f},  // deep blue
-        {0.00f, 0.12f, 0.38f, 0.80f},  // dark blue
-        {0.00f, 0.22f, 0.50f, 0.70f},  // blue
-        {0.05f, 0.35f, 0.45f, 0.60f},  // teal-blue
-        {0.15f, 0.50f, 0.32f, 0.50f},  // teal
-        {0.30f, 0.58f, 0.15f, 0.42f},  // green-teal
-        {0.52f, 0.62f, 0.05f, 0.35f},  // yellow-green
-        {0.72f, 0.64f, 0.00f, 0.25f},  // gold
-        {0.88f, 0.72f, 0.05f, 0.18f},  // bright gold
-        {1.00f, 0.84f, 0.22f, 0.12f},  // yellow-gold
-        {1.00f, 0.96f, 0.68f, 0.08f},  // near-white gold glow
-    };
-
-    private final float[][] layerColors;
-
-    public DungeonPortalRenderer(BlockEntityRendererFactory.Context ctx, float[][] layerColors) {
+    public DungeonPortalRenderer(BlockEntityRendererFactory.Context ctx) {
         super(ctx);
-        this.layerColors = layerColors;
     }
 
+    // ---------------------------------------------------------------------------
+    // Shader detection — uses reflection so Iris is not a hard dependency
+    // ---------------------------------------------------------------------------
+
+    private static boolean areShadersActive() {
+        if (!FabricLoader.getInstance().isModLoaded("iris")) return false;
+        try {
+            Class<?> api = Class.forName("net.irisshaders.iris.api.v0.IrisApi");
+            Object instance = api.getMethod("getInstance").invoke(null);
+            return (boolean) api.getMethod("isShaderPackInUse").invoke(instance);
+        } catch (Throwable ignored) {
+            return false;
+        }
+    }
+
+    // ---------------------------------------------------------------------------
+    // Render
+    // ---------------------------------------------------------------------------
+
     @Override
-    public void render(DungeonPortalEntity entity, float tickDelta, MatrixStack matrices, VertexConsumerProvider vertexConsumers, int light, int overlay) {
+    public void render(DungeonPortalEntity entity, float tickDelta, MatrixStack matrices,
+                       VertexConsumerProvider vertexConsumers, int light, int overlay) {
         if (!ConfigInit.CONFIG.customPortalRendering) return;
 
         World world = entity.getWorld();
         if (world == null) return;
 
-        float animTime = (world.getTime() % 100000L) + tickDelta;
-
-        // Guard against block being replaced by air during the render frame (e.g. when breaking)
-        net.minecraft.block.BlockState state = world.getBlockState(entity.getPos());
+        BlockState state = world.getBlockState(entity.getPos());
         if (!state.contains(DungeonPortalBlock.AXIS)) return;
-        boolean axisX = state.get(DungeonPortalBlock.AXIS) == Direction.Axis.X;
 
-        // Solo block → layers span the full cube face (0.99 → 0.01).
-        // Multi-block → thin slab range (0.625 → 0.375).
-        boolean solo = state.get(DungeonPortalBlock.SOLO);
-        float depthFar  = solo ? 0.99f : 0.625f;
-        float depthSpan = solo ? 0.98f : 0.25f;
+        boolean axisX   = state.get(DungeonPortalBlock.AXIS) == Direction.Axis.X;
+        boolean solo    = state.get(DungeonPortalBlock.SOLO);
+        boolean shaders = areShadersActive();
+
+        // Solo (full-cube): faces span 0 → 1.
+        // Multiblock (thin slab): faces sit at 0.375 → 0.625.
+        float near = solo ? 0.0f : 0.375f;
+        float far  = solo ? 1.0f : 0.625f;
 
         matrices.push();
         Matrix4f matrix = matrices.peek().getPositionMatrix();
-        VertexConsumer consumer = vertexConsumers.getBuffer(PORTAL_LAYER);
 
-        int n = layerColors.length;
-        for (int i = 0; i < n; i++) {
-            float[] c = layerColors[i];
-            float speed = LAYER_SPEEDS[i % LAYER_SPEEDS.length];
-            int scrollDir = (i % 2 == 0) ? 1 : -1;
-
-            float uOff = (animTime * speed * scrollDir) % 1.0f;
-            float vOff = (animTime * speed * 0.65f * -scrollDir) % 1.0f;
-            float uvScale = LAYER_UV_SCALES[i % LAYER_UV_SCALES.length];
-
-            // Layer 0 (void/base) sits at the far face, layer n-1 (outer glow) at the near face.
-            // Submitted farthest-first so the void is the background and glow layers blend on top.
-            float t = (float) i / (n - 1);
-            float depth = depthFar - t * depthSpan;
-
-            int r = (int)(c[0] * 255);
-            int g = (int)(c[1] * 255);
-            int b = (int)(c[2] * 255);
-            int a = (int)(c[3] * 255);
-
-            if (axisX) {
-                // axis=x: thin in Z, portal faces north/south → quads in X-Y plane at fixed Z
-                drawQuad(consumer, matrix,
-                    0f, 0f, depth,   1f, 0f, depth,   1f, 1f, depth,   0f, 1f, depth,
-                    uOff, vOff, uOff + uvScale, vOff + uvScale,
-                    r, g, b, a, 0f, 0f, 1f);
+        if (shaders) {
+            VertexConsumer consumer = vertexConsumers.getBuffer(FALLBACK_LAYER);
+            if (solo) {
+                renderFaceFull(consumer, matrix, 0f, 1f, 0f, 1f, 1f, 1f, 1f, 1f,  0f,  0f,  1f);  // south
+                renderFaceFull(consumer, matrix, 0f, 1f, 1f, 0f, 0f, 0f, 0f, 0f,  0f,  0f, -1f);  // north
+                renderFaceFull(consumer, matrix, 1f, 1f, 1f, 0f, 0f, 1f, 1f, 0f,  1f,  0f,  0f);  // east
+                renderFaceFull(consumer, matrix, 0f, 0f, 0f, 1f, 0f, 1f, 1f, 0f, -1f,  0f,  0f);  // west
+                renderFaceFull(consumer, matrix, 0f, 1f, 0f, 0f, 0f, 0f, 1f, 1f,  0f, -1f,  0f);  // down
+                renderFaceFull(consumer, matrix, 0f, 1f, 1f, 1f, 1f, 1f, 0f, 0f,  0f,  1f,  0f);  // up
+            } else if (axisX) {
+                renderFaceFull(consumer, matrix, 0f, 1f, 0f, 1f, far,  far,  far,  far,  0f, 0f,  1f);  // south
+                renderFaceFull(consumer, matrix, 0f, 1f, 1f, 0f, near, near, near, near, 0f, 0f, -1f);  // north
             } else {
-                // axis=z: thin in X, portal faces east/west → quads in Y-Z plane at fixed X
-                drawQuad(consumer, matrix,
-                    depth, 0f, 0f,   depth, 0f, 1f,   depth, 1f, 1f,   depth, 1f, 0f,
-                    uOff, vOff, uOff + uvScale, vOff + uvScale,
-                    r, g, b, a, 1f, 0f, 0f);
+                renderFaceFull(consumer, matrix, near, near, 0f, 1f, 0f, 1f, 1f, 0f, -1f, 0f, 0f);  // west
+                renderFaceFull(consumer, matrix, far,  far,  1f, 0f, 0f, 1f, 1f, 0f,  1f, 0f, 0f);  // east
+            }
+        } else {
+            VertexConsumer consumer = vertexConsumers.getBuffer(RenderLayer.getEndPortal());
+            if (solo) {
+                renderFace(consumer, matrix, 0f, 1f, 0f, 1f, 1f, 1f, 1f, 1f);  // south
+                renderFace(consumer, matrix, 0f, 1f, 1f, 0f, 0f, 0f, 0f, 0f);  // north
+                renderFace(consumer, matrix, 1f, 1f, 1f, 0f, 0f, 1f, 1f, 0f);  // east
+                renderFace(consumer, matrix, 0f, 0f, 0f, 1f, 0f, 1f, 1f, 0f);  // west
+                renderFace(consumer, matrix, 0f, 1f, 0f, 0f, 0f, 0f, 1f, 1f);  // down
+                renderFace(consumer, matrix, 0f, 1f, 1f, 1f, 1f, 1f, 0f, 0f);  // up
+            } else if (axisX) {
+                renderFace(consumer, matrix, 0f, 1f, 0f, 1f, far,  far,  far,  far);   // south
+                renderFace(consumer, matrix, 0f, 1f, 1f, 0f, near, near, near, near);  // north
+            } else {
+                renderFace(consumer, matrix, near, near, 0f, 1f, 0f, 1f, 1f, 0f);  // west
+                renderFace(consumer, matrix, far,  far,  1f, 0f, 0f, 1f, 1f, 0f);  // east
             }
         }
 
         matrices.pop();
     }
 
-    private void drawQuad(VertexConsumer consumer, Matrix4f matrix,
-                          float x1, float y1, float z1,
-                          float x2, float y2, float z2,
-                          float x3, float y3, float z3,
-                          float x4, float y4, float z4,
-                          float u1, float v1, float u2, float v2,
-                          int r, int g, int b, int a,
-                          float nx, float ny, float nz) {
+    // ---------------------------------------------------------------------------
+    // Helpers
+    // ---------------------------------------------------------------------------
+
+    /**
+     * Position-only quad for RenderLayer.getEndPortal().
+     * Signature matches vanilla EndPortalBlockEntityRenderer.renderSide:
+     *   v0=(x0,y0,z0)  v1=(x1,y0,z1)  v2=(x1,y1,z2)  v3=(x0,y1,z3)
+     */
+    private static void renderFace(VertexConsumer consumer, Matrix4f matrix,
+                                   float x0, float x1, float y0, float y1,
+                                   float z0, float z1, float z2, float z3) {
+        consumer.vertex(matrix, x0, y0, z0).next();
+        consumer.vertex(matrix, x1, y0, z1).next();
+        consumer.vertex(matrix, x1, y1, z2).next();
+        consumer.vertex(matrix, x0, y1, z3).next();
+    }
+
+    /**
+     * Full-data quad for the POSITION_COLOR_TEXTURE_OVERLAY_LIGHT_NORMAL fallback layer.
+     * UV is mapped 0→1 across the quad surface; face is rendered fully bright and opaque.
+     */
+    private static void renderFaceFull(VertexConsumer consumer, Matrix4f matrix,
+                                       float x0, float x1, float y0, float y1,
+                                       float z0, float z1, float z2, float z3,
+                                       float nx, float ny, float nz) {
         int fullLight = LightmapTextureManager.MAX_LIGHT_COORDINATE;
-        consumer.vertex(matrix, x1, y1, z1).color(r, g, b, a).texture(u1, v1).overlay(OverlayTexture.DEFAULT_UV).light(fullLight).normal(nx, ny, nz).next();
-        consumer.vertex(matrix, x2, y2, z2).color(r, g, b, a).texture(u2, v1).overlay(OverlayTexture.DEFAULT_UV).light(fullLight).normal(nx, ny, nz).next();
-        consumer.vertex(matrix, x3, y3, z3).color(r, g, b, a).texture(u2, v2).overlay(OverlayTexture.DEFAULT_UV).light(fullLight).normal(nx, ny, nz).next();
-        consumer.vertex(matrix, x4, y4, z4).color(r, g, b, a).texture(u1, v2).overlay(OverlayTexture.DEFAULT_UV).light(fullLight).normal(nx, ny, nz).next();
+        int noOverlay = OverlayTexture.DEFAULT_UV;
+        consumer.vertex(matrix, x0, y0, z0).color(255,255,255,255).texture(0f,0f).overlay(noOverlay).light(fullLight).normal(nx,ny,nz).next();
+        consumer.vertex(matrix, x1, y0, z1).color(255,255,255,255).texture(1f,0f).overlay(noOverlay).light(fullLight).normal(nx,ny,nz).next();
+        consumer.vertex(matrix, x1, y1, z2).color(255,255,255,255).texture(1f,1f).overlay(noOverlay).light(fullLight).normal(nx,ny,nz).next();
+        consumer.vertex(matrix, x0, y1, z3).color(255,255,255,255).texture(0f,1f).overlay(noOverlay).light(fullLight).normal(nx,ny,nz).next();
     }
 
     @Override

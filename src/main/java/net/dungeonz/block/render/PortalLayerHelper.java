@@ -9,9 +9,9 @@ import net.minecraft.client.render.VertexFormats;
 import net.minecraft.util.Identifier;
 
 /**
- * Abstract subclass of RenderLayer (which itself extends RenderPhase) used solely to
- * access the protected static members of both classes when building a custom RenderLayer.
- * It is never instantiated; only {@link #createPortalLayer} is called.
+ * Accesses protected RenderPhase members to build a custom portal render layer.
+ * Used as the shader-compatible fallback when Iris/OptiFine is active, since
+ * RenderLayer.getEndPortal() uses a core shader that most shader packs don't implement.
  */
 @Environment(EnvType.CLIENT)
 abstract class PortalLayerHelper extends RenderLayer {
@@ -21,12 +21,6 @@ abstract class PortalLayerHelper extends RenderLayer {
                 VertexFormat.DrawMode.QUADS, 0, false, false, () -> {}, () -> {});
     }
 
-    /**
-     * Creates a render layer suitable for the layered portal effect:
-     * - No depth writes (COLOR_MASK) so inner layers are never depth-culled by the opaque base.
-     * - Backface culling disabled (DISABLE_CULLING) so each quad is visible from both sides.
-     * - Translucent blending for correct alpha compositing.
-     */
     static RenderLayer createPortalLayer(Identifier texture) {
         return of(
             "dungeon_portal",

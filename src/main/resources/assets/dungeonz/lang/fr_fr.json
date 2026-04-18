@@ -106,5 +106,6 @@
     "text.autoconfig.dungeonz.option.countdownY": "Position Y du Compte à Rebours",
     "text.autoconfig.dungeonz.option.countdownSize": "Taille du Compte à Rebours",
     "text.autoconfig.dungeonz.option.lootrIntegration": "Compatibilité Lootr",
-    "text.autoconfig.dungeonz.option.forcedRegeneration": "Forcer la régénération totale des Donjons"
+    "text.autoconfig.dungeonz.option.forcedRegeneration": "Forcer la régénération totale des Donjons",
+    "text.autoconfig.dungeonz.option.customPortalRendering": "Utiliser le rendu du portail de l'End pour les portails de Donjon"
 }

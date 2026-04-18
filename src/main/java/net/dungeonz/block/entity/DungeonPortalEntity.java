@@ -305,6 +305,34 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
 
         if (source.dungeonType.isEmpty()) {
+            // Exit portals inside the dungeonz dimension have no dungeon set — show white particles
+            if (world.getRegistryKey() == DimensionInit.DUNGEON_WORLD) {
+                if (world.getRandom().nextInt(4) != 0) return;
+                boolean axisX = state.contains(DungeonPortalBlock.AXIS)
+                        && state.get(DungeonPortalBlock.AXIS) == Direction.Axis.X;
+                double x = pos.getX() + world.getRandom().nextDouble();
+                double y = pos.getY() + world.getRandom().nextDouble();
+                double z = pos.getZ() + world.getRandom().nextDouble();
+                double vx = (world.getRandom().nextFloat() - 0.5) * 0.5;
+                double vy = (world.getRandom().nextFloat() - 0.5) * 0.5;
+                double vz = (world.getRandom().nextFloat() - 0.5) * 0.5;
+                int d = world.getRandom().nextInt(2) * 2 - 1;
+                if (axisX) { z = pos.getZ() + 0.5 + 0.25 * d; vz = world.getRandom().nextFloat() * 2.0f * d; }
+                else        { x = pos.getX() + 0.5 + 0.25 * d; vx = world.getRandom().nextFloat() * 2.0f * d; }
+                world.addParticle(new DungeonPortalParticleEffect(new Vector3f(1.0f, 1.0f, 1.0f)), x, y, z, vx, vy, vz);
+                if (world.getRandom().nextInt(2) == 0) {
+                    double rx = pos.getX() + world.getRandom().nextDouble();
+                    double ry = pos.getY() + world.getRandom().nextDouble();
+                    double rz = pos.getZ() + world.getRandom().nextDouble();
+                    double rvx = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+                    double rvy = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+                    double rvz = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+                    int rd = world.getRandom().nextInt(2) * 2 - 1;
+                    if (axisX) { rz = pos.getZ() + 0.5 + 0.25 * rd; rvz = world.getRandom().nextFloat() * 0.08 * rd; }
+                    else        { rx = pos.getX() + 0.5 + 0.25 * rd; rvx = world.getRandom().nextFloat() * 0.08 * rd; }
+                    world.addParticle(DungeonPortalParticleEffect.reverse(new Vector3f(1.0f, 1.0f, 1.0f)), rx, ry, rz, rvx, rvy, rvz);
+                }
+            }
             return;
         }
 
@@ -349,6 +377,21 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             vx = world.getRandom().nextFloat() * 2.0f * d;
         }
         world.addParticle(new DungeonPortalParticleEffect(color), x, y, z, vx, vy, vz);
+
+        // Secondary REVERSE_PORTAL burst: particles shoot outward from the portal face,
+        // shrinking as they fly — opposite motion to the inward-converging colored particles.
+        if (world.getRandom().nextInt(2) == 0) {
+            double rx = pos.getX() + world.getRandom().nextDouble();
+            double ry = pos.getY() + world.getRandom().nextDouble();
+            double rz = pos.getZ() + world.getRandom().nextDouble();
+            double rvx = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            double rvy = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            double rvz = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            int rd = world.getRandom().nextInt(2) * 2 - 1;
+            if (axisX) { rz = pos.getZ() + 0.5 + 0.25 * rd; rvz = world.getRandom().nextFloat() * 0.08 * rd; }
+            else        { rx = pos.getX() + 0.5 + 0.25 * rd; rvx = world.getRandom().nextFloat() * 0.08 * rd; }
+            world.addParticle(DungeonPortalParticleEffect.reverse(color), rx, ry, rz, rvx, rvy, rvz);
+        }
     }
 
     public static void serverTick(World world, BlockPos pos, BlockState state, DungeonPortalEntity blockEntity) {

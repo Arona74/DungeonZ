@@ -82,6 +82,19 @@ public class DungeonSuperPortalEntity extends DungeonPortalEntity {
             vx = world.getRandom().nextFloat() * 2.0f * d;
         }
         world.addParticle(new DungeonPortalParticleEffect(color), x, y, z, vx, vy, vz);
+
+        if (world.getRandom().nextInt(2) == 0) {
+            double rx = pos.getX() + world.getRandom().nextDouble();
+            double ry = pos.getY() + world.getRandom().nextDouble();
+            double rz = pos.getZ() + world.getRandom().nextDouble();
+            double rvx = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            double rvy = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            double rvz = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            int rd = world.getRandom().nextInt(2) * 2 - 1;
+            if (axisX) { rz = pos.getZ() + 0.5 + 0.25 * rd; rvz = world.getRandom().nextFloat() * 0.08 * rd; }
+            else        { rx = pos.getX() + 0.5 + 0.25 * rd; rvx = world.getRandom().nextFloat() * 0.08 * rd; }
+            world.addParticle(DungeonPortalParticleEffect.reverse(color), rx, ry, rz, rvx, rvy, rvz);
+        }
     }
 
     public DungeonSuperPortalPacket getSuperPortalScreenData(ServerPlayerEntity player) {

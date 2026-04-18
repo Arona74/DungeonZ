@@ -27,10 +27,10 @@ public class RenderInit {
         BlockRenderLayerMap.INSTANCE.putBlock(BlockInit.DUNGEON_PORTAL, RenderLayer.getTranslucent());
         BlockRenderLayerMap.INSTANCE.putBlock(BlockInit.DUNGEON_SUPER_PORTAL, RenderLayer.getTranslucent());
 
-        BlockEntityRendererFactories.register(BlockInit.DUNGEON_PORTAL_ENTITY, ctx -> new DungeonPortalRenderer(ctx, DungeonPortalRenderer.COLORS_DUNGEON_PORTAL));
+        BlockEntityRendererFactories.register(BlockInit.DUNGEON_PORTAL_ENTITY, DungeonPortalRenderer::new);
         BlockEntityRendererFactories.register(BlockInit.DUNGEON_SPAWNER_ENTITY, DungeonSpawnerRenderer::new);
         BlockEntityRendererFactories.register(BlockInit.DUNGEON_GATE_ENTITY, DungeonGateRenderer::new);
-        BlockEntityRendererFactories.register(BlockInit.DUNGEON_SUPER_PORTAL_ENTITY, ctx -> new DungeonPortalRenderer(ctx, DungeonPortalRenderer.COLORS_SUPER_PORTAL));
+        BlockEntityRendererFactories.register(BlockInit.DUNGEON_SUPER_PORTAL_ENTITY, DungeonPortalRenderer::new);
 
         HandledScreens.register(BlockInit.PORTAL, DungeonPortalScreen::new);
         HandledScreens.register(BlockInit.SUPER_PORTAL, DungeonSuperPortalScreen::new);

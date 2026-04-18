@@ -11,7 +11,11 @@ public class ParticleInit {
     public static final ParticleType<DungeonPortalParticleEffect> DUNGEON_PORTAL_PARTICLE =
             DungeonPortalParticleEffect.TYPE;
 
+    public static final ParticleType<DungeonPortalParticleEffect> DUNGEON_REVERSE_PORTAL_PARTICLE =
+            DungeonPortalParticleEffect.REVERSE_TYPE;
+
     public static void init() {
         Registry.register(Registries.PARTICLE_TYPE, new Identifier("dungeonz", "dungeon_portal_particle"), DUNGEON_PORTAL_PARTICLE);
+        Registry.register(Registries.PARTICLE_TYPE, new Identifier("dungeonz", "dungeon_reverse_portal_particle"), DUNGEON_REVERSE_PORTAL_PARTICLE);
     }
 }

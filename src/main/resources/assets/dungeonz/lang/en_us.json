@@ -127,5 +127,6 @@
     "text.autoconfig.dungeonz.option.countdownY": "Countdown Hud Y",
     "text.autoconfig.dungeonz.option.countdownSize": "Countdown Hud Size",
     "text.autoconfig.dungeonz.option.lootrIntegration": "Lootr Integration",
-    "text.autoconfig.dungeonz.option.forcedRegeneration": "Force Full Dungeon Regeneration"
+    "text.autoconfig.dungeonz.option.forcedRegeneration": "Force Full Dungeon Regeneration",
+    "text.autoconfig.dungeonz.option.customPortalRendering": "Use End portal-like rendering for Dungeon Portal blocks"
 }
