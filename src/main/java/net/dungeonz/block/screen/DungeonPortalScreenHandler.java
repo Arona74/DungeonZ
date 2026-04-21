@@ -45,6 +45,9 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
     @Nullable
     private Identifier backgroundId = null;
 
+    private boolean dungeonTimerActive = false;
+    private int dungeonTimeRemaining = 0;
+
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, DungeonPortalPacket packet) {
         this(syncId, playerInventory, new DungeonPortalEntity(packet.blockPos(), playerInventory.player.getWorld().getBlockState(packet.blockPos())), ScreenHandlerContext.EMPTY);
         this.getDungeonPortalEntity().setDungeonType(packet.dungeonType());
@@ -74,6 +77,8 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         this.allowBossLoot = packet.allowBossLoot();
         this.getDungeonPortalEntity().setPrivateGroup(packet.privateGroup());
         this.backgroundId = packet.backgroundId().orElse(null);
+        this.dungeonTimerActive = packet.dungeonTimerActive();
+        this.dungeonTimeRemaining = packet.dungeonTimeRemaining();
     }
 
     public DungeonPortalScreenHandler(int syncId, PlayerInventory playerInventory, DungeonPortalEntity dungeonPortalEntity, ScreenHandlerContext context) {
@@ -86,7 +91,7 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
         if (!this.world.isClient()) {
             setDifficulties(this.dungeonPortalEntity.getDungeon().getDifficultyList());
             setRequiredItemStacks(DungeonHelper.getRequiredItemStackList(this.dungeonPortalEntity.getDungeon()));
-            setPossibleLootItemStacks(DungeonHelper.getPossibleLootItemStackMap(this.dungeonPortalEntity.getDungeon(), this.world.getServer()));
+            setPossibleLootItemStacks(this.dungeonPortalEntity.getDungeon().isHidePossibleLoot() ? new java.util.HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(this.dungeonPortalEntity.getDungeon(), this.world.getServer()));
         }
     }
 
@@ -184,5 +189,21 @@ public class DungeonPortalScreenHandler extends ScreenHandler {
 
     public boolean isAllowBossLoot() {
         return allowBossLoot;
+    }
+
+    public boolean isDungeonTimerActive() {
+        return dungeonTimerActive;
+    }
+
+    public void setDungeonTimerActive(boolean active) {
+        this.dungeonTimerActive = active;
+    }
+
+    public int getDungeonTimeRemaining() {
+        return dungeonTimeRemaining;
+    }
+
+    public void setDungeonTimeRemaining(int timeRemaining) {
+        this.dungeonTimeRemaining = timeRemaining;
     }
 }

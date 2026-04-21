@@ -33,6 +33,7 @@
       "net.dungeonz.compat.DungeonReiPlugin"
     ]
   },
+  "accessWidener": "dungeonz.accesswidener",
   "mixins": [
     "dungeonz.mixins.json"
   ],

@@ -60,6 +60,9 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 boolean allowBossLoot = data.has("boss_loot") ? data.get("boss_loot").getAsBoolean() : true;
                 Identifier dungeonBackgroundId = data.has("background_texture") && !data.get("background_texture").getAsString().isEmpty() ? Identifier.of(data.get("background_texture").getAsString()) : null;
                 Identifier dungeonStructurePoolId = Identifier.of(data.get("dungeon_structure_pool_id").getAsString());
+                boolean randomRotation = data.has("random_rotation") ? data.get("random_rotation").getAsBoolean() : false;
+                boolean hidePossibleLoot = data.has("hide_possible_loot") ? data.get("hide_possible_loot").getAsBoolean() : false;
+                int timeLimit = data.has("time_limit") ? data.get("time_limit").getAsInt() : 0;
 
                 List<String> difficulties = new ArrayList<String>();
                 // Use LinkedHashMap to preserve insertion order from JSON
@@ -239,7 +242,7 @@ public class DungeonLoader implements SimpleSynchronousResourceReloadListener {
                 Dungeon.addDungeon(new Dungeon(dungeonTypeId, blockIdEntityMap, blockIdEntitySpawnChance, blockIdBlockReplacement, spawnerEntityIdCountMap, difficultyRequiredItemCountMap, breakableBlockIds,
                         placeableBlockIds, difficulties, difficultyMobHealthModificator, difficultyMobDamageModificator, difficultyMobProtectionModificator, difficultyMobSpeedModificator, difficultyLootTableIds, difficultyBossHealthModificator,
                         difficultyBossDamageModificator, difficultyBossProtectionModificator, difficultyBossSpeedModificator, difficultyBossLootTable, bossEntityType, bossNbtCompound, bossBlockId,
-                        bossLootBlockId, exitBlockId, allowRespawn, allowElytra, keepInventory, allowEnderPearl, allowWindCharge, allowPositiveEffects, allowMobsLoot, allowBossLoot, maxGroupSize, minGroupSize, requiredLevel, cooldown, dungeonBackgroundId, dungeonStructurePoolId));
+                        bossLootBlockId, exitBlockId, allowRespawn, allowElytra, keepInventory, allowEnderPearl, allowWindCharge, allowPositiveEffects, allowMobsLoot, allowBossLoot, maxGroupSize, minGroupSize, requiredLevel, cooldown, timeLimit, dungeonBackgroundId, dungeonStructurePoolId, randomRotation, hidePossibleLoot));
             } catch (Exception e) {
                 DungeonzMain.LOGGER.error("Error occurred while loading resource {}. {}", id.toString(), e.toString());
             }

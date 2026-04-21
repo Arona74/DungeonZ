@@ -27,6 +27,7 @@ public class CommandInit {
                     dungeonPortalEntity.getDungeonPlayerUuids().remove(source.getPlayer().getUuid());
                     if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                         dungeonPortalEntity.setCooldownTime(dungeonPortalEntity.getDungeon().getCooldown() + (int) source.getPlayer().getServerWorld().getTime());
+                        dungeonPortalEntity.getDeadDungeonPlayerUUIDs().clear();
                     }
                     dungeonPortalEntity.markDirty();
                 }

@@ -26,6 +26,7 @@
 
     "container.dungeon_portal": "Dungeon Portal",
 
+    "dungeon.task.start": "Start",
     "dungeon.task.join": "Join",
     "dungeon.task.leave": "Leave",
     "dungeon.dark_dungeon": "Dark Dungeon",
@@ -83,6 +84,7 @@
     "text.dungeonz.private": "Private Group",
     "text.dungeonz.required_level": "Required Lv. %s",
     "text.dungeonz.nothing_required": "-",
+    "text.dungeonz.dead": "dead",
     "text.dungeonz.dead_player": "Rejoin not allowed",
     "text.dungeonz.empty_name": "-",
     "text.dungeonz.player_list": "Players (%d/%d)",
@@ -91,6 +93,7 @@
     "text.dungeonz.dungeon_private": "Dungeon is on private mode",
     "text.dungeonz.dungeon_cooldown": "Dungeon is on cooldown",
     "text.dungeonz.dungeon_cooldown_time": "Dungeon is on cooldown for %dh %dm %ds",
+    "text.dungeonz.dungeon_time_expired": "Time's up! You didn't complete the dungeon in time.",
     "text.dungeonz.dungeon_missing": "No dungeon found!",
     "text.dungeonz.dungeon_min_group_size": "Wait for %s more dungeon party member!",
     "text.dungeonz.dungeon_autokick": "You got autokicked cause it took you to long to finish the dungeon!",
@@ -121,5 +124,6 @@
     "text.autoconfig.dungeonz.option.countdownY": "Countdown Hud Y",
     "text.autoconfig.dungeonz.option.countdownSize": "Countdown Hud Size",
     "text.autoconfig.dungeonz.option.lootrIntegration": "Lootr Integration",
-    "text.autoconfig.dungeonz.option.forcedRegeneration": "Force Full Dungeon Regeneration"
+    "text.autoconfig.dungeonz.option.forcedRegeneration": "Force Full Dungeon Regeneration",
+    "text.autoconfig.dungeonz.option.customPortalRendering": "Use End portal-like rendering for Dungeon Portal blocks"
 }

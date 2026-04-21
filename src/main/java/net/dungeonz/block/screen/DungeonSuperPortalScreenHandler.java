@@ -48,6 +48,9 @@ public class DungeonSuperPortalScreenHandler extends ScreenHandler {
     @Nullable
     private Identifier backgroundId = null;
 
+    private boolean dungeonTimerActive = false;
+    private int dungeonTimeRemaining = 0;
+
     public DungeonSuperPortalScreenHandler(int syncId, PlayerInventory playerInventory, DungeonSuperPortalPacket packet) {
         this(syncId, playerInventory,
                 new DungeonSuperPortalEntity(packet.blockPos(), playerInventory.player.getWorld().getBlockState(packet.blockPos())),
@@ -80,6 +83,8 @@ public class DungeonSuperPortalScreenHandler extends ScreenHandler {
         this.getDungeonPortalEntity().setPrivateGroup(packet.privateGroup());
         this.backgroundId = packet.backgroundId().orElse(null);
         this.dungeonIdList = packet.dungeonIdList();
+        this.dungeonTimerActive = packet.dungeonTimerActive();
+        this.dungeonTimeRemaining = packet.dungeonTimeRemaining();
     }
 
     public DungeonSuperPortalScreenHandler(int syncId, PlayerInventory playerInventory, DungeonPortalEntity dungeonPortalEntity, ScreenHandlerContext context) {
@@ -194,5 +199,21 @@ public class DungeonSuperPortalScreenHandler extends ScreenHandler {
 
     public List<String> getDungeonIdList() {
         return this.dungeonIdList;
+    }
+
+    public boolean isDungeonTimerActive() {
+        return dungeonTimerActive;
+    }
+
+    public void setDungeonTimerActive(boolean active) {
+        this.dungeonTimerActive = active;
+    }
+
+    public int getDungeonTimeRemaining() {
+        return dungeonTimeRemaining;
+    }
+
+    public void setDungeonTimeRemaining(int timeRemaining) {
+        this.dungeonTimeRemaining = timeRemaining;
     }
 }

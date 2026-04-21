@@ -48,6 +48,7 @@ public class PlayerManagerMixin {
                 dungeonPortalEntity.getDungeonPlayerUuids().remove(player.getUuid());
                 if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                     dungeonPortalEntity.setCooldownTime(dungeonPortalEntity.getDungeon().getCooldown() + (int) player.getWorld().getTime());
+                    dungeonPortalEntity.getDeadDungeonPlayerUUIDs().clear();
                 }
                 dungeonPortalEntity.markDirty();
             }
@@ -70,6 +71,8 @@ public class PlayerManagerMixin {
                 dungeonPortalEntity.addDeadDungeonPlayerUuids(serverPlayerEntity.getUuid());
                 if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                     dungeonPortalEntity.setCooldownTime(dungeonPortalEntity.getDungeon().getCooldown() + (int) serverWorld.getTime());
+                    dungeonPortalEntity.getDungeonPlayerUuids().clear();
+                    dungeonPortalEntity.getDeadDungeonPlayerUUIDs().clear();
                 }
                 dungeonPortalEntity.markDirty();
             }

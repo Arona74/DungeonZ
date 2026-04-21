@@ -37,6 +37,7 @@ import net.partyaddon.group.GroupManager;
 public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandler> implements ScreenHandlerListener {
 
     private static final Identifier ICONS = Identifier.of("dungeonz:textures/gui/dungeon_icons.png");
+    private static final Text START = Text.translatable("dungeon.task.start");
     private static final Text JOIN = Text.translatable("dungeon.task.join");
     private static final Text LEAVE = Text.translatable("dungeon.task.leave");
     private static final ItemStack INFO_ITEMSTACK = new ItemStack(Items.CREEPER_BANNER_PATTERN);
@@ -46,6 +47,7 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
     private DungeonButton dungeonButton;
     private DungeonSliderButton privateButton;
     private final PlayerEntity playerEntity;
+    private boolean wasCooldownActive = false;
 
     public DungeonPortalScreen(DungeonPortalScreenHandler handler, PlayerInventory inventory, Text title) {
         super(handler, inventory, title);
@@ -64,7 +66,14 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         this.handler.addListener(this);
 
         final boolean playerIsInDungeonWorld = playerEntity.getWorld().getRegistryKey() == DimensionInit.DUNGEON_WORLD;
-        Text buttonText = playerIsInDungeonWorld ? LEAVE : JOIN;
+        Text buttonText;
+        if (playerIsInDungeonWorld) {
+            buttonText = LEAVE;
+        } else if (this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().isEmpty()) {
+            buttonText = START;
+        } else {
+            buttonText = JOIN;
+        }
 
         this.dungeonButton = this.addDrawableChild(new DungeonButton(this.x + this.backgroundWidth / 2 - 26, this.y + this.backgroundHeight - 28, buttonText, (button) -> {
             if (button.active) {
@@ -147,6 +156,12 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
     @Override
     public void handledScreenTick() {
         super.handledScreenTick();
+        boolean onCooldown = this.handler.getDungeonPortalEntity().isOnCooldown((int) this.client.world.getTime());
+        if (this.wasCooldownActive != onCooldown) {
+            this.handler.removeListener(this);
+            this.init(this.client, this.width, this.height);
+        }
+        this.wasCooldownActive = onCooldown;
     }
 
     @Override
@@ -156,6 +171,21 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         // Title
         context.drawText(this.textRenderer, this.title, this.x + this.backgroundWidth / 2 - this.textRenderer.getWidth(this.title) / 2, this.y + 8, 0x404040, false);
 
+        // Dungeon Timer (top left, dark blue) or Cooldown (dark red)
+        if (this.handler.isDungeonTimerActive() && this.handler.getDungeonTimeRemaining() > 0) {
+            int t = this.handler.getDungeonTimeRemaining();
+            int hours = t / 3600, minutes = (t % 3600) / 60, seconds = t % 60;
+            String timerText = hours > 0 ? String.format("Time left: %dh:%02dm:%02ds", hours, minutes, seconds)
+                                         : String.format("Time left: %dm:%02ds", minutes, seconds);
+            context.drawText(this.textRenderer, timerText, this.x + 8, this.y + 8, 0x000080, false);
+        } else if (this.handler.getDungeonPortalEntity().isOnCooldown((int) this.client.world.getTime())) {
+            int t = (this.handler.getDungeonPortalEntity().getCooldownTime() - (int) this.client.world.getTime()) / 20;
+            int hours = t / 3600, minutes = (t % 3600) / 60, seconds = t % 60;
+            String cooldownText = hours > 0 ? String.format("Cooldown: %dh:%02dm:%02ds", hours, minutes, seconds)
+                                            : String.format("Cooldown: %dm:%02ds", minutes, seconds);
+            context.drawText(this.textRenderer, cooldownText, this.x + 8, this.y + 8, 0xAA0000, false);
+        }
+
         // Dungeon player list
         int k = this.y + 37;
         context.drawText(this.textRenderer,
@@ -163,7 +193,8 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                         this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() + this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs().size(),
                         this.handler.getDungeonPortalEntity().getMaxGroupSize()),
                 this.x + 8, this.y + 24, 0x3F3F3F, false);
-        for (int i = 0; i < this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size() && i < 13; i++) {
+        int activeCount = Math.min(this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().size(), 13);
+        for (int i = 0; i < activeCount; i++) {
             String playerName = getPlayerName(this.handler.getDungeonPortalEntity().getDungeonPlayerUuids().get(i), 102, 15).getString();
             if (i == 12) {
                 playerName = "...";
@@ -176,6 +207,12 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
                 }
             }
             context.drawText(this.textRenderer, playerName, this.x + 13, k, 0xFFFFFF, false);
+            k += 13;
+        }
+        List<UUID> deadUuids = this.handler.getDungeonPortalEntity().getDeadDungeonPlayerUUIDs();
+        for (int i = 0; i < deadUuids.size() && (activeCount + i) < 13; i++) {
+            String deadName = getPlayerName(deadUuids.get(i), 90, 12).getString() + " (" + Text.translatable("text.dungeonz.dead").getString() + ")";
+            context.drawText(this.textRenderer, deadName, this.x + 13, k, 0xFF5555, false);
             k += 13;
         }
         // Required items
@@ -200,9 +237,9 @@ public class DungeonPortalScreen extends HandledScreen<DungeonPortalScreenHandle
         }
 
         // Possible loot
-        context.drawText(this.textRenderer, Text.translatable("text.dungeonz.possible"), this.x + 139, this.y + 115, 0x3F3F3F, false);
         if (this.handler.getPossibleLootDifficultyItemStackMap().size() > 0 && this.handler.getPossibleLootDifficultyItemStackMap().containsKey(this.handler.getDungeonPortalEntity().getDifficulty())
                 && this.handler.getPossibleLootDifficultyItemStackMap().get(this.handler.getDungeonPortalEntity().getDifficulty()).size() > 0) {
+            context.drawText(this.textRenderer, Text.translatable("text.dungeonz.possible"), this.x + 139, this.y + 115, 0x3F3F3F, false);
             int l = 0;
             int o = 0;
             for (int i = 0; i < this.handler.getPossibleLootDifficultyItemStackMap().get(this.handler.getDungeonPortalEntity().getDifficulty()).size() && i < 10; i++) {

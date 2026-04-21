@@ -17,7 +17,7 @@ public record DungeonSuperPortalPacket(String dungeonType, BlockPos blockPos, Li
                                        Map<String, List<ItemStack>> requiredItemStacks, int maxGroupSize, int minGroupSize, int waitingPlayerCount, int requiredLevel, int cooldownTime, String difficulty,
                                        boolean allowEnderPearl, boolean allowWindCharge, boolean allowPositiveEffects, boolean allowElytra, boolean allowRespawn, boolean keepInventory,
                                        boolean allowMobsLoot, boolean allowBossLoot, boolean privateGroup, Optional<Identifier> backgroundId,
-                                       List<String> dungeonIdList)
+                                       List<String> dungeonIdList, boolean dungeonTimerActive, int dungeonTimeRemaining)
         implements CustomPayload {
 
     public static final CustomPayload.Id<DungeonSuperPortalPacket> PACKET_ID = new CustomPayload.Id<>(Identifier.of("dungeonz", "dungeon_super_portal_packet"));
@@ -47,12 +47,14 @@ public record DungeonSuperPortalPacket(String dungeonType, BlockPos blockPos, Li
         buf.writeBoolean(value.privateGroup);
         buf.writeOptional(value.backgroundId, PacketByteBuf::writeIdentifier);
         buf.writeCollection(value.dungeonIdList, PacketByteBuf::writeString);
+        buf.writeBoolean(value.dungeonTimerActive);
+        buf.writeInt(value.dungeonTimeRemaining);
 
     }, buf -> new DungeonSuperPortalPacket(buf.readString(), buf.readBlockPos(), buf.readList((buffer) -> PacketByteBuf.readUuid(buffer)), buf.readList((buffer) -> PacketByteBuf.readUuid(buffer)),
             buf.readList(PacketByteBuf::readString), buf.readMap(PacketByteBuf::readString, (bufx) -> ItemStack.LIST_PACKET_CODEC.decode(buf)),
             buf.readMap(PacketByteBuf::readString, (bufx) -> ItemStack.LIST_PACKET_CODEC.decode(buf)), buf.readInt(),
             buf.readInt(), buf.readInt(), buf.readInt(), buf.readInt(), buf.readString(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readBoolean(),
-            buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readOptional(PacketByteBuf::readIdentifier), buf.readList(PacketByteBuf::readString)));
+            buf.readBoolean(), buf.readBoolean(), buf.readBoolean(), buf.readOptional(PacketByteBuf::readIdentifier), buf.readList(PacketByteBuf::readString), buf.readBoolean(), buf.readInt()));
 
     @Override
     public Id<? extends CustomPayload> getId() {

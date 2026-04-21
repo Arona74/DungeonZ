@@ -2,6 +2,7 @@ package net.dungeonz.block.entity;
 
 import net.dungeonz.block.DungeonPortalBlock;
 import net.dungeonz.block.screen.DungeonPortalScreenHandler;
+import net.dungeonz.block.screen.DungeonSuperPortalScreenHandler;
 import net.dungeonz.compat.LootrCompat;
 import net.dungeonz.dungeon.Dungeon;
 import net.dungeonz.dungeon.DungeonDataManager;
@@ -24,7 +25,6 @@ import net.minecraft.entity.player.PlayerInventory;
 import net.minecraft.item.ItemStack;
 import net.minecraft.nbt.NbtCompound;
 import net.minecraft.network.packet.s2c.play.BlockEntityUpdateS2CPacket;
-import net.minecraft.particle.DustParticleEffect;
 import org.joml.Vector3f;
 import net.minecraft.registry.Registries;
 import net.minecraft.registry.RegistryWrapper;
@@ -51,6 +51,8 @@ import java.util.Map.Entry;
 
 public class DungeonPortalEntity extends EndPortalBlockEntity implements ExtendedScreenHandlerFactory<DungeonPortalPacket> {
 
+    public static final java.util.concurrent.CopyOnWriteArraySet<DungeonPortalEntity> ACTIVE_TIMER_PORTALS = new java.util.concurrent.CopyOnWriteArraySet<>();
+
     private static final Logger LOGGER = LogManager.getLogger("DungeonPortal");
 
     private Text title = Text.translatable("container.dungeon_portal");
@@ -63,6 +65,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private int minGroupSize = 0;
     private List<UUID> waitingUuids = new ArrayList<UUID>();
     private int cooldownTime = 0;
+    private int dungeonStartTime = 0;
+    private boolean dungeonTimerActive = false;
     private int autoKickTime = 0;
     private boolean privateGroup = false;
     // Large runtime data (blockBlockPosMap, movingBlockMap, etc.) is now stored via DungeonDataManager
@@ -73,6 +77,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     private boolean needsMigration = false;
     private NbtCompound pendingMigrationData = null;
     private boolean validationChecked = false;
+    private boolean soloStateChecked = false;
 
     public DungeonPortalEntity(BlockPos pos, BlockState state) {
         super(BlockInit.DUNGEON_PORTAL_ENTITY, pos, state);
@@ -99,6 +104,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         this.maxGroupSize = nbt.getInt("MaxGroupSize");
         this.minGroupSize = nbt.getInt("MinGroupSize");
         this.cooldownTime = nbt.getInt("CooldownTime");
+        this.dungeonStartTime = nbt.getInt("DungeonStartTime");
+        this.dungeonTimerActive = nbt.getBoolean("DungeonTimerActive");
         this.autoKickTime = nbt.getInt("AutoKickTime");
         this.privateGroup = nbt.getBoolean("PrivateGroup");
 
@@ -262,6 +269,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         nbt.putInt("MaxGroupSize", this.maxGroupSize);
         nbt.putInt("MinGroupSize", this.minGroupSize);
         nbt.putInt("CooldownTime", this.cooldownTime);
+        nbt.putInt("DungeonStartTime", this.dungeonStartTime);
+        nbt.putBoolean("DungeonTimerActive", this.dungeonTimerActive);
         nbt.putInt("AutoKickTime", this.autoKickTime);
         nbt.putBoolean("PrivateGroup", this.privateGroup);
 
@@ -294,36 +303,84 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         }
 
         if (source.dungeonType.isEmpty()) {
+            if (world.getRegistryKey() == net.dungeonz.init.DimensionInit.DUNGEON_WORLD) {
+                if (world.getRandom().nextInt(4) != 0) return;
+                boolean axisXExit = state.contains(DungeonPortalBlock.AXIS)
+                        && state.get(DungeonPortalBlock.AXIS) == Direction.Axis.X;
+                double ex = pos.getX() + world.getRandom().nextDouble();
+                double ey = pos.getY() + world.getRandom().nextDouble();
+                double ez = pos.getZ() + world.getRandom().nextDouble();
+                double evx = (world.getRandom().nextFloat() - 0.5) * 0.5;
+                double evy = (world.getRandom().nextFloat() - 0.5) * 0.5;
+                double evz = (world.getRandom().nextFloat() - 0.5) * 0.5;
+                int ed = world.getRandom().nextInt(2) * 2 - 1;
+                if (axisXExit) { ez = pos.getZ() + 0.5 + 0.25 * ed; evz = world.getRandom().nextFloat() * 2.0f * ed; }
+                else           { ex = pos.getX() + 0.5 + 0.25 * ed; evx = world.getRandom().nextFloat() * 2.0f * ed; }
+                world.addParticle(new net.dungeonz.particle.DungeonPortalParticleEffect(new Vector3f(1.0f, 1.0f, 1.0f)), ex, ey, ez, evx, evy, evz);
+                if (world.getRandom().nextInt(2) == 0) {
+                    double rx = pos.getX() + world.getRandom().nextDouble();
+                    double ry = pos.getY() + world.getRandom().nextDouble();
+                    double rz = pos.getZ() + world.getRandom().nextDouble();
+                    double rvx = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+                    double rvy = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+                    double rvz = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+                    int rd = world.getRandom().nextInt(2) * 2 - 1;
+                    if (axisXExit) { rz = pos.getZ() + 0.5 + 0.25 * rd; rvz = world.getRandom().nextFloat() * 0.08 * rd; }
+                    else           { rx = pos.getX() + 0.5 + 0.25 * rd; rvx = world.getRandom().nextFloat() * 0.08 * rd; }
+                    world.addParticle(net.dungeonz.particle.DungeonPortalParticleEffect.reverse(new Vector3f(1.0f, 1.0f, 1.0f)), rx, ry, rz, rvx, rvy, rvz);
+                }
+            }
             return;
         }
 
-        // Spawn ~1 particle every 3 ticks
-        if (world.getRandom().nextInt(2) != 0) {
+        if (source == blockEntity && world.getRandom().nextInt(40) == 0) {
+            world.playSound(pos.getX() + 0.5, pos.getY() + 0.5, pos.getZ() + 0.5,
+                    net.minecraft.sound.SoundEvents.BLOCK_PORTAL_AMBIENT, net.minecraft.sound.SoundCategory.BLOCKS,
+                    0.5f, world.getRandom().nextFloat() * 0.2f + 0.3f, false);
+        }
+
+        if (world.getRandom().nextInt(4) != 0) {
             return;
         }
 
         Vector3f color;
         if (source.getDungeonPlayerCount() > 0) {
-            color = new Vector3f(0.2f, 0.4f, 1.0f);   // blue  — active
+            color = new Vector3f(0.2f, 0.4f, 1.0f);
         } else if (source.isOnCooldown((int) world.getTime())) {
-            color = new Vector3f(1.0f, 0.2f, 0.2f);   // red   — on cooldown
+            color = new Vector3f(1.0f, 0.2f, 0.2f);
         } else {
-            color = new Vector3f(0.2f, 1.0f, 0.3f);   // green — ready
+            color = new Vector3f(0.2f, 1.0f, 0.3f);
         }
 
-        for (int i = 0; i < 1; i++) {
-            double bx = pos.getX(), by = pos.getY(), bz = pos.getZ();
-            double x, y, z, vx = 0, vy = 0, vz = 0;
-            // Spawn on a random face surface so particles aren't hidden inside the block
-            switch (world.getRandom().nextInt(6)) {
-                case 0 -> { x = bx + world.getRandom().nextDouble(); y = by + 1.01; z = bz + world.getRandom().nextDouble(); vy =  0.04; } // top
-                case 1 -> { x = bx + world.getRandom().nextDouble(); y = by - 0.01; z = bz + world.getRandom().nextDouble(); vy = -0.04; } // bottom
-                case 2 -> { x = bx + 1.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx =  0.04; } // east
-                case 3 -> { x = bx - 0.01; y = by + world.getRandom().nextDouble(); z = bz + world.getRandom().nextDouble(); vx = -0.04; } // west
-                case 4 -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz + 1.01; vz =  0.04; } // south
-                default -> { x = bx + world.getRandom().nextDouble(); y = by + world.getRandom().nextDouble(); z = bz - 0.01; vz = -0.04; } // north
-            }
-            world.addParticle(new DustParticleEffect(color, 1.2f), x, y, z, vx, vy, vz);
+        boolean axisX = state.contains(DungeonPortalBlock.AXIS)
+                && state.get(DungeonPortalBlock.AXIS) == Direction.Axis.X;
+        double x = pos.getX() + world.getRandom().nextDouble();
+        double y = pos.getY() + world.getRandom().nextDouble();
+        double z = pos.getZ() + world.getRandom().nextDouble();
+        double vx = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        double vy = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        double vz = (world.getRandom().nextFloat() - 0.5) * 0.5;
+        int d = world.getRandom().nextInt(2) * 2 - 1;
+        if (axisX) {
+            z = pos.getZ() + 0.5 + 0.25 * d;
+            vz = world.getRandom().nextFloat() * 2.0f * d;
+        } else {
+            x = pos.getX() + 0.5 + 0.25 * d;
+            vx = world.getRandom().nextFloat() * 2.0f * d;
+        }
+        world.addParticle(new net.dungeonz.particle.DungeonPortalParticleEffect(color), x, y, z, vx, vy, vz);
+
+        if (world.getRandom().nextInt(2) == 0) {
+            double rx = pos.getX() + world.getRandom().nextDouble();
+            double ry = pos.getY() + world.getRandom().nextDouble();
+            double rz = pos.getZ() + world.getRandom().nextDouble();
+            double rvx = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            double rvy = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            double rvz = (world.getRandom().nextFloat() - 0.5f) * 0.04;
+            int rd = world.getRandom().nextInt(2) * 2 - 1;
+            if (axisX) { rz = pos.getZ() + 0.5 + 0.25 * rd; rvz = world.getRandom().nextFloat() * 0.08 * rd; }
+            else       { rx = pos.getX() + 0.5 + 0.25 * rd; rvx = world.getRandom().nextFloat() * 0.08 * rd; }
+            world.addParticle(net.dungeonz.particle.DungeonPortalParticleEffect.reverse(color), rx, ry, rz, rvx, rvy, rvz);
         }
     }
 
@@ -333,6 +390,23 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             blockEntity.performMigration(serverWorld);
             blockEntity.needsMigration = false;
             blockEntity.pendingMigrationData = null;
+        }
+
+        // Set SOLO block state once after load based on neighboring portals
+        if (!blockEntity.soloStateChecked) {
+            blockEntity.soloStateChecked = true;
+            Block thisBlock = state.getBlock();
+            boolean hasSameNeighbor = false;
+            for (Direction dir : Direction.Type.HORIZONTAL) {
+                if (world.getBlockState(pos.offset(dir)).isOf(thisBlock)) {
+                    hasSameNeighbor = true;
+                    break;
+                }
+            }
+            boolean correctSolo = !hasSameNeighbor;
+            if (state.get(DungeonPortalBlock.SOLO) != correctSolo) {
+                world.setBlockState(pos, state.with(DungeonPortalBlock.SOLO, correctSolo), Block.NOTIFY_LISTENERS);
+            }
         }
 
         // Validate and repair portal data once after load
@@ -407,7 +481,13 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
                     }
                 }
                 blockEntity.getWaitingUuids().clear();
+                blockEntity.startDungeonTimer();
             }
+        }
+
+        // Stop timer if no players remain in dungeon
+        if (blockEntity.isDungeonTimerActive() && blockEntity.getDungeonPlayerCount() == 0) {
+            blockEntity.stopDungeonTimer();
         }
     }
 
@@ -457,7 +537,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         boolean allowBossLoot = true;
         if (this.getDungeon() instanceof Dungeon dungeon) {
             difficulties = dungeon.getDifficultyList();
-            possibleLoot = DungeonHelper.getPossibleLootItemStackMap(dungeon, player.getServer());
+            possibleLoot = dungeon.isHidePossibleLoot() ? new HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(dungeon, player.getServer());
             requiredItemStacks = DungeonHelper.getRequiredItemStackList(dungeon);
             backgroundId = Optional.ofNullable(dungeon.getBackgroundId());
             requiredLevel = dungeon.getRequiredLevel();
@@ -473,7 +553,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         return new DungeonPortalPacket(this.getDungeonType(), this.pos, this.getDungeonPlayerUuids(), this.getDeadDungeonPlayerUUIDs(), difficulties, possibleLoot, requiredItemStacks, this.getMaxGroupSize(),
                 this.getMinGroupSize(), this.getWaitingUuids().size(), requiredLevel, this.getCooldownTime(), this.getDifficulty(), allowEnderPearl, allowWindCharge, allowPositiveEffects, allowElytra, allowRespawn, keepInventory,
-                allowMobsLoot, allowBossLoot, this.getPrivateGroup(), backgroundId);
+                allowMobsLoot, allowBossLoot, this.getPrivateGroup(), backgroundId, this.isDungeonTimerActive(), this.getDungeonTimeRemaining());
     }
 
     public void finishDungeon(ServerWorld world, BlockPos pos) {
@@ -510,8 +590,76 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             InventoryHelper.fillInventoryWithLoot(world.getServer(), world, this.getBossLootBlockPos(), bossLootTableString);
         }
 
+        this.stopDungeonTimer();
         this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
+        this.getDungeonPlayerUuids().clear();
+        this.getDeadDungeonPlayerUUIDs().clear();
         markDirty();
+    }
+
+    public void syncGuiToAllViewers() {
+        if (this.world == null || this.world.isClient() || this.world.getServer() == null) return;
+        for (net.minecraft.server.network.ServerPlayerEntity p : this.world.getServer().getPlayerManager().getPlayerList()) {
+            if (this.dungeonPlayerUuids.contains(p.getUuid())) continue;
+            if (p.currentScreenHandler instanceof DungeonPortalScreenHandler h && h.getPos().equals(this.pos)) {
+                DungeonServerPacket.writeS2CSyncScreenPacket(p, this);
+            } else if (p.currentScreenHandler instanceof DungeonSuperPortalScreenHandler h && h.getPos().equals(this.pos)) {
+                DungeonServerPacket.writeS2CSyncScreenPacket(p, this);
+            }
+        }
+    }
+
+    public void startDungeonTimer() {
+        if (this.getDungeon() != null && this.getDungeon().hasTimeLimit()) {
+            this.dungeonStartTime = (int) this.world.getTime();
+            this.dungeonTimerActive = true;
+            this.markDirty();
+            ACTIVE_TIMER_PORTALS.add(this);
+        }
+    }
+
+    public void stopDungeonTimer() {
+        this.dungeonTimerActive = false;
+        this.markDirty();
+        ACTIVE_TIMER_PORTALS.remove(this);
+        this.syncGuiToAllViewers();
+    }
+
+    public boolean isDungeonTimerActive() {
+        return this.dungeonTimerActive;
+    }
+
+    public int getDungeonTimeRemaining() {
+        if (!this.dungeonTimerActive || this.getDungeon() == null || !this.getDungeon().hasTimeLimit()) {
+            return 0;
+        }
+        int elapsed = ((int) this.world.getTime() - this.dungeonStartTime) / 20;
+        return Math.max(0, this.getDungeon().getTimeLimit() - elapsed);
+    }
+
+    public boolean isDungeonTimerExpired() {
+        return this.dungeonTimerActive && this.getDungeonTimeRemaining() <= 0;
+    }
+
+    public void handleDungeonTimerExpired() {
+        if (this.world == null || this.world.isClient()) return;
+        List<UUID> playersToTeleport = new ArrayList<>(this.getDungeonPlayerUuids());
+        ServerWorld dungeonWorld = this.world.getServer().getWorld(DimensionInit.DUNGEON_WORLD);
+        for (UUID playerUuid : playersToTeleport) {
+            ServerPlayerEntity player = dungeonWorld != null ? (ServerPlayerEntity) dungeonWorld.getPlayerByUuid(playerUuid) : null;
+            if (player == null) player = this.world.getServer().getPlayerManager().getPlayer(playerUuid);
+            if (player != null) {
+                DungeonHelper.teleportOutOfDungeon(player);
+                player.sendMessage(Text.translatable("text.dungeonz.dungeon_time_expired"), false);
+            }
+        }
+        this.setDungeonPlayerUuids(new ArrayList<>());
+        this.setDeadDungeonPlayerUuids(new ArrayList<>());
+        this.stopDungeonTimer();
+        if (this.getDungeon() != null) {
+            this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
+        }
+        this.markDirty();
     }
 
     @Nullable
@@ -554,6 +702,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             if (this.world != null && !this.world.isClient()) {
                 this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_ALL);
             }
+            this.syncGuiToAllViewers();
         }
     }
 
@@ -563,6 +712,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         if (this.world != null && !this.world.isClient()) {
             this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_ALL);
         }
+        this.syncGuiToAllViewers();
     }
 
     public int getDungeonPlayerCount() {
@@ -577,8 +727,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         return this.dungeonPlayerUuids;
     }
 
-    public void addDeadDungeonPlayerUuids(UUID deadDungeonPlayerUuids) {
-        this.deadDungeonPlayerUuids.add(deadDungeonPlayerUuids);
+    public void addDeadDungeonPlayerUuids(UUID deadDungeonPlayerUuid) {
+        this.deadDungeonPlayerUuids.add(deadDungeonPlayerUuid);
+        this.syncGuiToAllViewers();
     }
 
     public void setDeadDungeonPlayerUuids(List<UUID> deadDungeonPlayerUuids) {
@@ -637,6 +788,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         if (this.world != null && !this.world.isClient()) {
             this.world.updateListeners(this.pos, this.getCachedState(), this.getCachedState(), Block.NOTIFY_ALL);
         }
+        this.syncGuiToAllViewers();
     }
 
     public int getCooldownTime() {

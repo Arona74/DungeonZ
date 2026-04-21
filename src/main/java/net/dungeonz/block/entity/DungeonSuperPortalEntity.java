@@ -44,7 +44,7 @@ public class DungeonSuperPortalEntity extends DungeonPortalEntity {
 
         if (this.getDungeon() instanceof Dungeon dungeon) {
             difficulties = dungeon.getDifficultyList();
-            possibleLoot = DungeonHelper.getPossibleLootItemStackMap(dungeon, player.getServer());
+            possibleLoot = dungeon.isHidePossibleLoot() ? new java.util.HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(dungeon, player.getServer());
             requiredItemStacks = DungeonHelper.getRequiredItemStackList(dungeon);
             backgroundId = Optional.ofNullable(dungeon.getBackgroundId());
             requiredLevel = dungeon.getRequiredLevel();
@@ -68,7 +68,7 @@ public class DungeonSuperPortalEntity extends DungeonPortalEntity {
                 this.getMaxGroupSize(), this.getMinGroupSize(), this.getWaitingUuids().size(), requiredLevel,
                 this.getCooldownTime(), this.getDifficulty(), allowEnderPearl, allowWindCharge, allowPositiveEffects,
                 allowElytra, allowRespawn, keepInventory, allowMobsLoot, allowBossLoot, this.getPrivateGroup(),
-                backgroundId, dungeonIdList);
+                backgroundId, dungeonIdList, this.isDungeonTimerActive(), this.getDungeonTimeRemaining());
     }
 
     public static ExtendedScreenHandlerFactory<DungeonSuperPortalPacket> createScreenFactory(

@@ -45,6 +45,8 @@ public class DungeonClientPacket {
         ClientPlayNetworking.registerGlobalReceiver(DungeonSyncScreenPacket.PACKET_ID, (payload, context) -> {
             BlockPos dungeonPortalPos = payload.blockPos();
             String difficulty = payload.difficulty();
+            boolean dungeonTimerActive = payload.dungeonTimerActive();
+            int dungeonTimeRemaining = payload.dungeonTimeRemaining();
 
             context.client().execute(() -> {
                 if (context.client().world.getBlockEntity(dungeonPortalPos) != null && context.client().world.getBlockEntity(dungeonPortalPos) instanceof DungeonPortalEntity dungeonPortalEntity) {
@@ -58,9 +60,19 @@ public class DungeonClientPacket {
                     }
                     if (context.client().player.currentScreenHandler instanceof DungeonPortalScreenHandler dungeonPortalScreenHandler) {
                         dungeonPortalScreenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
+                        dungeonPortalScreenHandler.getDungeonPortalEntity().setCooldownTime(payload.cooldownTime());
+                        dungeonPortalScreenHandler.getDungeonPortalEntity().setDungeonPlayerUuids(new java.util.ArrayList<>(payload.dungeonPlayerUuids()));
+                        dungeonPortalScreenHandler.getDungeonPortalEntity().setDeadDungeonPlayerUuids(new java.util.ArrayList<>(payload.deadPlayerUuids()));
+                        dungeonPortalScreenHandler.setDungeonTimerActive(dungeonTimerActive);
+                        dungeonPortalScreenHandler.setDungeonTimeRemaining(dungeonTimeRemaining);
                     }
                     if (context.client().player.currentScreenHandler instanceof DungeonSuperPortalScreenHandler superPortalScreenHandler) {
                         superPortalScreenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
+                        superPortalScreenHandler.getDungeonPortalEntity().setCooldownTime(payload.cooldownTime());
+                        superPortalScreenHandler.getDungeonPortalEntity().setDungeonPlayerUuids(new java.util.ArrayList<>(payload.dungeonPlayerUuids()));
+                        superPortalScreenHandler.getDungeonPortalEntity().setDeadDungeonPlayerUuids(new java.util.ArrayList<>(payload.deadPlayerUuids()));
+                        superPortalScreenHandler.setDungeonTimerActive(dungeonTimerActive);
+                        superPortalScreenHandler.setDungeonTimeRemaining(dungeonTimeRemaining);
                     }
                 }
             });

@@ -189,7 +189,11 @@ public class DungeonServerPacket {
     }
 
     public static void writeS2CSyncScreenPacket(ServerPlayerEntity serverPlayerEntity, DungeonPortalEntity dungeonPortalEntity) {
-        ServerPlayNetworking.send(serverPlayerEntity, new DungeonSyncScreenPacket(dungeonPortalEntity.getPos(), dungeonPortalEntity.getDifficulty()));
+        ServerPlayNetworking.send(serverPlayerEntity, new DungeonSyncScreenPacket(dungeonPortalEntity.getPos(), dungeonPortalEntity.getDifficulty(),
+                dungeonPortalEntity.isDungeonTimerActive(), dungeonPortalEntity.getDungeonTimeRemaining(),
+                dungeonPortalEntity.getCooldownTime(),
+                new ArrayList<>(dungeonPortalEntity.getDungeonPlayerUuids()),
+                new ArrayList<>(dungeonPortalEntity.getDeadDungeonPlayerUUIDs())));
     }
 
     public static void writeS2COpenOpScreenPacket(ServerPlayerEntity serverPlayerEntity, @Nullable DungeonPortalEntity dungeonPortalEntity, @Nullable DungeonGateEntity dungeonGateEntity) {

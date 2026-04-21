@@ -15,6 +15,7 @@
 
     "container.dungeon_portal": "Portail du Donjon",
 
+    "dungeon.task.start": "Démarrer",
     "dungeon.task.join": "Rejoindre",
     "dungeon.task.leave": "Quitter",
     "dungeon.ruin_dungeon": "Donjon en Ruines",
@@ -57,6 +58,7 @@
     "text.dungeonz.private": "Groupe Privé",
     "text.dungeonz.required_level": "Niv. %s requis",
     "text.dungeonz.nothing_required": "-",
+    "text.dungeonz.dead": "mort",
     "text.dungeonz.dead_player": "Réintégration non autorisée",
     "text.dungeonz.empty_name": "-",
     "text.dungeonz.player_list": "Joueurs (%d/%d)",
@@ -65,6 +67,7 @@
     "text.dungeonz.dungeon_private": "Le Donjon est en mode privé",
     "text.dungeonz.dungeon_cooldown": "Le Donjon est en rechargement",
     "text.dungeonz.dungeon_cooldown_time": "Le Donjon est en rechargement pour %dh %dm %ds",
+    "text.dungeonz.dungeon_time_expired": "Temps écoulé! Vous n'avez pas réussi le donjon dans les temps.",
     "text.dungeonz.dungeon_missing": "Aucun donjon trouvé !",
     "text.dungeonz.dungeon_min_group_size": "Attendez %s membres de groupe de donjon supplémentaires !",
     "text.dungeonz.dungeon_autokick": "Vous avez été expulsé automatiquement car vous avez mis trop de temps à terminer le donjon !",
@@ -95,5 +98,6 @@
     "text.autoconfig.dungeonz.option.countdownY": "Position Y du Compte à Rebours",
     "text.autoconfig.dungeonz.option.countdownSize": "Taille du Compte à Rebours",
     "text.autoconfig.dungeonz.option.lootrIntegration": "Compatibilité Lootr",
-    "text.autoconfig.dungeonz.option.forcedRegeneration": "Forcer la régénération totale des Donjons"
+    "text.autoconfig.dungeonz.option.forcedRegeneration": "Forcer la régénération totale des Donjons",
+    "text.autoconfig.dungeonz.option.customPortalRendering": "Utiliser le rendu de portail de l'End pour les blocs de portail de Donjon"
 }
