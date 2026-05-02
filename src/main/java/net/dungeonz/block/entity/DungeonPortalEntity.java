@@ -1010,6 +1010,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     }
 
     public void startDungeonTeleportCountdown(ServerWorld dungeonWorld) {
+        if (this.dungeonTeleportCountdown > 0) return;
         this.dungeonTeleportCountdown = ConfigInit.CONFIG.defaultDungeonTeleportCountdown;
 
         boolean isDungeonStructureGenerated = this.isDungeonStructureGenerated();

@@ -40,6 +40,7 @@ public class DungeonzMain implements ModInitializer {
     public static final boolean isLevelZLoaded = FabricLoader.getInstance().isModLoaded("levelz");
     public static final boolean isFactionsLoaded = FabricLoader.getInstance().isModLoaded("factions");
     public static final boolean isLootrLoaded = FabricLoader.getInstance().isModLoaded("lootr");
+    public static final boolean isTrinketsLoaded = FabricLoader.getInstance().isModLoaded("trinkets");
 
     public static final List<Dungeon> DUNGEONS = new ArrayList<Dungeon>();
 

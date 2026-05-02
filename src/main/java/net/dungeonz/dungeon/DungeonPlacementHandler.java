@@ -598,23 +598,27 @@ public class DungeonPlacementHandler {
 
         // Refresh boss
         MobEntity bossEntity = createMob(world, dungeon.getBossEntityType(), dungeon.getBossNbtCompound());
-        bossEntity.initialize(world, world.getLocalDifficulty(portalEntity.getBossBlockPos()), SpawnReason.STRUCTURE, null, null);
-        bossEntity.setPersistent();
-        ((BossEntityAccess) bossEntity).setBoss(portalEntity.getPos(), portalEntity.getWorld().getRegistryKey().getValue().toString());
-        if (!dungeon.isBossLootAllowed()) {
-            ((DungeonMobAccess) bossEntity).setDungeonNoLoot(true);
-        }
-        strengthenMob(bossEntity, dungeon, difficulty, true);
-
-        if (dungeon.getBlockIdBlockReplacementMap().get(dungeon.getBossBlockId()) != -1) {
-            if (dungeon.getBlockIdBlockReplacementMap().get(dungeon.getBossBlockId()) == 0) {
-                world.removeBlock(portalEntity.getBossBlockPos(), false);
-            } else {
-                world.setBlockState(portalEntity.getBossBlockPos(), Registries.BLOCK.get(dungeon.getBlockIdBlockReplacementMap().get(dungeon.getBossBlockId())).getDefaultState(), 3);
+        if (bossEntity != null) {
+            bossEntity.initialize(world, world.getLocalDifficulty(portalEntity.getBossBlockPos()), SpawnReason.STRUCTURE, null, null);
+            bossEntity.setPersistent();
+            ((BossEntityAccess) bossEntity).setBoss(portalEntity.getPos(), portalEntity.getWorld().getRegistryKey().getValue().toString());
+            if (!dungeon.isBossLootAllowed()) {
+                ((DungeonMobAccess) bossEntity).setDungeonNoLoot(true);
             }
+            strengthenMob(bossEntity, dungeon, difficulty, true);
+
+            if (dungeon.getBlockIdBlockReplacementMap().get(dungeon.getBossBlockId()) != -1) {
+                if (dungeon.getBlockIdBlockReplacementMap().get(dungeon.getBossBlockId()) == 0) {
+                    world.removeBlock(portalEntity.getBossBlockPos(), false);
+                } else {
+                    world.setBlockState(portalEntity.getBossBlockPos(), Registries.BLOCK.get(dungeon.getBlockIdBlockReplacementMap().get(dungeon.getBossBlockId())).getDefaultState(), 3);
+                }
+            }
+            bossEntity.refreshPositionAndAngles(portalEntity.getBossBlockPos(), 360f * world.getRandom().nextFloat(), 0.0f);
+            world.spawnEntity(bossEntity);
+        } else {
+            LOGGER.warn("Failed to create boss entity for dungeon {} at {}", dungeon.getDungeonTypeId(), portalEntity.getBossBlockPos());
         }
-        bossEntity.refreshPositionAndAngles(portalEntity.getBossBlockPos(), 360f * world.getRandom().nextFloat(), 0.0f);
-        world.spawnEntity(bossEntity);
 
         // Refresh chests
         boolean useLootr = ConfigInit.CONFIG.lootrIntegration && LootrCompat.isLootrAvailable();

@@ -160,6 +160,8 @@
     "positive_effects": true,
     "mobs_loot": false,
     "boss_loot": false,
+    "hide_possible_loot": false,
+    "random_rotation": true,
     "max_group_size": 5,
     "min_group_size": 0,
     "required_level": 50,

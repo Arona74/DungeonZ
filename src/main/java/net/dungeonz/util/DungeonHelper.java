@@ -126,6 +126,7 @@ public class DungeonHelper {
             if (player.getWorld().getRegistryKey() == DimensionInit.DUNGEON_WORLD) {
                 ServerWorld oldWorld = ((ServerPlayerAccess) player).getOldServerWorld();
                 if (oldWorld != null) {
+                    returnCursorItemToInventory(player);
                     FabricDimensions.teleport(player, oldWorld, DungeonPlacementHandler.leave(player, oldWorld));
                     return;
                 }
@@ -188,6 +189,8 @@ public class DungeonHelper {
                             } else if (dungeonPortalEntity.getdungeonTeleportCountdown() <= 0) {
                                 dungeonPortalEntity.startDungeonTeleportCountdown(dungeonWorld);
                                 player.closeHandledScreen();
+                            } else {
+                                player.closeHandledScreen();
                             }
                         } else if (dungeonPortalEntity.getDungeonPlayerCount() <= 0 && dungeonPortalEntity.getdungeonTeleportCountdown() <= 0) {
                             dungeonPortalEntity.addWaitingUuid(requiredMinGroupUuid);
@@ -213,16 +216,27 @@ public class DungeonHelper {
     }
 
     public static void teleportPlayer(ServerPlayerEntity serverPlayerEntity, ServerWorld dungeonWorld, DungeonPortalEntity dungeonPortalEntity, BlockPos dungeonPortalPos) {
+        returnCursorItemToInventory(serverPlayerEntity);
         ServerPlayerEntity playerEntity = FabricDimensions.teleport(serverPlayerEntity, dungeonWorld, DungeonPlacementHandler.enter(serverPlayerEntity, dungeonWorld,
                 serverPlayerEntity.getServerWorld(), dungeonPortalEntity, dungeonPortalPos, dungeonPortalEntity.getDifficulty(), dungeonPortalEntity.getDungeon().isPositiveEffectsAllowed()));
 
+        if (playerEntity == null) return;
         DungeonServerPacket.writeS2CDungeonInfoPacket(playerEntity, dungeonPortalEntity.getDungeon().getBreakableBlockIdList(), dungeonPortalEntity.getDungeon().getplaceableBlockIdList(),
                 dungeonPortalEntity.getDungeon().isElytraAllowed());
+    }
+
+    private static void returnCursorItemToInventory(ServerPlayerEntity player) {
+        ItemStack cursor = player.currentScreenHandler.getCursorStack();
+        if (!cursor.isEmpty()) {
+            player.currentScreenHandler.setCursorStack(ItemStack.EMPTY);
+            player.getInventory().offerOrDrop(cursor);
+        }
     }
 
     public static void teleportOutOfDungeon(ServerPlayerEntity player) {
         ServerWorld oldWorld = ((ServerPlayerAccess) player).getOldServerWorld();
         if (oldWorld != null) {
+            returnCursorItemToInventory(player);
             FabricDimensions.teleport(player, oldWorld, DungeonPlacementHandler.leave(player, oldWorld));
         } else {
             Vec3d spawnPos = null;
