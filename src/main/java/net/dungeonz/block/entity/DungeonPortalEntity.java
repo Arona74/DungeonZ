@@ -52,6 +52,7 @@ import java.util.Map.Entry;
 public class DungeonPortalEntity extends EndPortalBlockEntity implements ExtendedScreenHandlerFactory<DungeonPortalPacket> {
 
     public static final java.util.concurrent.CopyOnWriteArraySet<DungeonPortalEntity> ACTIVE_TIMER_PORTALS = new java.util.concurrent.CopyOnWriteArraySet<>();
+    public static final java.util.concurrent.CopyOnWriteArraySet<DungeonPortalEntity> ACTIVE_BOSS_PORTALS = new java.util.concurrent.CopyOnWriteArraySet<>();
 
     private static final Logger LOGGER = LogManager.getLogger("DungeonPortal");
 
@@ -73,6 +74,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     // to avoid NBT size limits. See DungeonDataManager and DungeonRuntimeData classes.
     private BlockPos bossBlockPos = new BlockPos(0, 0, 0);
     private BlockPos bossLootBlockPos = new BlockPos(0, 0, 0);
+    private UUID bossEntityUuid = null;
     private int dungeonTeleportCountdown = 0;
     private boolean needsMigration = false;
     private NbtCompound pendingMigrationData = null;
@@ -117,6 +119,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         if (bossLootPos.length > 0) {
             this.bossLootBlockPos = new BlockPos(bossLootPos[0], bossLootPos[1], bossLootPos[2]);
         }
+        this.bossEntityUuid = nbt.contains("BossEntityUuid") ? nbt.getUuid("BossEntityUuid") : null;
 
         // MIGRATION: Check if this is old format (has large runtime data in NBT)
         boolean isOldFormat = nbt.contains("BlockMapSize") || nbt.contains("MovingPosSize") ||
@@ -277,6 +280,9 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         // Boss positions (small, always needed)
         nbt.putIntArray("BossPos", List.of(this.bossBlockPos.getX(), this.bossBlockPos.getY(), this.bossBlockPos.getZ()));
         nbt.putIntArray("BossLootPos", List.of(this.bossLootBlockPos.getX(), this.bossLootBlockPos.getY(), this.bossLootBlockPos.getZ()));
+        if (this.bossEntityUuid != null) {
+            nbt.putUuid("BossEntityUuid", this.bossEntityUuid);
+        }
 
         // If migration from old format hasn't completed yet, preserve old data in NBT
         // to prevent data loss if chunk is saved before first serverTick
@@ -557,6 +563,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
     }
 
     public void finishDungeon(ServerWorld world, BlockPos pos) {
+        this.bossEntityUuid = null;
+        ACTIVE_BOSS_PORTALS.remove(this);
         List<PlayerEntity> players = world.getPlayers(TargetPredicate.createAttackable().setBaseMaxDistance(64.0), null, new Box(pos).expand(64.0, 64.0, 64.0));
         for (PlayerEntity player : players) {
             CriteriaInit.DUNGEON_COMPLETION.trigger((ServerPlayerEntity) player, this.getDungeonType(), this.getDifficulty());
@@ -842,6 +850,19 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     public BlockPos getBossBlockPos() {
         return this.bossBlockPos;
+    }
+
+    public void setBossEntityUuid(UUID uuid) {
+        this.bossEntityUuid = uuid;
+        if (uuid != null) {
+            ACTIVE_BOSS_PORTALS.add(this);
+        } else {
+            ACTIVE_BOSS_PORTALS.remove(this);
+        }
+    }
+
+    public UUID getBossEntityUuid() {
+        return this.bossEntityUuid;
     }
 
     public void setBossLootBlockPos(BlockPos pos) {

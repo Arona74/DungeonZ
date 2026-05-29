@@ -575,6 +575,9 @@ public class DungeonPlacementHandler {
         }
         bossEntity.refreshPositionAndAngles(portalEntity.getBossBlockPos(), 360f * world.getRandom().nextFloat(), 0.0f);
         world.spawnEntity(bossEntity);
+        portalEntity.setBossEntityUuid(bossEntity.getUuid());
+        DungeonzMain.LOGGER.info("[DungeonZ] Boss spawned: type={} uuid={} pos={}",
+                bossEntity.getType().toString(), bossEntity.getUuidAsString(), bossEntity.getBlockPos());
 
         // Refresh chests
         boolean useLootr = ConfigInit.CONFIG.lootrIntegration && LootrCompat.isLootrAvailable();

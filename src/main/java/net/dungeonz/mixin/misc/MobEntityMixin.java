@@ -1,5 +1,7 @@
 package net.dungeonz.mixin.misc;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
@@ -24,6 +26,9 @@ import net.minecraft.world.World;
 
 @Mixin(MobEntity.class)
 public abstract class MobEntityMixin extends LivingEntity implements BossEntityAccess, DungeonMobAccess {
+
+    @Unique
+    private static final Logger DUNGEONZ_LOGGER = LogManager.getLogger("DungeonZ");
 
     @Unique
     private boolean isDungeonBossEntity = false;
@@ -74,17 +79,23 @@ public abstract class MobEntityMixin extends LivingEntity implements BossEntityA
     @Override
     public void onDeath(DamageSource damageSource) {
         if (!this.getWorld().isClient() && this.isDungeonBossEntity) {
+            DUNGEONZ_LOGGER.info("[DungeonZ] Boss onDeath fired via mixin for {} at {} (portal={}, world={})",
+                    this.getType().toString(), this.getBlockPos(), this.portalPos, this.worldRegistryKey);
             ServerWorld nonDungeonWorld = getWorld().getServer().getWorld(RegistryKey.of(RegistryKeys.WORLD, Identifier.of(this.worldRegistryKey)));
 
-            if (nonDungeonWorld != null && nonDungeonWorld.getBlockEntity(this.portalPos) != null && nonDungeonWorld.getBlockEntity(this.portalPos) instanceof DungeonPortalEntity) {
-                ((DungeonPortalEntity) nonDungeonWorld.getBlockEntity(this.portalPos)).finishDungeon((ServerWorld) this.getWorld(), this.getBlockPos());
-            } else {
+            if (nonDungeonWorld == null) {
+                DUNGEONZ_LOGGER.warn("[DungeonZ] Boss death: overworld '{}' not found - falling back to portal block", this.worldRegistryKey);
                 this.getWorld().setBlockState(this.getBlockPos(), BlockInit.DUNGEON_PORTAL.getDefaultState());
+            } else if (!(nonDungeonWorld.getBlockEntity(this.portalPos) instanceof DungeonPortalEntity)) {
+                DUNGEONZ_LOGGER.warn("[DungeonZ] Boss death: no DungeonPortalEntity at {} in world '{}' (found: {}) - falling back to portal block",
+                        this.portalPos, this.worldRegistryKey, nonDungeonWorld.getBlockEntity(this.portalPos));
+                this.getWorld().setBlockState(this.getBlockPos(), BlockInit.DUNGEON_PORTAL.getDefaultState());
+            } else {
+                DUNGEONZ_LOGGER.info("[DungeonZ] Boss death: calling finishDungeon for portal at {}", this.portalPos);
+                ((DungeonPortalEntity) nonDungeonWorld.getBlockEntity(this.portalPos)).finishDungeon((ServerWorld) this.getWorld(), this.getBlockPos());
             }
-
         }
         super.onDeath(damageSource);
-
     }
 
     @Override

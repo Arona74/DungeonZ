@@ -59,6 +59,32 @@ public class DungeonzMain implements ModInitializer {
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             long time = server.getOverworld().getTime();
+
+            // Fallback boss-death detection: runs every 100 ticks regardless of portal chunk load state.
+            // Catches modded bosses that override onDeath() without calling super.
+            if (time % 100 == 0) {
+                ServerWorld dungeonWorld = server.getWorld(DimensionInit.DUNGEON_WORLD);
+                if (dungeonWorld != null) {
+                    for (DungeonPortalEntity portal : DungeonPortalEntity.ACTIVE_BOSS_PORTALS) {
+                        java.util.UUID bossUuid = portal.getBossEntityUuid();
+                        if (bossUuid == null) {
+                            DungeonPortalEntity.ACTIVE_BOSS_PORTALS.remove(portal);
+                            continue;
+                        }
+                        net.minecraft.entity.Entity boss = dungeonWorld.getEntity(bossUuid);
+                        if (boss == null || boss.isRemoved()) {
+                            LOGGER.info("[DungeonZ] Boss {} {} in dungeon world - triggering dungeon completion for portal at {}",
+                                    bossUuid, boss == null ? "not found" : "is removed", portal.getPos());
+                            portal.setBossEntityUuid(null);
+                            portal.finishDungeon(dungeonWorld, portal.getBossBlockPos());
+                        } else {
+                            LOGGER.debug("[DungeonZ] Boss tick check: {} ({}) still alive at {}",
+                                    bossUuid, boss.getType().toString(), boss.getBlockPos());
+                        }
+                    }
+                }
+            }
+
             for (DungeonPortalEntity portal : DungeonPortalEntity.ACTIVE_TIMER_PORTALS) {
                 if (!portal.isDungeonTimerActive()) {
                     DungeonPortalEntity.ACTIVE_TIMER_PORTALS.remove(portal);
