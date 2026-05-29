@@ -35,6 +35,7 @@ import net.minecraft.util.math.BlockPos;
 
 public class DungeonServerPacket {
 
+
     public static final Identifier DUNGEON_INFO_PACKET = new Identifier("dungeonz", "dungeon_info");
 
     public static final Identifier DUNGEON_TELEPORT_PACKET = new Identifier("dungeonz", "dungeon_teleport");
@@ -72,6 +73,14 @@ public class DungeonServerPacket {
             BlockPos pos = buffer.readBlockPos();
             server.execute(() -> {
                 openGuis.computeIfAbsent(pos, k -> ConcurrentHashMap.newKeySet()).add(player.getUuid());
+                // Immediately push current portal state to the newly opened viewer
+                net.minecraft.block.entity.BlockEntity be = player.getServerWorld().getBlockEntity(pos);
+                if (!(be instanceof DungeonPortalEntity)) {
+                    be = server.getOverworld().getBlockEntity(pos);
+                }
+                if (be instanceof DungeonPortalEntity entity) {
+                    entity.syncGuiToAllViewers();
+                }
             });
         });
         
@@ -355,6 +364,14 @@ public class DungeonServerPacket {
         // Add Timer data to the sync packet
         buf.writeBoolean(dungeonPortalEntity.isDungeonTimerActive());
         buf.writeInt(dungeonPortalEntity.getDungeonTimeRemaining());
+
+        // Add dead player UUIDs and cooldown time for viewer screens
+        List<UUID> deadPlayerUUIDs = dungeonPortalEntity.getDeadDungeonPlayerUuids();
+        buf.writeInt(deadPlayerUUIDs.size());
+        for (UUID uuid : deadPlayerUUIDs) {
+            buf.writeUuid(uuid);
+        }
+        buf.writeInt(dungeonPortalEntity.getCooldownTime());
 
         CustomPayloadS2CPacket packet = new CustomPayloadS2CPacket(SYNC_SCREEN_PACKET, buf);
 

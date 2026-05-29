@@ -33,6 +33,7 @@ import net.minecraft.util.math.BlockPos;
 @Environment(EnvType.CLIENT)
 public class DungeonClientPacket {
 
+
     public static void init() {
         ClientPlayNetworking.registerGlobalReceiver(DungeonServerPacket.DUNGEON_INFO_PACKET, (client, handler, buf, sender) -> {
             List<Integer> breakableBlockIdList = buf.readIntList();
@@ -70,26 +71,27 @@ public class DungeonClientPacket {
             // Read the Timer data
             boolean dungeonTimerActive = buf.readBoolean();
             int dungeonTimeRemaining = buf.readInt();
-            
+
+            // Read dead player UUIDs and cooldown time
+            int deadPlayerCount = buf.readInt();
+            List<UUID> deadPlayerUUIDs = new ArrayList<>();
+            for (int i = 0; i < deadPlayerCount; i++) {
+                deadPlayerUUIDs.add(buf.readUuid());
+            }
+            int cooldownTime = buf.readInt();
+
             client.execute(() -> {
                 if (client.player != null && client.player.currentScreenHandler instanceof DungeonPortalScreenHandler screenHandler) {
                     if (screenHandler.getPos().equals(pos)) {
-                        // Update all the data
                         screenHandler.getDungeonPortalEntity().setDifficulty(difficulty);
                         screenHandler.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
                         screenHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
-
-                        // Update the boolean values
                         screenHandler.getDungeonPortalEntity().setPrivateGroup(privateGroup);
-
-                        // Update the timer data
+                        screenHandler.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadPlayerUUIDs);
+                        screenHandler.getDungeonPortalEntity().setCooldownTime(cooldownTime);
                         screenHandler.setDungeonTimerActive(dungeonTimerActive);
                         screenHandler.setDungeonTimeRemaining(dungeonTimeRemaining);
-                        
-                        // Update the required items for the current difficulty
                         screenHandler.getRequiredItemStacks().put(difficulty, requiredItems);
-                        
-                        // Refresh the screen if it's open
                         if (client.currentScreen instanceof DungeonPortalScreen portalScreen) {
                             portalScreen.refresh();
                         }
@@ -100,6 +102,8 @@ public class DungeonClientPacket {
                         superHandler.getDungeonPortalEntity().setDungeonPlayerUuids(dungeonPlayerUUIDs);
                         superHandler.getDungeonPortalEntity().setWaitingUuids(waitingUUIDs);
                         superHandler.getDungeonPortalEntity().setPrivateGroup(privateGroup);
+                        superHandler.getDungeonPortalEntity().setDeadDungeonPlayerUuids(deadPlayerUUIDs);
+                        superHandler.getDungeonPortalEntity().setCooldownTime(cooldownTime);
                         superHandler.setDungeonTimerActive(dungeonTimerActive);
                         superHandler.setDungeonTimeRemaining(dungeonTimeRemaining);
                         superHandler.getRequiredItemStacks().put(difficulty, requiredItems);

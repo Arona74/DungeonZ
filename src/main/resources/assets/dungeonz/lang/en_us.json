@@ -26,6 +26,7 @@
 
     "container.dungeon_portal": "Dungeon Portal",
 
+    "dungeon.task.start": "Start",
     "dungeon.task.join": "Join",
     "dungeon.task.leave": "Leave",
     "dungeon.task.leave_waiting": "Refund",

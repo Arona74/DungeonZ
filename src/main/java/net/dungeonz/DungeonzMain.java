@@ -62,9 +62,9 @@ public class DungeonzMain implements ModInitializer {
 
         ServerTickEvents.END_SERVER_TICK.register(server -> {
             long time = server.getOverworld().getTime();
-            for (DungeonPortalEntity portal : DungeonPortalEntity.ACTIVE_TIMER_PORTALS) {
+            for (DungeonPortalEntity portal : DungeonPortalEntity.ACTIVE_TIMER_PORTALS.values()) {
                 if (!portal.isDungeonTimerActive()) {
-                    DungeonPortalEntity.ACTIVE_TIMER_PORTALS.remove(portal);
+                    DungeonPortalEntity.ACTIVE_TIMER_PORTALS.remove(portal.getPos());
                     continue;
                 }
                 if (portal.isDungeonTimerExpired()) {

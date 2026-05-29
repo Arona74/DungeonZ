@@ -50,7 +50,7 @@ import java.util.Map.Entry;
 
 public class DungeonPortalEntity extends EndPortalBlockEntity implements ExtendedScreenHandlerFactory {
 
-    public static final java.util.concurrent.CopyOnWriteArraySet<DungeonPortalEntity> ACTIVE_TIMER_PORTALS = new java.util.concurrent.CopyOnWriteArraySet<>();
+    public static final java.util.concurrent.ConcurrentHashMap<BlockPos, DungeonPortalEntity> ACTIVE_TIMER_PORTALS = new java.util.concurrent.ConcurrentHashMap<>();
 
     private Text title = Text.translatable("container.dungeon_portal");
     private String dungeonType = "";
@@ -532,71 +532,101 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
     @Override
     public void writeScreenOpeningData(ServerPlayerEntity player, PacketByteBuf buf) {
-        buf.writeBlockPos(this.pos);
-        buf.writeBlockPos(this.pos);
+        // Order must exactly match DungeonPortalScreenHandler(PacketByteBuf) constructor
+
+        // 1. BlockPos
         buf.writeBlockPos(this.pos);
 
+        // 2. Dungeon player UUIDs
         buf.writeInt(this.getDungeonPlayerCount());
-        for (int i = 0; i < this.getDungeonPlayerCount(); i++) {
-            buf.writeUuid(this.getDungeonPlayerUuids().get(i));
+        for (UUID uuid : this.getDungeonPlayerUuids()) {
+            buf.writeUuid(uuid);
         }
+
+        // 3. Dead player UUIDs
         buf.writeInt(this.getDeadDungeonPlayerUuids().size());
-        for (int i = 0; i < this.getDeadDungeonPlayerUuids().size(); i++) {
-            buf.writeUuid(this.getDeadDungeonPlayerUuids().get(i));
+        for (UUID uuid : this.getDeadDungeonPlayerUuids()) {
+            buf.writeUuid(uuid);
         }
 
-        if (this.getDungeon() != null) {
-            // Difficulty
-            buf.writeInt(this.getDungeon().getDifficultyList().size());
-            for (int i = 0; i < this.getDungeon().getDifficultyList().size(); i++) {
-                buf.writeString(this.getDungeon().getDifficultyList().get(i));
-            }
-            // Possible Loot Items
-            Map<String, List<ItemStack>> possibleLoot = this.getDungeon().isHidePossibleLoot() ? new java.util.HashMap<>() : DungeonHelper.getPossibleLootItemStackMap(this.getDungeon(), player.getServer());
-            buf.writeInt(possibleLoot.size());
-            Iterator<Entry<String, List<ItemStack>>> possibleLootIterator = possibleLoot.entrySet().iterator();
-            while (possibleLootIterator.hasNext()) {
-                Entry<String, List<ItemStack>> entry = possibleLootIterator.next();
-                buf.writeString(entry.getKey());
-                buf.writeInt(entry.getValue().size());
-                for (int i = 0; i < entry.getValue().size(); i++) {
-                    buf.writeItemStack(entry.getValue().get(i));
-                }
-            }
-            // Required Items
-            Map<String, List<ItemStack>> requiredItem = DungeonHelper.getRequiredItemStackList(this.getDungeon());
-            buf.writeInt(requiredItem.size());
-            Iterator<Entry<String, List<ItemStack>>> requiredItemIterator = requiredItem.entrySet().iterator();
-            while (requiredItemIterator.hasNext()) {
-                Entry<String, List<ItemStack>> entry = requiredItemIterator.next();
-                buf.writeString(entry.getKey());
-                buf.writeInt(entry.getValue().size());
-                for (int i = 0; i < entry.getValue().size(); i++) {
-                    buf.writeItemStack(entry.getValue().get(i));
-                }
-            }
-        } else {
-            buf.writeInt(0);
-            buf.writeInt(0);
-            buf.writeInt(0);
+        // 4. Waiting UUIDs
+        buf.writeInt(this.getWaitingUuids().size());
+        for (UUID uuid : this.getWaitingUuids()) {
+            buf.writeUuid(uuid);
         }
 
+        // 5. Difficulties
+        List<String> difficultyList = this.getDungeon() != null ? this.getDungeon().getDifficultyList() : new ArrayList<>();
+        buf.writeInt(difficultyList.size());
+        for (String d : difficultyList) {
+            buf.writeString(d);
+        }
+
+        // 6. Possible loot
+        Map<String, List<ItemStack>> possibleLoot = (this.getDungeon() != null && !this.getDungeon().isHidePossibleLoot())
+                ? DungeonHelper.getPossibleLootItemStackMap(this.getDungeon(), player.getServer())
+                : new java.util.HashMap<>();
+        buf.writeInt(possibleLoot.size());
+        for (Entry<String, List<ItemStack>> entry : possibleLoot.entrySet()) {
+            buf.writeString(entry.getKey());
+            buf.writeInt(entry.getValue().size());
+            for (ItemStack stack : entry.getValue()) {
+                buf.writeItemStack(stack);
+            }
+        }
+
+        // 7. Required items
+        Map<String, List<ItemStack>> requiredItems = this.getDungeon() != null
+                ? DungeonHelper.getRequiredItemStackList(this.getDungeon())
+                : new java.util.HashMap<>();
+        buf.writeInt(requiredItems.size());
+        for (Entry<String, List<ItemStack>> entry : requiredItems.entrySet()) {
+            buf.writeString(entry.getKey());
+            buf.writeInt(entry.getValue().size());
+            for (ItemStack stack : entry.getValue()) {
+                buf.writeItemStack(stack);
+            }
+        }
+
+        // 8. Numeric fields: maxGroupSize, minGroupSize, waitingGroupSize, requiredLevel, cooldownTime
         buf.writeInt(this.getMaxGroupSize());
         buf.writeInt(this.getMinGroupSize());
         buf.writeInt(this.getWaitingUuids().size());
-        for (int i = 0; i < this.getWaitingUuids().size(); i++) {
-            buf.writeUuid(this.getWaitingUuids().get(i));
-        }
+        buf.writeInt(this.getDungeon() != null ? this.getDungeon().getRequiredLevel() : 0);
         buf.writeInt(this.getCooldownTime());
+
+        // 9. Difficulty string
         buf.writeString(this.getDifficulty());
+
+        // 10. Booleans (order matches client reads: enderPearl, positiveEffects, elytra, respawn, mobsLoot, bossLoot, keepInventory, privateGroup)
+        buf.writeBoolean(this.getDungeon() != null && this.getDungeon().isEnderPearlAllowed());
+        buf.writeBoolean(this.getDungeon() != null && this.getDungeon().isPositiveEffectsAllowed());
+        buf.writeBoolean(this.getDungeon() != null && this.getDungeon().isElytraAllowed());
+        buf.writeBoolean(this.getDungeon() != null && this.getDungeon().isRespawnAllowed());
+        buf.writeBoolean(this.getDungeon() != null && this.getDungeon().isMobsLootAllowed());
+        buf.writeBoolean(this.getDungeon() != null && this.getDungeon().isBossLootAllowed());
+        buf.writeBoolean(this.getDungeon() != null && this.getDungeon().isKeepInventory());
         buf.writeBoolean(this.getPrivateGroup());
 
-        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isElytraAllowed() : false);
-        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isRespawnAllowed() : false);
-        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isMobsLootAllowed() : true);
-        buf.writeBoolean(this.getDungeon() != null ? this.getDungeon().isBossLootAllowed() : true);
-        buf.writeBoolean(this.isDungeonTimerActive());
-        buf.writeInt(this.getDungeonTimeRemaining());
+        // 11. Optional background ID
+        net.minecraft.util.Identifier bgId = this.getDungeon() != null ? this.getDungeon().getBackgroundId() : null;
+        buf.writeBoolean(bgId != null);
+        if (bgId != null) {
+            buf.writeIdentifier(bgId);
+        }
+
+        // 12. Timestamp (consumed but not used by client)
+        buf.writeLong(System.currentTimeMillis());
+
+        // 13. Fame rewards
+        java.util.Map<String, Integer> fameRewards = this.getDungeon() != null
+                ? DungeonHelper.getFameRewardMap(this.getDungeon())
+                : new java.util.HashMap<>();
+        buf.writeInt(fameRewards.size());
+        for (java.util.Map.Entry<String, Integer> entry : fameRewards.entrySet()) {
+            buf.writeString(entry.getKey());
+            buf.writeInt(entry.getValue());
+        }
     }
 
     public void finishDungeon(ServerWorld world, BlockPos pos) {
@@ -649,6 +679,8 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
 
         this.stopDungeonTimer();
         this.setCooldownTime(this.getDungeon().getCooldown() + (int) this.getWorld().getTime());
+        this.getDungeonPlayerUuids().clear();
+        this.getDeadDungeonPlayerUuids().clear();
         markDirty();
     }
 
@@ -1083,7 +1115,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
             this.dungeonTimerActive = true;
             this.markDirty();
             this.syncGuiToAllViewers();
-            ACTIVE_TIMER_PORTALS.add(this);
+            ACTIVE_TIMER_PORTALS.put(this.pos, this);
         }
     }
 
@@ -1091,7 +1123,7 @@ public class DungeonPortalEntity extends EndPortalBlockEntity implements Extende
         this.dungeonTimerActive = false;
         this.markDirty();
         this.syncGuiToAllViewers();
-        ACTIVE_TIMER_PORTALS.remove(this);
+        ACTIVE_TIMER_PORTALS.remove(this.pos);
     }
 
     public boolean isDungeonTimerActive() {

@@ -20,6 +20,7 @@
 
     "container.dungeon_portal": "Portail du Donjon",
 
+    "dungeon.task.start": "Démarrer",
     "dungeon.task.join": "Rejoindre",
     "dungeon.task.leave": "Quitter",
     "dungeon.task.leave_waiting": "Renoncer",

@@ -126,8 +126,15 @@ public class DungeonHelper {
             if (player.getWorld().getRegistryKey() == DimensionInit.DUNGEON_WORLD) {
                 ServerWorld oldWorld = ((ServerPlayerAccess) player).getOldServerWorld();
                 if (oldWorld != null) {
+                    DungeonPortalEntity exitPortalEntity = getDungeonPortalEntity(player);
                     returnCursorItemToInventory(player);
                     FabricDimensions.teleport(player, oldWorld, DungeonPlacementHandler.leave(player, oldWorld));
+                    if (exitPortalEntity != null && exitPortalEntity.getDungeon() != null && exitPortalEntity.getDungeonPlayerCount() == 0) {
+                        exitPortalEntity.setCooldownTime(exitPortalEntity.getDungeon().getCooldown() + (int) oldWorld.getTime());
+                        exitPortalEntity.stopDungeonTimer();
+                        exitPortalEntity.getDeadDungeonPlayerUuids().clear();
+                        exitPortalEntity.markDirty();
+                    }
                     return;
                 }
             } else {

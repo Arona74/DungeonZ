@@ -27,6 +27,9 @@ public class CommandInit {
                     dungeonPortalEntity.leaveDungeon(source.getPlayer().getUuid());
                     if (dungeonPortalEntity.getDungeonPlayerCount() == 0) {
                         dungeonPortalEntity.setCooldownTime(dungeonPortalEntity.getDungeon().getCooldown() + (int) source.getPlayer().getServerWorld().getTime());
+                        dungeonPortalEntity.stopDungeonTimer();
+                        dungeonPortalEntity.getDeadDungeonPlayerUuids().clear();
+                        dungeonPortalEntity.markDirty();
                     }
                 }
                 DungeonHelper.teleportOutOfDungeon(source.getPlayer());
