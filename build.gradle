@@ -61,6 +61,8 @@ dependencies {
     modCompileOnly ('noobanidus.mods.lootr:lootr-fabric:1.21.1-1.11.36.110') {
         exclude(group: "net.fabricmc.fabric-api")
     }
+    // Trinkets
+    modCompileOnly files("libs/trinkets-3.10.0.jar")
 
 }
 

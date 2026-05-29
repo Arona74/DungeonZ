@@ -8,6 +8,7 @@
 - Add mobs_loot Option (allow mobs to loot when dying, default to true)
 - Add boss_loot Option (allow boss to loot when dying, default to true)
 - Add dungeon super portal block, allowing survival players to select the dungeon they want to do
+- Add Trinkets compatibility with KeepInventory dungeon setting
 - Display Run & Cooldown timers on portal screen
 - Display dead player names in red with "(dead)" suffix on portal screen if allowRespawn is false
 - Better support of modded bosses (now checks if the boss entity is still alive or not)
@@ -25,6 +26,8 @@
 - Cooldown properly set when leaving unfinished dungeon through portal block
 - Dead list properly cleared when exiting the dungeon
 - Portal screens properly refreshed when dungeon state changed
+- Held item won't disappear anymore when player is teleported in or out of dungeon
+- Prevent crash if boss spawn block is null
 ### Changed:
 - Dungeon portal and Dungeon super portal blocks are now using a full block shape when solo and portal shape when multiblock.
 - Dungeon portal and Dungeon super portal now use their own textures instead of the end portal look (can be toggle in config to use the end portal rendering instead)
