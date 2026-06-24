@@ -9,6 +9,7 @@ import net.dungeonz.block.entity.DungeonGateEntity;
 import net.dungeonz.block.entity.DungeonPortalEntity;
 import net.dungeonz.block.entity.DungeonSpawnerEntity;
 import net.dungeonz.compat.LootrCompat;
+import net.dungeonz.init.AttributeInit;
 import net.dungeonz.init.BlockInit;
 import net.dungeonz.init.ConfigInit;
 import net.dungeonz.init.TagInit;
@@ -784,6 +785,9 @@ public class DungeonPlacementHandler {
         }
         if (hasSpeedAttribute) {
             mobEntity.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED).setBaseValue(mobSpeed);
+        }
+        if (mobEntity.getAttributes().hasAttribute(AttributeInit.SPELL_POWER)) {
+            mobEntity.getAttributeInstance(AttributeInit.SPELL_POWER).setBaseValue(damageFactor);
         }
         if (DungeonzMain.isRpgDifficultyLoaded) {
             MobStrengthener.setMobHealthMultiplier(mobEntity, healthFactor);
