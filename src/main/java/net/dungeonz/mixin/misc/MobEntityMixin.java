@@ -7,13 +7,16 @@ import org.spongepowered.asm.mixin.Unique;
 import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
+import org.spongepowered.asm.mixin.injection.callback.CallbackInfoReturnable;
 
 import net.dungeonz.access.BossEntityAccess;
 import net.dungeonz.access.DungeonMobAccess;
 import net.dungeonz.block.entity.DungeonPortalEntity;
+import net.dungeonz.init.AttributeInit;
 import net.dungeonz.init.BlockInit;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.LivingEntity;
+import net.minecraft.entity.attribute.DefaultAttributeContainer;
 import net.minecraft.entity.damage.DamageSource;
 import net.minecraft.entity.mob.MobEntity;
 import net.minecraft.nbt.NbtCompound;
@@ -41,6 +44,11 @@ public abstract class MobEntityMixin extends LivingEntity implements BossEntityA
 
     public MobEntityMixin(EntityType<? extends LivingEntity> entityType, World world) {
         super(entityType, world);
+    }
+
+    @Inject(method = "createMobAttributes", at = @At("RETURN"), cancellable = true)
+    private static void dungeonz_addSpellPower(CallbackInfoReturnable<DefaultAttributeContainer.Builder> cir) {
+        cir.setReturnValue(cir.getReturnValue().add(AttributeInit.SPELL_POWER));
     }
 
     @Inject(method = "writeCustomDataToNbt", at = @At("TAIL"))

@@ -748,6 +748,9 @@ public class DungeonPlacementHandler {
         if (hasSpeedAttribute) {
             mobEntity.getAttributeInstance(EntityAttributes.GENERIC_MOVEMENT_SPEED).setBaseValue(mobSpeed);
         }
+        if (mobEntity.getAttributes().hasAttribute(net.dungeonz.init.AttributeInit.SPELL_POWER)) {
+            mobEntity.getAttributeInstance(net.dungeonz.init.AttributeInit.SPELL_POWER).setBaseValue(damageFactor);
+        }
         if (DungeonzMain.isRpgDifficultyLoaded) {
             MobStrengthener.setMobHealthMultiplier(mobEntity, healthFactor);
         }

@@ -10,6 +10,7 @@
     "PlayerEntityMixin",
     "ServerPlayerInteractionManagerMixin",
     "misc.MobEntityMixin",
+    "misc.LivingEntitySpellMixin",
     "misc.ExplosionMixin",
     "misc.EnderPearlEntityMixin",
     "misc.WindChargeEntityMixin",

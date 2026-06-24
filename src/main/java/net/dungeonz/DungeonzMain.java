@@ -7,6 +7,7 @@ import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
 
 import net.dungeonz.dungeon.Dungeon;
+import net.dungeonz.init.AttributeInit;
 import net.dungeonz.init.BlockInit;
 import net.dungeonz.init.CommandInit;
 import net.dungeonz.init.ParticleInit;
@@ -44,6 +45,7 @@ public class DungeonzMain implements ModInitializer {
 
     @Override
     public void onInitialize() {
+        AttributeInit.init();
         BlockInit.init();
         ParticleInit.init();
         DimensionInit.init();

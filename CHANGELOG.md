@@ -12,6 +12,7 @@
 - Display Run & Cooldown timers on portal screen
 - Display dead player names in red with "(dead)" suffix on portal screen if allowRespawn is false
 - Better support of modded bosses (now checks if the boss entity is still alive or not)
+- Add spell_power attribute to scale spells damage from mobs (example fangs from Evoker)
 ### Fixed:
 - Fixed Dungeon Compass out of bound crash with fancymenu (Thanks listnt)
 - Hybrid NBT + File Data Management for Portal block entity
